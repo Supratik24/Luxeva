@@ -1,16 +1,25 @@
-import { createProxyMiddleware, fixRequestBody } from "http-proxy-middleware";
+import { createProxyMiddleware } from "http-proxy-middleware";
 import { attachErrorHandlers, createServiceApp } from "@luxeva/shared";
 
-const app = createServiceApp({ serviceName: "api-gateway", rateLimitMax: 300 });
+const app = createServiceApp({ serviceName: "api-gateway", rateLimitMax: 300, parseBody: false });
+
+const restreamBody = (proxyReq, req) => {
+  if (!req.body || !Object.keys(req.body).length) {
+    return;
+  }
+
+  const bodyData = JSON.stringify(req.body);
+  proxyReq.setHeader("Content-Type", "application/json");
+  proxyReq.setHeader("Content-Length", Buffer.byteLength(bodyData));
+  proxyReq.write(bodyData);
+};
 
 const proxyConfig = (target, prefix) => ({
   target,
   changeOrigin: true,
   xfwd: true,
   pathRewrite: (path) => `${prefix}${path}`,
-  on: {
-    proxyReq: fixRequestBody
-  },
+  onProxyReq: restreamBody,
   logLevel: "warn"
 });
 
