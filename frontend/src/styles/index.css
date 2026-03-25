@@ -1,0 +1,85 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-mist text-ink font-sans antialiased transition-colors duration-300;
+  background-image: radial-gradient(circle at top left, rgba(198, 155, 83, 0.15), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(169, 107, 79, 0.12), transparent 20%);
+}
+
+.dark body {
+  @apply bg-[#101010] text-white;
+  background-image: radial-gradient(circle at top left, rgba(198, 155, 83, 0.1), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(234, 217, 200, 0.1), transparent 20%);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(79, 90, 69, 0.55) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(79, 90, 69, 0.4);
+  border-radius: 999px;
+}
+
+.glass {
+  @apply border border-white/30 bg-white/75 backdrop-blur-xl dark:border-white/10 dark:bg-white/5;
+}
+
+.section-shell {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+.eyebrow {
+  @apply text-xs font-semibold uppercase tracking-[0.32em] text-olive/80 dark:text-sand/80;
+}
+
+.headline {
+  @apply font-display text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl;
+}
+
+.text-muted {
+  @apply text-sm text-ink/65 dark:text-white/65;
+}
+
+.card-hover {
+  @apply transition duration-300 hover:-translate-y-1 hover:shadow-soft;
+}
+
+.hero-glow {
+  box-shadow: 0 40px 130px rgba(198, 155, 83, 0.18);
+}
+
+.shimmer {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.06) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}

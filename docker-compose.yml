@@ -1,0 +1,114 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: luxeva-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: luxeva-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.workspace
+      args:
+        WORKSPACE: services/auth-service
+    env_file: .env.example
+    depends_on:
+      - mongo
+      - redis
+    ports:
+      - "4001:4001"
+
+  catalog-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.workspace
+      args:
+        WORKSPACE: services/catalog-service
+    env_file: .env.example
+    depends_on:
+      - mongo
+      - redis
+    ports:
+      - "4002:4002"
+
+  order-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.workspace
+      args:
+        WORKSPACE: services/order-service
+    env_file: .env.example
+    depends_on:
+      - mongo
+      - redis
+    ports:
+      - "4003:4003"
+
+  content-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.workspace
+      args:
+        WORKSPACE: services/content-service
+    env_file: .env.example
+    depends_on:
+      - mongo
+      - redis
+    ports:
+      - "4004:4004"
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.workspace
+      args:
+        WORKSPACE: services/notification-service
+    env_file: .env.example
+    depends_on:
+      - mongo
+      - redis
+    ports:
+      - "4005:4005"
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.workspace
+      args:
+        WORKSPACE: services/api-gateway
+    env_file: .env.example
+    depends_on:
+      - auth-service
+      - catalog-service
+      - order-service
+      - content-service
+      - notification-service
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.workspace
+      args:
+        WORKSPACE: frontend
+    env_file: .env.example
+    depends_on:
+      - api-gateway
+    ports:
+      - "5173:5173"
+
+volumes:
+  mongo_data:

@@ -1,0 +1,22 @@
+{
+  "name": "luxeva-commerce-platform",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "frontend",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace services/api-gateway\" \"npm run dev --workspace services/auth-service\" \"npm run dev --workspace services/catalog-service\" \"npm run dev --workspace services/order-service\" \"npm run dev --workspace services/content-service\" \"npm run dev --workspace services/notification-service\" \"npm run dev --workspace frontend\"",
+    "dev:backend": "concurrently \"npm run dev --workspace services/api-gateway\" \"npm run dev --workspace services/auth-service\" \"npm run dev --workspace services/catalog-service\" \"npm run dev --workspace services/order-service\" \"npm run dev --workspace services/content-service\" \"npm run dev --workspace services/notification-service\"",
+    "seed": "node scripts/seed-all.js"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "mongoose": "^8.9.0"
+  }
+}

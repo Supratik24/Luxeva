@@ -1,0 +1,231 @@
+import crypto from "crypto";
+import nodemailer from "nodemailer";
+import {
+  ApiError,
+  asyncHandler,
+  getRedis,
+  sendSuccess,
+  signToken
+} from "@luxeva/shared";
+import Address from "../models/Address.js";
+import User from "../models/User.js";
+
+const createAuthPayload = (user) => ({
+  token: signToken({
+    id: user._id,
+    email: user.email,
+    role: user.role,
+    name: user.name
+  }),
+  user: {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    avatar: user.avatar,
+    phone: user.phone
+  }
+});
+
+const maybeSendResetEmail = async (email, token) => {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    return;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 2525),
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
+    }
+  });
+
+  await transporter.sendMail({
+    from: "support@luxeva.local",
+    to: email,
+    subject: "Reset your Luxeva password",
+    text: `Use this reset token to update your password: ${token}`
+  });
+};
+
+export const signup = asyncHandler(async (req, res) => {
+  const existingUser = await User.findOne({ email: req.body.email });
+  if (existingUser) {
+    throw new ApiError(409, "An account with this email already exists");
+  }
+
+  const user = await User.create({
+    name: req.body.name,
+    email: req.body.email,
+    password: req.body.password,
+    phone: req.body.phone
+  });
+
+  sendSuccess(res, 201, "Account created successfully", createAuthPayload(user));
+});
+
+export const login = asyncHandler(async (req, res) => {
+  const user = await User.findOne({ email: req.body.email });
+  if (!user || !(await user.comparePassword(req.body.password))) {
+    throw new ApiError(401, "Invalid email or password");
+  }
+
+  if (!user.isActive) {
+    throw new ApiError(403, "This account has been disabled");
+  }
+
+  sendSuccess(res, 200, "Login successful", createAuthPayload(user));
+});
+
+export const adminLogin = asyncHandler(async (req, res) => {
+  const user = await User.findOne({ email: req.body.email });
+  if (!user || !(await user.comparePassword(req.body.password)) || user.role !== "admin") {
+    throw new ApiError(401, "Invalid admin credentials");
+  }
+
+  sendSuccess(res, 200, "Admin login successful", createAuthPayload(user));
+});
+
+export const logout = asyncHandler(async (req, res) => {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+
+  if (token) {
+    const redis = getRedis();
+    await redis.set(`blacklist:${token}`, "1", "EX", 60 * 60 * 24 * 7);
+  }
+
+  sendSuccess(res, 200, "Logged out successfully");
+});
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const user = await User.findOne({ email: req.body.email });
+  if (!user) {
+    throw new ApiError(404, "No account found with that email");
+  }
+
+  const rawToken = crypto.randomBytes(20).toString("hex");
+  user.resetPasswordToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+  user.resetPasswordExpiresAt = new Date(Date.now() + 1000 * 60 * 30);
+  await user.save();
+
+  await maybeSendResetEmail(user.email, rawToken);
+
+  sendSuccess(res, 200, "Password reset instructions generated", {
+    resetToken: process.env.NODE_ENV === "production" ? undefined : rawToken
+  });
+});
+
+export const resetPassword = asyncHandler(async (req, res) => {
+  const hashedToken = crypto.createHash("sha256").update(req.params.token).digest("hex");
+
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpiresAt: { $gt: new Date() }
+  });
+
+  if (!user) {
+    throw new ApiError(400, "Reset token is invalid or expired");
+  }
+
+  user.password = req.body.password;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpiresAt = undefined;
+  await user.save();
+
+  sendSuccess(res, 200, "Password reset successfully");
+});
+
+export const getMe = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id).select("-password -resetPasswordToken");
+  const addresses = await Address.find({ user: req.user.id }).sort({ isDefault: -1, createdAt: -1 });
+
+  sendSuccess(res, 200, "Profile fetched successfully", {
+    user,
+    addresses
+  });
+});
+
+export const updateProfile = asyncHandler(async (req, res) => {
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    {
+      name: req.body.name,
+      phone: req.body.phone,
+      avatar: req.body.avatar
+    },
+    {
+      new: true,
+      runValidators: true
+    }
+  ).select("-password");
+
+  sendSuccess(res, 200, "Profile updated successfully", { user });
+});
+
+export const changePassword = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id);
+  if (!user || !(await user.comparePassword(req.body.currentPassword))) {
+    throw new ApiError(401, "Current password is incorrect");
+  }
+
+  user.password = req.body.newPassword;
+  await user.save();
+
+  sendSuccess(res, 200, "Password changed successfully");
+});
+
+export const listAddresses = asyncHandler(async (req, res) => {
+  const addresses = await Address.find({ user: req.user.id }).sort({ isDefault: -1, createdAt: -1 });
+  sendSuccess(res, 200, "Addresses fetched successfully", { addresses });
+});
+
+export const addAddress = asyncHandler(async (req, res) => {
+  if (req.body.isDefault) {
+    await Address.updateMany({ user: req.user.id }, { isDefault: false });
+  }
+
+  const address = await Address.create({
+    ...req.body,
+    user: req.user.id
+  });
+
+  if (address.isDefault) {
+    await User.findByIdAndUpdate(req.user.id, { defaultAddressId: address._id });
+  }
+
+  sendSuccess(res, 201, "Address added successfully", { address });
+});
+
+export const updateAddress = asyncHandler(async (req, res) => {
+  if (req.body.isDefault) {
+    await Address.updateMany({ user: req.user.id }, { isDefault: false });
+  }
+
+  const address = await Address.findOneAndUpdate(
+    { _id: req.params.id, user: req.user.id },
+    req.body,
+    { new: true, runValidators: true }
+  );
+
+  if (!address) {
+    throw new ApiError(404, "Address not found");
+  }
+
+  if (address.isDefault) {
+    await User.findByIdAndUpdate(req.user.id, { defaultAddressId: address._id });
+  }
+
+  sendSuccess(res, 200, "Address updated successfully", { address });
+});
+
+export const deleteAddress = asyncHandler(async (req, res) => {
+  const address = await Address.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+  if (!address) {
+    throw new ApiError(404, "Address not found");
+  }
+
+  sendSuccess(res, 200, "Address removed successfully");
+});
+
