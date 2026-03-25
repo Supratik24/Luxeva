@@ -26,6 +26,8 @@ export const endpoints = {
     adminLogin: "/api/auth/admin/login",
     me: "/api/auth/me",
     forgotPassword: "/api/auth/forgot-password",
+    verifyResetOtp: "/api/auth/verify-reset-otp",
+    resetPasswordOtp: "/api/auth/reset-password-otp",
     resetPassword: (token) => `/api/auth/reset-password/${token}`,
     logout: "/api/auth/logout",
     profile: "/api/auth/profile",
@@ -73,4 +75,3 @@ export const endpoints = {
 };
 
 export default api;
-

@@ -46,7 +46,10 @@ const userSchema = new mongoose.Schema(
       }
     ],
     resetPasswordToken: String,
-    resetPasswordExpiresAt: Date
+    resetPasswordExpiresAt: Date,
+    resetPasswordOtpHash: String,
+    resetPasswordOtpExpiresAt: Date,
+    resetPasswordOtpVerifiedAt: Date
   },
   {
     timestamps: true
@@ -69,4 +72,3 @@ userSchema.methods.comparePassword = function comparePassword(candidatePassword)
 const User = mongoose.model("User", userSchema);
 
 export default User;
-

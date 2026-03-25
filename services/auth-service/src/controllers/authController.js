@@ -9,6 +9,7 @@ import {
 } from "@luxeva/shared";
 import Address from "../models/Address.js";
 import User from "../models/User.js";
+import { sendResetOtp as sendMsg91ResetOtp, verifyResetOtp as verifyMsg91ResetOtp } from "../utils/msg91.js";
 
 const createAuthPayload = (user) => ({
   token: signToken({
@@ -49,6 +50,23 @@ const maybeSendResetEmail = async (email, token) => {
   });
 };
 
+const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+const hashOtp = (otp) => crypto.createHash("sha256").update(String(otp)).digest("hex");
+const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
+const maskPhone = (phone = "") => {
+  const digits = String(phone).replace(/\D/g, "");
+  return `${"*".repeat(Math.max(digits.length - 4, 0))}${digits.slice(-4)}`;
+};
+
+const assertStrongPassword = (password) => {
+  if (!strongPasswordRegex.test(String(password || ""))) {
+    throw new ApiError(
+      422,
+      "Password must be 8+ characters and include uppercase, lowercase, number, and special character"
+    );
+  }
+};
+
 export const signup = asyncHandler(async (req, res) => {
   const email = String(req.body.email || "").trim().toLowerCase();
   const name = String(req.body.name || "").trim();
@@ -58,6 +76,8 @@ export const signup = asyncHandler(async (req, res) => {
   if (existingUser) {
     throw new ApiError(409, "An account with this email already exists");
   }
+
+  assertStrongPassword(req.body.password);
 
   const user = await User.create({
     name,
@@ -112,19 +132,97 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     throw new ApiError(404, "No account found with that email");
   }
 
-  const rawToken = crypto.randomBytes(20).toString("hex");
-  user.resetPasswordToken = crypto.createHash("sha256").update(rawToken).digest("hex");
-  user.resetPasswordExpiresAt = new Date(Date.now() + 1000 * 60 * 30);
+  if (!user.phone) {
+    throw new ApiError(400, "This account does not have a phone number configured for OTP reset");
+  }
+
+  const otp = generateOtp();
+  user.resetPasswordOtpHash = hashOtp(otp);
+  user.resetPasswordOtpExpiresAt = new Date(Date.now() + 1000 * 60 * 10);
+  user.resetPasswordOtpVerifiedAt = undefined;
   await user.save();
 
-  await maybeSendResetEmail(user.email, rawToken);
+  await sendMsg91ResetOtp({
+    phone: user.phone,
+    otp
+  });
 
-  sendSuccess(res, 200, "Password reset instructions generated", {
-    resetToken: process.env.NODE_ENV === "production" ? undefined : rawToken
+  await maybeSendResetEmail(
+    user.email,
+    `Password reset OTP requested for your account. OTP sent to phone ending ${maskPhone(user.phone)}`
+  );
+
+  sendSuccess(res, 200, "Password reset OTP sent successfully", {
+    maskedPhone: maskPhone(user.phone),
+    email
   });
 });
 
+export const verifyResetOtp = asyncHandler(async (req, res) => {
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const otp = String(req.body.otp || "").trim();
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ApiError(404, "No account found with that email");
+  }
+
+  if (!user.resetPasswordOtpHash || !user.resetPasswordOtpExpiresAt || user.resetPasswordOtpExpiresAt < new Date()) {
+    throw new ApiError(400, "OTP is invalid or expired");
+  }
+
+  if (user.resetPasswordOtpHash !== hashOtp(otp)) {
+    throw new ApiError(400, "Incorrect OTP");
+  }
+
+  await verifyMsg91ResetOtp({
+    phone: user.phone,
+    otp
+  });
+
+  user.resetPasswordOtpVerifiedAt = new Date();
+  await user.save();
+
+  sendSuccess(res, 200, "OTP verified successfully");
+});
+
+export const resetPasswordWithOtp = asyncHandler(async (req, res) => {
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const otp = String(req.body.otp || "").trim();
+
+  assertStrongPassword(req.body.password);
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ApiError(404, "No account found with that email");
+  }
+
+  if (!user.resetPasswordOtpHash || !user.resetPasswordOtpExpiresAt || user.resetPasswordOtpExpiresAt < new Date()) {
+    throw new ApiError(400, "OTP is invalid or expired");
+  }
+
+  if (user.resetPasswordOtpHash !== hashOtp(otp)) {
+    throw new ApiError(400, "Incorrect OTP");
+  }
+
+  await verifyMsg91ResetOtp({
+    phone: user.phone,
+    otp
+  });
+
+  user.password = req.body.password;
+  user.resetPasswordOtpHash = undefined;
+  user.resetPasswordOtpExpiresAt = undefined;
+  user.resetPasswordOtpVerifiedAt = undefined;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpiresAt = undefined;
+  await user.save();
+
+  sendSuccess(res, 200, "Password reset successfully");
+});
+
 export const resetPassword = asyncHandler(async (req, res) => {
+  assertStrongPassword(req.body.password);
   const hashedToken = crypto.createHash("sha256").update(req.params.token).digest("hex");
 
   const user = await User.findOne({
@@ -177,6 +275,7 @@ export const changePassword = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Current password is incorrect");
   }
 
+  assertStrongPassword(req.body.newPassword);
   user.password = req.body.newPassword;
   await user.save();
 

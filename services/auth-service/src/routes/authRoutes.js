@@ -12,9 +12,11 @@ import {
   login,
   logout,
   resetPassword,
+  resetPasswordWithOtp,
   signup,
   updateAddress,
-  updateProfile
+  updateProfile,
+  verifyResetOtp
 } from "../controllers/authController.js";
 
 const router = express.Router();
@@ -72,8 +74,45 @@ router.post(
   forgotPassword
 );
 router.post(
+  "/verify-reset-otp",
+  [
+    body("email")
+      .trim()
+      .isEmail()
+      .withMessage("Please enter a valid email address")
+      .normalizeEmail({ gmail_remove_dots: false }),
+    body("otp").isLength({ min: 4, max: 8 }).withMessage("Please enter a valid OTP")
+  ],
+  validateRequest,
+  verifyResetOtp
+);
+router.post(
+  "/reset-password-otp",
+  [
+    body("email")
+      .trim()
+      .isEmail()
+      .withMessage("Please enter a valid email address")
+      .normalizeEmail({ gmail_remove_dots: false }),
+    body("otp").isLength({ min: 4, max: 8 }).withMessage("Please enter a valid OTP"),
+    body("password")
+      .isLength({ min: 8 })
+      .withMessage("Password must be at least 8 characters long")
+      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/)
+      .withMessage("Password must include uppercase, lowercase, number, and special character")
+  ],
+  validateRequest,
+  resetPasswordWithOtp
+);
+router.post(
   "/reset-password/:token",
-  [body("password").isLength({ min: 6 })],
+  [
+    body("password")
+      .isLength({ min: 8 })
+      .withMessage("Password must be at least 8 characters long")
+      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/)
+      .withMessage("Password must include uppercase, lowercase, number, and special character")
+  ],
   validateRequest,
   resetPassword
 );
