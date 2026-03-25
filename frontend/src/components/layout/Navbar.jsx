@@ -4,6 +4,7 @@ import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useShop } from "../../contexts/ShopContext";
 import { cls } from "../../utils/format";
+import BrandMark from "../ui/BrandMark";
 import SearchBar from "../ui/SearchBar";
 import ThemeToggle from "../ui/ThemeToggle";
 
@@ -24,9 +25,7 @@ const Navbar = () => {
     <header className="sticky top-0 z-40 border-b border-white/20 bg-mist/80 backdrop-blur-xl dark:border-white/5 dark:bg-[#101010]/85">
       <div className="section-shell flex min-h-[86px] items-center gap-4">
         <Link to="/" className="mr-2 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ink text-white dark:bg-sand dark:text-ink">
-            LX
-          </div>
+          <BrandMark className="h-12 w-12 shrink-0" />
           <div>
             <p className="font-display text-3xl leading-none">Luxeva</p>
             <p className="text-[11px] uppercase tracking-[0.32em] text-ink/50 dark:text-white/45">Curated Commerce</p>
@@ -117,4 +116,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-

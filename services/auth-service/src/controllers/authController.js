@@ -1,5 +1,4 @@
 import crypto from "crypto";
-import { OAuth2Client } from "google-auth-library";
 import nodemailer from "nodemailer";
 import {
   ApiError,
@@ -75,12 +74,38 @@ const maybeSendResetEmail = async (email, resetLink) => {
 const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 const hashOtp = (otp) => crypto.createHash("sha256").update(String(otp)).digest("hex");
 const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const maskPhone = (phone = "") => {
   const digits = String(phone).replace(/\D/g, "");
   return `${"*".repeat(Math.max(digits.length - 4, 0))}${digits.slice(-4)}`;
 };
 const generateProviderPassword = () => `${crypto.randomBytes(16).toString("hex")}Aa!9`;
+
+const verifyGoogleCredential = async (credential) => {
+  const response = await fetch(
+    `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(String(credential || ""))}`
+  );
+
+  if (!response.ok) {
+    throw new ApiError(401, "Google sign-in token is invalid or expired");
+  }
+
+  const payload = await response.json();
+  const allowedAudiences = [process.env.GOOGLE_CLIENT_ID, process.env.VITE_GOOGLE_CLIENT_ID].filter(Boolean);
+
+  if (!allowedAudiences.length) {
+    throw new ApiError(503, "Google sign-in is not configured on the server");
+  }
+
+  if (!allowedAudiences.includes(payload.aud)) {
+    throw new ApiError(401, "Google sign-in token audience mismatch");
+  }
+
+  if (payload.email_verified !== "true") {
+    throw new ApiError(401, "Google account email could not be verified");
+  }
+
+  return payload;
+};
 
 const assertStrongPassword = (password) => {
   if (!strongPasswordRegex.test(String(password || ""))) {
@@ -128,17 +153,9 @@ export const login = asyncHandler(async (req, res) => {
 });
 
 export const googleLogin = asyncHandler(async (req, res) => {
-  if (!process.env.GOOGLE_CLIENT_ID) {
-    throw new ApiError(503, "Google sign-in is not configured on the server");
-  }
+  const payload = await verifyGoogleCredential(req.body.credential);
 
-  const ticket = await googleClient.verifyIdToken({
-    idToken: req.body.credential,
-    audience: process.env.GOOGLE_CLIENT_ID
-  });
-  const payload = ticket.getPayload();
-
-  if (!payload?.email || !payload.email_verified) {
+  if (!payload?.email) {
     throw new ApiError(401, "Google account email could not be verified");
   }
 
