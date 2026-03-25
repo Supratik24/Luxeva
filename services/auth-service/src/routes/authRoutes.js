@@ -15,6 +15,7 @@ import {
   resetPassword,
   resetPasswordWithOtp,
   signup,
+  verifySignupOtp,
   updateAddress,
   updateProfile,
   verifyResetOtp
@@ -31,10 +32,28 @@ router.post(
       .isEmail()
       .withMessage("Please enter a valid email address")
       .normalizeEmail({ gmail_remove_dots: false }),
-    body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters long")
+    body("phone").trim().notEmpty().withMessage("Phone number is required"),
+    body("password")
+      .isLength({ min: 8 })
+      .withMessage("Password must be at least 8 characters long")
+      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/)
+      .withMessage("Password must include uppercase, lowercase, number, and special character")
   ],
   validateRequest,
   signup
+);
+router.post(
+  "/signup/verify-otp",
+  [
+    body("email")
+      .trim()
+      .isEmail()
+      .withMessage("Please enter a valid email address")
+      .normalizeEmail({ gmail_remove_dots: false }),
+    body("otp").isLength({ min: 4, max: 8 }).withMessage("Please enter a valid OTP")
+  ],
+  validateRequest,
+  verifySignupOtp
 );
 router.post(
   "/login",

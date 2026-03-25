@@ -22,6 +22,7 @@ export const endpoints = {
   },
   auth: {
     signup: "/api/auth/signup",
+    verifySignupOtp: "/api/auth/signup/verify-otp",
     login: "/api/auth/login",
     google: "/api/auth/google",
     adminLogin: "/api/auth/admin/login",

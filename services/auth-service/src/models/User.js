@@ -36,6 +36,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true
     },
+    isVerified: {
+      type: Boolean,
+      default: true
+    },
     defaultAddressId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Address"
@@ -54,7 +58,9 @@ const userSchema = new mongoose.Schema(
     resetPasswordExpiresAt: Date,
     resetPasswordOtpHash: String,
     resetPasswordOtpExpiresAt: Date,
-    resetPasswordOtpVerifiedAt: Date
+    resetPasswordOtpVerifiedAt: Date,
+    signupOtpHash: String,
+    signupOtpExpiresAt: Date
   },
   {
     timestamps: true

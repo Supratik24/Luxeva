@@ -9,7 +9,7 @@ import {
 } from "@luxeva/shared";
 import Address from "../models/Address.js";
 import User from "../models/User.js";
-import { sendResetOtp as sendTwoFactorResetOtp } from "../utils/twoFactor.js";
+import { sendResetOtp as sendTwoFactorOtp } from "../utils/twoFactor.js";
 
 const createAuthPayload = (user) => ({
   token: signToken({
@@ -79,6 +79,7 @@ const maskPhone = (phone = "") => {
   return `${"*".repeat(Math.max(digits.length - 4, 0))}${digits.slice(-4)}`;
 };
 const generateProviderPassword = () => `${crypto.randomBytes(16).toString("hex")}Aa!9`;
+const signupOtpTtlMs = 1000 * 60 * 10;
 
 const verifyGoogleCredential = async (credential) => {
   const response = await fetch(
@@ -120,22 +121,80 @@ export const signup = asyncHandler(async (req, res) => {
   const email = String(req.body.email || "").trim().toLowerCase();
   const name = String(req.body.name || "").trim();
   const phone = String(req.body.phone || "").trim();
+  const otp = generateOtp();
 
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
+  if (!phone) {
+    throw new ApiError(422, "Phone number is required for signup OTP verification");
+  }
+
+  let user = await User.findOne({ email });
+  if (user?.isVerified) {
     throw new ApiError(409, "An account with this email already exists");
   }
 
   assertStrongPassword(req.body.password);
 
-  const user = await User.create({
-    name,
-    email,
-    password: req.body.password,
-    phone
+  if (user && user.role === "admin") {
+    throw new ApiError(409, "An account with this email already exists");
+  }
+
+  if (!user) {
+    user = new User({
+      name,
+      email,
+      password: req.body.password,
+      phone,
+      isVerified: false
+    });
+  } else {
+    user.name = name;
+    user.password = req.body.password;
+    user.phone = phone;
+    user.isVerified = false;
+  }
+
+  user.signupOtpHash = hashOtp(otp);
+  user.signupOtpExpiresAt = new Date(Date.now() + signupOtpTtlMs);
+  await user.save();
+
+  await sendTwoFactorOtp({
+    phone: user.phone,
+    otp
   });
 
-  sendSuccess(res, 201, "Account created successfully", createAuthPayload(user));
+  sendSuccess(res, 202, "Signup OTP sent successfully", {
+    email,
+    maskedPhone: maskPhone(user.phone)
+  });
+});
+
+export const verifySignupOtp = asyncHandler(async (req, res) => {
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const otp = String(req.body.otp || "").trim();
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ApiError(404, "No pending signup found for that email");
+  }
+
+  if (user.isVerified) {
+    throw new ApiError(409, "This account is already verified");
+  }
+
+  if (!user.signupOtpHash || !user.signupOtpExpiresAt || user.signupOtpExpiresAt < new Date()) {
+    throw new ApiError(400, "Signup OTP is invalid or expired");
+  }
+
+  if (user.signupOtpHash !== hashOtp(otp)) {
+    throw new ApiError(400, "Incorrect signup OTP");
+  }
+
+  user.isVerified = true;
+  user.signupOtpHash = undefined;
+  user.signupOtpExpiresAt = undefined;
+  await user.save();
+
+  sendSuccess(res, 200, "Account verified successfully", createAuthPayload(user));
 });
 
 export const login = asyncHandler(async (req, res) => {
@@ -143,6 +202,10 @@ export const login = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email });
   if (!user || !(await user.comparePassword(req.body.password))) {
     throw new ApiError(401, "Invalid email or password");
+  }
+
+  if (!user.isVerified) {
+    throw new ApiError(403, "Please verify your signup OTP before logging in");
   }
 
   if (!user.isActive) {
@@ -170,7 +233,8 @@ export const googleLogin = asyncHandler(async (req, res) => {
       email,
       password: generateProviderPassword(),
       avatar: payload.picture,
-      googleId: payload.sub
+      googleId: payload.sub,
+      isVerified: true
     });
   } else {
     let shouldSave = false;
@@ -261,7 +325,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   user.resetPasswordOtpVerifiedAt = undefined;
   await user.save();
 
-  await sendTwoFactorResetOtp({
+  await sendTwoFactorOtp({
     phone: user.phone,
     otp
   });
