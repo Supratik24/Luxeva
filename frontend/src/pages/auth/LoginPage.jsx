@@ -1,7 +1,9 @@
+import { Eye, EyeOff } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Meta from "../../components/ui/Meta";
 import { useAuth } from "../../contexts/AuthContext";
+import { normalizeEmail, validateEmail } from "../../utils/authValidation";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -9,13 +11,44 @@ const LoginPage = () => {
   const { login } = useAuth();
   const [values, setValues] = useState({ email: "", password: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const validateForm = () => {
+    const nextErrors = {};
+
+    if (!validateEmail(values.email)) {
+      nextErrors.email = "Please enter a valid email address";
+    }
+
+    if (!values.password) {
+      nextErrors.password = "Password is required";
+    }
+
+    return nextErrors;
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    const nextErrors = validateForm();
+    setErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length) {
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await login(values);
+      await login({
+        ...values,
+        email: normalizeEmail(values.email)
+      });
       navigate(location.state?.from?.pathname || "/dashboard");
+    } catch (error) {
+      setErrors((current) => ({
+        ...current,
+        form: error?.response?.data?.message || "Login failed"
+      }));
     } finally {
       setSubmitting(false);
     }
@@ -29,9 +62,39 @@ const LoginPage = () => {
           <p className="eyebrow">Welcome back</p>
           <h1 className="mt-3 font-display text-5xl">Login</h1>
           <div className="mt-8 space-y-4">
-            <input value={values.email} onChange={(e) => setValues((s) => ({ ...s, email: e.target.value }))} type="email" placeholder="Email" className="w-full rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10" />
-            <input value={values.password} onChange={(e) => setValues((s) => ({ ...s, password: e.target.value }))} type="password" placeholder="Password" className="w-full rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10" />
+            <div>
+              <input
+                value={values.email}
+                onChange={(e) => setValues((s) => ({ ...s, email: e.target.value.toLowerCase() }))}
+                type="email"
+                placeholder="Email"
+                autoCapitalize="none"
+                spellCheck="false"
+                className="w-full rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm lowercase outline-none dark:border-white/10"
+              />
+              {errors.email ? <p className="mt-2 text-xs text-[#b42318] dark:text-[#ff8a80]">{errors.email}</p> : null}
+            </div>
+            <div>
+              <div className="relative">
+                <input
+                  value={values.password}
+                  onChange={(e) => setValues((s) => ({ ...s, password: e.target.value }))}
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
+                  className="w-full rounded-2xl border border-ink/10 bg-transparent px-4 py-3 pr-12 text-sm outline-none dark:border-white/10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((value) => !value)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-ink/50 dark:text-white/60"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {errors.password ? <p className="mt-2 text-xs text-[#b42318] dark:text-[#ff8a80]">{errors.password}</p> : null}
+            </div>
           </div>
+          {errors.form ? <p className="mt-4 text-sm text-[#b42318] dark:text-[#ff8a80]">{errors.form}</p> : null}
           <div className="mt-4 flex items-center justify-between text-sm">
             <Link to="/forgot-password" className="text-olive">Forgot password?</Link>
             <Link to="/signup" className="text-olive">Create account</Link>
@@ -46,4 +109,3 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
-

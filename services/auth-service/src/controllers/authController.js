@@ -9,7 +9,7 @@ import {
 } from "@luxeva/shared";
 import Address from "../models/Address.js";
 import User from "../models/User.js";
-import { sendResetOtp as sendMsg91ResetOtp, verifyResetOtp as verifyMsg91ResetOtp } from "../utils/msg91.js";
+import { sendResetOtp as sendTwoFactorResetOtp } from "../utils/twoFactor.js";
 
 const createAuthPayload = (user) => ({
   token: signToken({
@@ -142,7 +142,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   user.resetPasswordOtpVerifiedAt = undefined;
   await user.save();
 
-  await sendMsg91ResetOtp({
+  await sendTwoFactorResetOtp({
     phone: user.phone,
     otp
   });
@@ -175,11 +175,6 @@ export const verifyResetOtp = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Incorrect OTP");
   }
 
-  await verifyMsg91ResetOtp({
-    phone: user.phone,
-    otp
-  });
-
   user.resetPasswordOtpVerifiedAt = new Date();
   await user.save();
 
@@ -204,11 +199,6 @@ export const resetPasswordWithOtp = asyncHandler(async (req, res) => {
   if (user.resetPasswordOtpHash !== hashOtp(otp)) {
     throw new ApiError(400, "Incorrect OTP");
   }
-
-  await verifyMsg91ResetOtp({
-    phone: user.phone,
-    otp
-  });
 
   user.password = req.body.password;
   user.resetPasswordOtpHash = undefined;
