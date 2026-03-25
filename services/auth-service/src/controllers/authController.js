@@ -29,25 +29,38 @@ const createAuthPayload = (user) => ({
 });
 
 const maybeSendResetEmail = async (email, token) => {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    return;
+  if (
+    !process.env.SMTP_HOST ||
+    !process.env.SMTP_USER ||
+    !process.env.SMTP_PASS ||
+    process.env.SMTP_USER === "replace-me" ||
+    process.env.SMTP_PASS === "replace-me"
+  ) {
+    return false;
   }
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 2525),
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    }
-  });
+  try {
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT || 2525),
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }
+    });
 
-  await transporter.sendMail({
-    from: "support@luxeva.local",
-    to: email,
-    subject: "Reset your Luxeva password",
-    text: `Use this reset token to update your password: ${token}`
-  });
+    await transporter.sendMail({
+      from: "support@luxeva.local",
+      to: email,
+      subject: "Reset your Luxeva password",
+      text: `Use this reset token to update your password: ${token}`
+    });
+
+    return true;
+  } catch (error) {
+    console.warn(`Reset email delivery skipped: ${error.message}`);
+    return false;
+  }
 };
 
 const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
