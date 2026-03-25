@@ -128,7 +128,7 @@ export const signup = asyncHandler(async (req, res) => {
   }
 
   let user = await User.findOne({ email });
-  if (user?.isVerified) {
+  if (user && user.isVerified !== false) {
     throw new ApiError(409, "An account with this email already exists");
   }
 
@@ -177,7 +177,7 @@ export const verifySignupOtp = asyncHandler(async (req, res) => {
     throw new ApiError(404, "No pending signup found for that email");
   }
 
-  if (user.isVerified) {
+  if (user.isVerified !== false) {
     throw new ApiError(409, "This account is already verified");
   }
 
@@ -204,7 +204,7 @@ export const login = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Invalid email or password");
   }
 
-  if (!user.isVerified) {
+  if (user.isVerified === false) {
     throw new ApiError(403, "Please verify your signup OTP before logging in");
   }
 

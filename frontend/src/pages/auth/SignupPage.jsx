@@ -6,6 +6,7 @@ import Meta from "../../components/ui/Meta";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   getPasswordError,
+  maskPhone,
   normalizeEmail,
   validateEmail,
   validatePasswordStrength,
@@ -14,12 +15,15 @@ import {
 
 const SignupPage = () => {
   const navigate = useNavigate();
-  const { signup, googleLogin } = useAuth();
+  const { signup, verifySignupOtp, googleLogin } = useAuth();
   const [values, setValues] = useState({ name: "", email: "", password: "", confirmPassword: "", phone: "" });
+  const [otp, setOtp] = useState("");
+  const [otpSentTo, setOtpSentTo] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
+  const [step, setStep] = useState("details");
 
   const validateForm = () => {
     const nextErrors = {};
@@ -32,7 +36,9 @@ const SignupPage = () => {
       nextErrors.email = "Please enter a valid email address";
     }
 
-    if (values.phone && !validatePhone(values.phone)) {
+    if (!values.phone.trim()) {
+      nextErrors.phone = "Phone number is required";
+    } else if (!validatePhone(values.phone)) {
       nextErrors.phone = "Please enter a valid phone number";
     }
 
@@ -64,11 +70,62 @@ const SignupPage = () => {
         email: normalizeEmail(values.email),
         phone: values.phone.trim()
       });
-      navigate("/dashboard");
+      setOtpSentTo(maskPhone(values.phone.trim()));
+      setStep("otp");
+      setOtp("");
     } catch (apiError) {
       setErrors((current) => ({
         ...current,
         form: apiError?.response?.data?.details?.[0]?.msg || apiError?.response?.data?.message || "Signup failed"
+      }));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleVerifyOtp = async (event) => {
+    event.preventDefault();
+
+    if (!otp.trim()) {
+      setErrors({ otp: "Please enter the OTP sent to your phone" });
+      return;
+    }
+
+    setSubmitting(true);
+    setErrors({});
+
+    try {
+      await verifySignupOtp({
+        email: normalizeEmail(values.email),
+        otp
+      });
+      navigate("/dashboard");
+    } catch (apiError) {
+      setErrors((current) => ({
+        ...current,
+        otp: apiError?.response?.data?.message || "OTP verification failed"
+      }));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setSubmitting(true);
+    setErrors({});
+
+    try {
+      await signup({
+        ...values,
+        name: values.name.trim(),
+        email: normalizeEmail(values.email),
+        phone: values.phone.trim()
+      });
+      setOtpSentTo(maskPhone(values.phone.trim()));
+    } catch (apiError) {
+      setErrors((current) => ({
+        ...current,
+        otp: apiError?.response?.data?.message || "Failed to resend OTP"
       }));
     } finally {
       setSubmitting(false);
@@ -98,9 +155,50 @@ const SignupPage = () => {
     <section className="section-shell py-12">
       <Meta title="Create account" description="Create a Luxeva customer account." />
       <div className="mx-auto max-w-lg">
-        <form onSubmit={handleSubmit} className="glass rounded-[2rem] p-8 shadow-soft">
+        <form onSubmit={step === "otp" ? handleVerifyOtp : handleSubmit} className="glass rounded-[2rem] p-8 shadow-soft">
           <p className="eyebrow">Join Luxeva</p>
-          <h1 className="mt-3 font-display text-5xl">Create account</h1>
+          <h1 className="mt-3 font-display text-5xl">{step === "details" ? "Create account" : "Verify OTP"}</h1>
+          {step === "otp" ? (
+            <>
+              <p className="mt-4 text-sm text-ink/65 dark:text-white/65">
+                Enter the OTP sent to {otpSentTo || maskPhone(values.phone)} to finish creating your account.
+              </p>
+              <div className="mt-8 space-y-4">
+                <div>
+                  <input
+                    value={otp}
+                    onChange={(e) => {
+                      setOtp(e.target.value);
+                      setErrors((current) => ({ ...current, otp: "" }));
+                    }}
+                    type="text"
+                    placeholder="Enter OTP"
+                    className="w-full rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10"
+                  />
+                  {errors.otp ? <p className="mt-2 text-xs text-[#b42318] dark:text-[#ff8a80]">{errors.otp}</p> : null}
+                </div>
+              </div>
+              <button type="submit" disabled={submitting} className="mt-8 w-full rounded-full bg-ink px-6 py-4 text-sm font-semibold text-white">
+                {submitting ? "Verifying..." : "Verify OTP"}
+              </button>
+              <div className="mt-4 flex items-center justify-between text-sm">
+                <button type="button" onClick={handleResendOtp} disabled={submitting} className="text-olive">
+                  Resend OTP
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep("details");
+                    setErrors({});
+                  }}
+                  className="text-ink/60 dark:text-white/60"
+                >
+                  Edit details
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
           <div className="mt-8 space-y-4">
             <div>
               <input
@@ -202,6 +300,8 @@ const SignupPage = () => {
           <div className="mt-6">
             <GoogleAuthButton text="signup_with" onCredential={handleGoogleSignup} />
           </div>
+            </>
+          )}
         </form>
       </div>
     </section>

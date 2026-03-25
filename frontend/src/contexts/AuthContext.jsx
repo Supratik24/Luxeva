@@ -65,11 +65,26 @@ export const AuthProvider = ({ children }) => {
         phone: String(values.phone || "").trim()
       };
       const { data } = await api.post(endpoints.auth.signup, payload);
-      persistSession(data);
-      toast.success("Account created");
+      toast.success(`Signup OTP sent to ${data.maskedPhone}`);
       return data;
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Signup failed"));
+      throw error;
+    }
+  };
+
+  const verifySignupOtp = async (values) => {
+    try {
+      const payload = {
+        email: String(values.email || "").trim().toLowerCase(),
+        otp: String(values.otp || "").trim()
+      };
+      const { data } = await api.post(endpoints.auth.verifySignupOtp, payload);
+      persistSession(data);
+      toast.success("Account verified");
+      return data;
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "OTP verification failed"));
       throw error;
     }
   };
@@ -109,6 +124,7 @@ export const AuthProvider = ({ children }) => {
       login,
       googleLogin,
       signup,
+      verifySignupOtp,
       logout,
       refreshProfile: fetchProfile,
       setUser
