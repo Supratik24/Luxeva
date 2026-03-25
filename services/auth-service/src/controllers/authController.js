@@ -50,23 +50,28 @@ const maybeSendResetEmail = async (email, token) => {
 };
 
 export const signup = asyncHandler(async (req, res) => {
-  const existingUser = await User.findOne({ email: req.body.email });
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const name = String(req.body.name || "").trim();
+  const phone = String(req.body.phone || "").trim();
+
+  const existingUser = await User.findOne({ email });
   if (existingUser) {
     throw new ApiError(409, "An account with this email already exists");
   }
 
   const user = await User.create({
-    name: req.body.name,
-    email: req.body.email,
+    name,
+    email,
     password: req.body.password,
-    phone: req.body.phone
+    phone
   });
 
   sendSuccess(res, 201, "Account created successfully", createAuthPayload(user));
 });
 
 export const login = asyncHandler(async (req, res) => {
-  const user = await User.findOne({ email: req.body.email });
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const user = await User.findOne({ email });
   if (!user || !(await user.comparePassword(req.body.password))) {
     throw new ApiError(401, "Invalid email or password");
   }
@@ -79,7 +84,8 @@ export const login = asyncHandler(async (req, res) => {
 });
 
 export const adminLogin = asyncHandler(async (req, res) => {
-  const user = await User.findOne({ email: req.body.email });
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const user = await User.findOne({ email });
   if (!user || !(await user.comparePassword(req.body.password)) || user.role !== "admin") {
     throw new ApiError(401, "Invalid admin credentials");
   }
@@ -100,7 +106,8 @@ export const logout = asyncHandler(async (req, res) => {
 });
 
 export const forgotPassword = asyncHandler(async (req, res) => {
-  const user = await User.findOne({ email: req.body.email });
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const user = await User.findOne({ email });
   if (!user) {
     throw new ApiError(404, "No account found with that email");
   }
@@ -228,4 +235,3 @@ export const deleteAddress = asyncHandler(async (req, res) => {
 
   sendSuccess(res, 200, "Address removed successfully");
 });
-

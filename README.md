@@ -134,10 +134,6 @@ npm run dev
 - Content service: `http://localhost:4004`
 - Notification service: `http://localhost:4005`
 
-## Seed Credentials
-
-- Admin: `admin@luxeva.com` / `Admin@123`
-- Customer: `maya@luxeva.com` / `User@123`
 
 ## Docker
 

@@ -22,21 +22,55 @@ const router = express.Router();
 router.post(
   "/signup",
   [
-    body("name").notEmpty(),
-    body("email").isEmail(),
-    body("password").isLength({ min: 6 })
+    body("name").trim().notEmpty().withMessage("Name is required"),
+    body("email")
+      .trim()
+      .isEmail()
+      .withMessage("Please enter a valid email address")
+      .normalizeEmail({ gmail_remove_dots: false }),
+    body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters long")
   ],
   validateRequest,
   signup
 );
-router.post("/login", [body("email").isEmail(), body("password").notEmpty()], validateRequest, login);
+router.post(
+  "/login",
+  [
+    body("email")
+      .trim()
+      .isEmail()
+      .withMessage("Please enter a valid email address")
+      .normalizeEmail({ gmail_remove_dots: false }),
+    body("password").notEmpty().withMessage("Password is required")
+  ],
+  validateRequest,
+  login
+);
 router.post(
   "/admin/login",
-  [body("email").isEmail(), body("password").notEmpty()],
+  [
+    body("email")
+      .trim()
+      .isEmail()
+      .withMessage("Please enter a valid email address")
+      .normalizeEmail({ gmail_remove_dots: false }),
+    body("password").notEmpty().withMessage("Password is required")
+  ],
   validateRequest,
   adminLogin
 );
-router.post("/forgot-password", [body("email").isEmail()], validateRequest, forgotPassword);
+router.post(
+  "/forgot-password",
+  [
+    body("email")
+      .trim()
+      .isEmail()
+      .withMessage("Please enter a valid email address")
+      .normalizeEmail({ gmail_remove_dots: false })
+  ],
+  validateRequest,
+  forgotPassword
+);
 router.post(
   "/reset-password/:token",
   [body("password").isLength({ min: 6 })],

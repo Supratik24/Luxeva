@@ -9,6 +9,9 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(Boolean(token));
 
+  const getApiErrorMessage = (error, fallback) =>
+    error?.response?.data?.details?.[0]?.msg || error?.response?.data?.message || fallback;
+
   const fetchProfile = async () => {
     if (!localStorage.getItem("luxeva_token")) {
       setLoading(false);
@@ -38,17 +41,37 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (values, admin = false) => {
-    const { data } = await api.post(admin ? endpoints.auth.adminLogin : endpoints.auth.login, values);
-    persistSession(data);
-    toast.success(admin ? "Admin access granted" : "Welcome back");
-    return data;
+    try {
+      const payload = {
+        ...values,
+        email: String(values.email || "").trim().toLowerCase()
+      };
+      const { data } = await api.post(admin ? endpoints.auth.adminLogin : endpoints.auth.login, payload);
+      persistSession(data);
+      toast.success(admin ? "Admin access granted" : "Welcome back");
+      return data;
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Login failed"));
+      throw error;
+    }
   };
 
   const signup = async (values) => {
-    const { data } = await api.post(endpoints.auth.signup, values);
-    persistSession(data);
-    toast.success("Account created");
-    return data;
+    try {
+      const payload = {
+        ...values,
+        name: String(values.name || "").trim(),
+        email: String(values.email || "").trim().toLowerCase(),
+        phone: String(values.phone || "").trim()
+      };
+      const { data } = await api.post(endpoints.auth.signup, payload);
+      persistSession(data);
+      toast.success("Account created");
+      return data;
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Signup failed"));
+      throw error;
+    }
   };
 
   const logout = async () => {
@@ -91,4 +114,3 @@ export const useAuth = () => {
 
   return context;
 };
-
