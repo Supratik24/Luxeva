@@ -8,6 +8,7 @@ import {
   deleteAddress,
   forgotPassword,
   getMe,
+  googleLogin,
   listAddresses,
   login,
   logout,
@@ -47,6 +48,12 @@ router.post(
   ],
   validateRequest,
   login
+);
+router.post(
+  "/google",
+  [body("credential").trim().notEmpty().withMessage("Google credential is required")],
+  validateRequest,
+  googleLogin
 );
 router.post(
   "/admin/login",

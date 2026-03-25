@@ -23,6 +23,7 @@ export const endpoints = {
   auth: {
     signup: "/api/auth/signup",
     login: "/api/auth/login",
+    google: "/api/auth/google",
     adminLogin: "/api/auth/admin/login",
     me: "/api/auth/me",
     forgotPassword: "/api/auth/forgot-password",

@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { OAuth2Client } from "google-auth-library";
 import nodemailer from "nodemailer";
 import {
   ApiError,
@@ -74,10 +75,12 @@ const maybeSendResetEmail = async (email, resetLink) => {
 const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 const hashOtp = (otp) => crypto.createHash("sha256").update(String(otp)).digest("hex");
 const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const maskPhone = (phone = "") => {
   const digits = String(phone).replace(/\D/g, "");
   return `${"*".repeat(Math.max(digits.length - 4, 0))}${digits.slice(-4)}`;
 };
+const generateProviderPassword = () => `${crypto.randomBytes(16).toString("hex")}Aa!9`;
 
 const assertStrongPassword = (password) => {
   if (!strongPasswordRegex.test(String(password || ""))) {
@@ -122,6 +125,64 @@ export const login = asyncHandler(async (req, res) => {
   }
 
   sendSuccess(res, 200, "Login successful", createAuthPayload(user));
+});
+
+export const googleLogin = asyncHandler(async (req, res) => {
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    throw new ApiError(503, "Google sign-in is not configured on the server");
+  }
+
+  const ticket = await googleClient.verifyIdToken({
+    idToken: req.body.credential,
+    audience: process.env.GOOGLE_CLIENT_ID
+  });
+  const payload = ticket.getPayload();
+
+  if (!payload?.email || !payload.email_verified) {
+    throw new ApiError(401, "Google account email could not be verified");
+  }
+
+  const email = String(payload.email).trim().toLowerCase();
+  let user = await User.findOne({
+    $or: [{ email }, { googleId: payload.sub }]
+  });
+
+  if (!user) {
+    user = await User.create({
+      name: String(payload.name || payload.given_name || "Google User").trim(),
+      email,
+      password: generateProviderPassword(),
+      avatar: payload.picture,
+      googleId: payload.sub
+    });
+  } else {
+    let shouldSave = false;
+
+    if (!user.googleId) {
+      user.googleId = payload.sub;
+      shouldSave = true;
+    }
+
+    if (!user.avatar && payload.picture) {
+      user.avatar = payload.picture;
+      shouldSave = true;
+    }
+
+    if (!user.name && payload.name) {
+      user.name = String(payload.name).trim();
+      shouldSave = true;
+    }
+
+    if (shouldSave) {
+      await user.save();
+    }
+  }
+
+  if (!user.isActive) {
+    throw new ApiError(403, "This account has been disabled");
+  }
+
+  sendSuccess(res, 200, "Google sign-in successful", createAuthPayload(user));
 });
 
 export const adminLogin = asyncHandler(async (req, res) => {

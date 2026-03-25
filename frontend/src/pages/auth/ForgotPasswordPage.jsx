@@ -12,6 +12,11 @@ const ForgotPasswordPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  const handleChannelChange = (nextChannel) => {
+    setChannel(nextChannel);
+    setError("");
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -37,7 +42,17 @@ const ForgotPasswordPage = () => {
         toast.success("Reset link sent to your email");
       }
     } catch (apiError) {
-      setError(apiError?.response?.data?.message || "Failed to send reset OTP");
+      const message = apiError?.response?.data?.message || "Failed to send reset OTP";
+
+      if (channel === "email") {
+        console.warn("Email reset link request failed", {
+          message,
+          response: apiError?.response?.data
+        });
+        return;
+      }
+
+      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -56,14 +71,14 @@ const ForgotPasswordPage = () => {
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <button
               type="button"
-              onClick={() => setChannel("sms")}
+              onClick={() => handleChannelChange("sms")}
               className={`rounded-2xl px-4 py-3 text-sm font-semibold ${channel === "sms" ? "bg-ink text-white" : "border border-ink/10 dark:border-white/10"}`}
             >
               SMS OTP
             </button>
             <button
               type="button"
-              onClick={() => setChannel("email")}
+              onClick={() => handleChannelChange("email")}
               className={`rounded-2xl px-4 py-3 text-sm font-semibold ${channel === "email" ? "bg-ink text-white" : "border border-ink/10 dark:border-white/10"}`}
             >
               Email Link
@@ -71,7 +86,10 @@ const ForgotPasswordPage = () => {
           </div>
           <input
             value={email}
-            onChange={(e) => setEmail(e.target.value.toLowerCase())}
+            onChange={(e) => {
+              setEmail(e.target.value.toLowerCase());
+              setError("");
+            }}
             type="email"
             placeholder="Email"
             autoCapitalize="none"

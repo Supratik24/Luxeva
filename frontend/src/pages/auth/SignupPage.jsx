@@ -1,6 +1,7 @@
 import { Check, Eye, EyeOff, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import GoogleAuthButton from "../../components/common/GoogleAuthButton";
 import Meta from "../../components/ui/Meta";
 import { useAuth } from "../../contexts/AuthContext";
 import {
@@ -13,7 +14,7 @@ import {
 
 const SignupPage = () => {
   const navigate = useNavigate();
-  const { signup } = useAuth();
+  const { signup, googleLogin } = useAuth();
   const [values, setValues] = useState({ name: "", email: "", password: "", confirmPassword: "", phone: "" });
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -68,6 +69,23 @@ const SignupPage = () => {
       setErrors((current) => ({
         ...current,
         form: apiError?.response?.data?.details?.[0]?.msg || apiError?.response?.data?.message || "Signup failed"
+      }));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleGoogleSignup = async (credential) => {
+    setSubmitting(true);
+    setErrors({});
+
+    try {
+      await googleLogin(credential);
+      navigate("/dashboard");
+    } catch (apiError) {
+      setErrors((current) => ({
+        ...current,
+        form: apiError?.response?.data?.message || "Google sign-up failed"
       }));
     } finally {
       setSubmitting(false);
@@ -176,6 +194,14 @@ const SignupPage = () => {
           <button type="submit" disabled={submitting} className="mt-8 w-full rounded-full bg-ink px-6 py-4 text-sm font-semibold text-white">
             {submitting ? "Creating..." : "Create account"}
           </button>
+          <div className="mt-6 flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-ink/40 dark:text-white/40">
+            <span className="h-px flex-1 bg-ink/10 dark:bg-white/10" />
+            <span>Or</span>
+            <span className="h-px flex-1 bg-ink/10 dark:bg-white/10" />
+          </div>
+          <div className="mt-6">
+            <GoogleAuthButton text="signup_with" onCredential={handleGoogleSignup} />
+          </div>
         </form>
       </div>
     </section>

@@ -1,6 +1,7 @@
 import { Eye, EyeOff } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import GoogleAuthButton from "../../components/common/GoogleAuthButton";
 import Meta from "../../components/ui/Meta";
 import { useAuth } from "../../contexts/AuthContext";
 import { normalizeEmail, validateEmail } from "../../utils/authValidation";
@@ -8,7 +9,7 @@ import { normalizeEmail, validateEmail } from "../../utils/authValidation";
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
   const [values, setValues] = useState({ email: "", password: "" });
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -48,6 +49,23 @@ const LoginPage = () => {
       setErrors((current) => ({
         ...current,
         form: error?.response?.data?.message || "Login failed"
+      }));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleGoogleLogin = async (credential) => {
+    setSubmitting(true);
+    setErrors({});
+
+    try {
+      await googleLogin(credential);
+      navigate(location.state?.from?.pathname || "/dashboard");
+    } catch (error) {
+      setErrors((current) => ({
+        ...current,
+        form: error?.response?.data?.message || "Google sign-in failed"
       }));
     } finally {
       setSubmitting(false);
@@ -102,6 +120,14 @@ const LoginPage = () => {
           <button type="submit" disabled={submitting} className="mt-8 w-full rounded-full bg-ink px-6 py-4 text-sm font-semibold text-white">
             {submitting ? "Signing in..." : "Login"}
           </button>
+          <div className="mt-6 flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-ink/40 dark:text-white/40">
+            <span className="h-px flex-1 bg-ink/10 dark:bg-white/10" />
+            <span>Or</span>
+            <span className="h-px flex-1 bg-ink/10 dark:bg-white/10" />
+          </div>
+          <div className="mt-6">
+            <GoogleAuthButton text="signin_with" onCredential={handleGoogleLogin} />
+          </div>
         </form>
       </div>
     </section>

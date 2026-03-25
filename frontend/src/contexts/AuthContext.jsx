@@ -74,6 +74,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const googleLogin = async (credential) => {
+    try {
+      const { data } = await api.post(endpoints.auth.google, { credential });
+      persistSession(data);
+      toast.success("Signed in with Google");
+      return data;
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Google sign-in failed"));
+      throw error;
+    }
+  };
+
   const logout = async () => {
     try {
       await api.post(endpoints.auth.logout);
@@ -95,6 +107,7 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated: Boolean(token && user),
       isAdmin: user?.role === "admin",
       login,
+      googleLogin,
       signup,
       logout,
       refreshProfile: fetchProfile,

@@ -22,6 +22,11 @@ const userSchema = new mongoose.Schema(
     },
     phone: String,
     avatar: String,
+    googleId: {
+      type: String,
+      index: true,
+      sparse: true
+    },
     role: {
       type: String,
       enum: ["user", "admin"],
