@@ -28,7 +28,7 @@ const createAuthPayload = (user) => ({
   }
 });
 
-const maybeSendResetEmail = async (email, token) => {
+const maybeSendResetEmail = async (email, resetLink) => {
   if (
     !process.env.SMTP_HOST ||
     !process.env.SMTP_USER ||
@@ -36,7 +36,10 @@ const maybeSendResetEmail = async (email, token) => {
     process.env.SMTP_USER === "replace-me" ||
     process.env.SMTP_PASS === "replace-me"
   ) {
-    return false;
+    return {
+      sent: false,
+      reason: "Email delivery is not configured on the server yet"
+    };
   }
 
   try {
@@ -53,13 +56,18 @@ const maybeSendResetEmail = async (email, token) => {
       from: "support@luxeva.local",
       to: email,
       subject: "Reset your Luxeva password",
-      text: `Use this reset token to update your password: ${token}`
+      text: `Use this secure link to reset your Luxeva password: ${resetLink}`
     });
 
-    return true;
+    return {
+      sent: true
+    };
   } catch (error) {
     console.warn(`Reset email delivery skipped: ${error.message}`);
-    return false;
+    return {
+      sent: false,
+      reason: error.message
+    };
   }
 };
 
@@ -140,9 +148,29 @@ export const logout = asyncHandler(async (req, res) => {
 
 export const forgotPassword = asyncHandler(async (req, res) => {
   const email = String(req.body.email || "").trim().toLowerCase();
+  const channel = String(req.body.channel || "sms").trim().toLowerCase();
   const user = await User.findOne({ email });
   if (!user) {
     throw new ApiError(404, "No account found with that email");
+  }
+
+  if (channel === "email") {
+    const rawToken = crypto.randomBytes(20).toString("hex");
+    user.resetPasswordToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+    user.resetPasswordExpiresAt = new Date(Date.now() + 1000 * 60 * 30);
+    await user.save();
+
+    const resetLink = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password/${rawToken}`;
+    const emailResult = await maybeSendResetEmail(user.email, resetLink);
+
+    if (!emailResult.sent) {
+      throw new ApiError(503, `Email reset is unavailable: ${emailResult.reason}`);
+    }
+
+    return sendSuccess(res, 200, "Password reset link sent successfully", {
+      channel: "email",
+      email
+    });
   }
 
   if (!user.phone) {
@@ -162,10 +190,11 @@ export const forgotPassword = asyncHandler(async (req, res) => {
 
   await maybeSendResetEmail(
     user.email,
-    `Password reset OTP requested for your account. OTP sent to phone ending ${maskPhone(user.phone)}`
+    `Password reset OTP requested. If you did not request this, you can ignore this message.`
   );
 
   sendSuccess(res, 200, "Password reset OTP sent successfully", {
+    channel: "sms",
     maskedPhone: maskPhone(user.phone),
     email
   });

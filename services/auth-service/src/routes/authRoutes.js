@@ -68,7 +68,11 @@ router.post(
       .trim()
       .isEmail()
       .withMessage("Please enter a valid email address")
-      .normalizeEmail({ gmail_remove_dots: false })
+      .normalizeEmail({ gmail_remove_dots: false }),
+    body("channel")
+      .optional()
+      .isIn(["sms", "email"])
+      .withMessage("Reset channel must be either sms or email")
   ],
   validateRequest,
   forgotPassword
