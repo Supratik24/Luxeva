@@ -1,13 +1,19 @@
 import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import Meta from "../components/ui/Meta";
+import { mockContent, useLocalPreviewData } from "../data/mockStorefront";
 import api, { endpoints } from "../services/api";
 
 const FAQPage = () => {
   const [faq, setFaq] = useState([]);
 
   useEffect(() => {
-    api.get(endpoints.content.home).then(({ data }) => setFaq(data.faq || []));
+    if (useLocalPreviewData) {
+      setFaq(mockContent.faq);
+      return;
+    }
+
+    api.get(endpoints.content.home).then(({ data }) => setFaq(data.faq || [])).catch(() => setFaq(mockContent.faq));
   }, []);
 
   return (
@@ -31,4 +37,3 @@ const FAQPage = () => {
 };
 
 export default FAQPage;
-

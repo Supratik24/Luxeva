@@ -8,6 +8,7 @@ import {
   useState
 } from "react";
 import toast from "react-hot-toast";
+import { mockCoupons, mockProducts, useLocalPreviewData } from "../data/mockStorefront";
 import api, { endpoints } from "../services/api";
 import { readStorage, writeStorage } from "../utils/storage";
 import { useAuth } from "./AuthContext";
@@ -17,7 +18,7 @@ const ShopContext = createContext(null);
 export const ShopProvider = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const [cart, setCart] = useState(() => readStorage("luxeva_cart", []));
-  const [wishlist, setWishlist] = useState([]);
+  const [wishlist, setWishlist] = useState(() => readStorage("luxeva_wishlist", []));
   const [recentlyViewed, setRecentlyViewed] = useState(() => readStorage("luxeva_recent", []));
   const [quickView, setQuickView] = useState(null);
   const [coupon, setCoupon] = useState(() => readStorage("luxeva_coupon", null));
@@ -35,8 +36,17 @@ export const ShopProvider = ({ children }) => {
   }, [coupon]);
 
   useEffect(() => {
+    writeStorage("luxeva_wishlist", wishlist);
+  }, [wishlist]);
+
+  useEffect(() => {
     if (!isAuthenticated) {
       setWishlist([]);
+      return;
+    }
+
+    if (useLocalPreviewData) {
+      setWishlist(readStorage("luxeva_wishlist", []));
       return;
     }
 
@@ -57,7 +67,7 @@ export const ShopProvider = ({ children }) => {
   }, [isAuthenticated]);
 
   const syncRemoteCart = useEffectEvent(async (nextCart, nextCoupon) => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || useLocalPreviewData) {
       return;
     }
 
@@ -145,6 +155,23 @@ export const ShopProvider = ({ children }) => {
       return;
     }
 
+    if (useLocalPreviewData) {
+      const product = mockProducts.find((entry) => entry._id === productId);
+      if (!product) {
+        toast.error("Product not found");
+        return;
+      }
+
+      const exists = wishlist.some((entry) => entry._id === productId);
+      const nextWishlist = exists
+        ? wishlist.filter((entry) => entry._id !== productId)
+        : [product, ...wishlist];
+
+      setWishlist(nextWishlist);
+      toast.success(exists ? "Removed from wishlist" : "Saved to wishlist");
+      return;
+    }
+
     const { data } = await api.post(endpoints.catalog.toggleWishlist, { productId });
     setWishlist(data.wishlist.products || []);
     toast.success(data.message);
@@ -158,6 +185,37 @@ export const ShopProvider = ({ children }) => {
   };
 
   const applyCoupon = async (code) => {
+    if (useLocalPreviewData) {
+      const normalizedCode = String(code || "").trim().toUpperCase();
+      const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const selectedCoupon = mockCoupons.find((entry) => entry.code === normalizedCode);
+
+      if (!selectedCoupon) {
+        toast.error("Invalid coupon code");
+        return;
+      }
+
+      if (subtotal < selectedCoupon.minOrderAmount) {
+        toast.error(`This coupon needs a cart total of Rs. ${selectedCoupon.minOrderAmount} or more`);
+        return;
+      }
+
+      const rawDiscount =
+        selectedCoupon.type === "percentage"
+          ? Math.round((subtotal * selectedCoupon.value) / 100)
+          : selectedCoupon.value;
+      const discountAmount = Math.min(rawDiscount, selectedCoupon.maxDiscount || rawDiscount, subtotal);
+
+      setCoupon({
+        code: normalizedCode,
+        discountAmount,
+        minOrderAmount: selectedCoupon.minOrderAmount,
+        label: selectedCoupon.label
+      });
+      toast.success("Coupon applied");
+      return;
+    }
+
     const { data } = await api.post(endpoints.catalog.validateCoupon, { code });
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const discountAmount =
@@ -205,4 +263,3 @@ export const useShop = () => {
 
   return context;
 };
-

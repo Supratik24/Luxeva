@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import Meta from "../components/ui/Meta";
+import { useLocalPreviewData } from "../data/mockStorefront";
 import { useShop } from "../contexts/ShopContext";
 import api, { endpoints } from "../services/api";
 import { currency } from "../utils/format";
@@ -25,7 +26,7 @@ const CheckoutPage = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shippingFee = subtotal > 250 ? 0 : 18;
+  const shippingFee = subtotal >= 2499 ? 0 : 99;
   const tax = subtotal * 0.12;
   const total = subtotal + shippingFee + tax - (coupon?.discountAmount || 0);
 
@@ -38,6 +39,13 @@ const CheckoutPage = () => {
 
     setSubmitting(true);
     try {
+      if (useLocalPreviewData) {
+        clearCart();
+        toast.success("Preview order placed successfully");
+        navigate("/dashboard?tab=orders");
+        return;
+      }
+
       const { data } = await api.post(endpoints.orders.create, {
         items: cart,
         shippingAddress: address,
@@ -124,4 +132,3 @@ const CheckoutPage = () => {
 };
 
 export default CheckoutPage;
-

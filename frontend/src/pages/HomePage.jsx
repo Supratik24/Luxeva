@@ -6,6 +6,7 @@ import CategoryStrip from "../components/sections/CategoryStrip";
 import ProductShowcase from "../components/sections/ProductShowcase";
 import TestimonialsSection from "../components/sections/TestimonialsSection";
 import NewsletterSection from "../components/sections/NewsletterSection";
+import { getMockMeta, getMockProducts, mockContent, useLocalPreviewData } from "../data/mockStorefront";
 
 const HomePage = () => {
   const [content, setContent] = useState({ banners: [], testimonials: [] });
@@ -14,6 +15,14 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (useLocalPreviewData) {
+      setContent(mockContent);
+      setCatalog(getMockMeta());
+      setTrending(getMockProducts({ trending: true }).slice(0, 4));
+      setLoading(false);
+      return;
+    }
+
     Promise.all([
       api.get(endpoints.content.home),
       api.get(endpoints.catalog.meta),
@@ -23,6 +32,11 @@ const HomePage = () => {
         setContent(contentRes.data);
         setCatalog(metaRes.data);
         setTrending(trendingRes.data.products || []);
+      })
+      .catch(() => {
+        setContent(mockContent);
+        setCatalog(getMockMeta());
+        setTrending(getMockProducts({ trending: true }).slice(0, 4));
       })
       .finally(() => setLoading(false));
   }, []);
@@ -51,4 +65,3 @@ const HomePage = () => {
 };
 
 export default HomePage;
-

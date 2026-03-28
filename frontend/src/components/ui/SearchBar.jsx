@@ -1,6 +1,7 @@
 import { Search, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { getMockSuggestions, useLocalPreviewData } from "../../data/mockStorefront";
 import api, { endpoints } from "../../services/api";
 
 const SearchBar = () => {
@@ -14,13 +15,18 @@ const SearchBar = () => {
     }
 
     const timer = setTimeout(async () => {
+      if (useLocalPreviewData) {
+        setSuggestions(getMockSuggestions(query));
+        return;
+      }
+
       try {
         const { data } = await api.get(endpoints.catalog.suggestions, {
           params: { q: query }
         });
         setSuggestions(data.suggestions || []);
       } catch (error) {
-        setSuggestions([]);
+        setSuggestions(getMockSuggestions(query));
       }
     }, 250);
 
@@ -65,4 +71,3 @@ const SearchBar = () => {
 };
 
 export default SearchBar;
-

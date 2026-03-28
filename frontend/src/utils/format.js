@@ -1,7 +1,8 @@
 export const currency = (value = 0) =>
-  new Intl.NumberFormat("en-US", {
+  new Intl.NumberFormat("en-IN", {
     style: "currency",
-    currency: "USD"
+    currency: "INR",
+    maximumFractionDigits: 0
   }).format(value);
 
 export const shortDate = (value) =>
@@ -12,4 +13,3 @@ export const shortDate = (value) =>
   }).format(new Date(value));
 
 export const cls = (...values) => values.filter(Boolean).join(" ");
-

@@ -12,6 +12,7 @@ import {
   validatePasswordStrength,
   validatePhone
 } from "../../utils/authValidation";
+import { useLocalPreviewData } from "../../data/mockStorefront";
 
 const SignupPage = () => {
   const navigate = useNavigate();
@@ -163,6 +164,9 @@ const SignupPage = () => {
               <p className="mt-4 text-sm text-ink/65 dark:text-white/65">
                 Enter the OTP sent to {otpSentTo || maskPhone(values.phone)} to finish creating your account.
               </p>
+              {useLocalPreviewData ? (
+                <p className="mt-2 text-xs uppercase tracking-[0.22em] text-olive">Preview OTP: 123456</p>
+              ) : null}
               <div className="mt-8 space-y-4">
                 <div>
                   <input

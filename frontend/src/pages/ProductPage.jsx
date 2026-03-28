@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import ProductCard from "../components/ui/ProductCard";
 import Meta from "../components/ui/Meta";
+import { getMockProductBySlug, useLocalPreviewData } from "../data/mockStorefront";
 import { useAuth } from "../contexts/AuthContext";
 import api, { endpoints } from "../services/api";
 import { useShop } from "../contexts/ShopContext";
@@ -21,6 +22,23 @@ const ProductPage = () => {
 
   useEffect(() => {
     setLoading(true);
+
+    if (useLocalPreviewData) {
+      const fallback = getMockProductBySlug(slug);
+      if (fallback) {
+        setPayload(fallback);
+        saveRecentlyViewed(fallback.product);
+        setSelection({
+          color: fallback.product.colors?.[0] || "",
+          size: fallback.product.sizes?.[0] || ""
+        });
+      } else {
+        setPayload({ product: null, reviews: [], relatedProducts: [] });
+      }
+      setLoading(false);
+      return;
+    }
+
     api
       .get(endpoints.catalog.product(slug))
       .then(({ data }) => {
@@ -33,6 +51,19 @@ const ProductPage = () => {
           });
         }
       })
+      .catch(() => {
+        const fallback = getMockProductBySlug(slug);
+        if (fallback) {
+          setPayload(fallback);
+          saveRecentlyViewed(fallback.product);
+          setSelection({
+            color: fallback.product.colors?.[0] || "",
+            size: fallback.product.sizes?.[0] || ""
+          });
+        } else {
+          setPayload({ product: null, reviews: [], relatedProducts: [] });
+        }
+      })
       .finally(() => setLoading(false));
   }, [slug]);
 
@@ -40,6 +71,27 @@ const ProductPage = () => {
 
   const submitReview = async (event) => {
     event.preventDefault();
+
+    if (useLocalPreviewData) {
+      setPayload((current) => ({
+        ...current,
+        reviews: [
+          {
+            _id: `preview-review-${Date.now()}`,
+            userName: "You",
+            rating: reviewForm.rating,
+            comment: reviewForm.comment,
+            title: reviewForm.title,
+            createdAt: new Date().toISOString()
+          },
+          ...(current.reviews || [])
+        ]
+      }));
+      toast.success("Review submitted");
+      setReviewForm({ rating: 5, comment: "", title: "" });
+      return;
+    }
+
     await api.post(endpoints.catalog.review(product._id), reviewForm);
     toast.success("Review submitted");
     const { data } = await api.get(endpoints.catalog.product(slug));
@@ -146,7 +198,7 @@ const ProductPage = () => {
           <div className="mt-10 grid gap-4 text-sm text-ink/70 dark:text-white/70">
             <div className="glass flex items-center gap-3 rounded-[1.5rem] p-4">
               <Truck size={18} />
-              Complimentary shipping over $250
+              Complimentary shipping over {currency(4999)}
             </div>
             <div className="glass flex items-center gap-3 rounded-[1.5rem] p-4">
               <ShieldCheck size={18} />

@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ui/ProductCard";
 import SkeletonCard from "../components/ui/SkeletonCard";
 import Meta from "../components/ui/Meta";
+import { getMockMeta, getMockProducts, useLocalPreviewData } from "../data/mockStorefront";
 import api, { endpoints } from "../services/api";
 import { currency } from "../utils/format";
 
@@ -35,16 +36,35 @@ const ShopPage = () => {
   );
 
   useEffect(() => {
-    api.get(endpoints.catalog.meta).then(({ data }) => setCatalog(data));
+    if (useLocalPreviewData) {
+      setCatalog(getMockMeta());
+      return;
+    }
+
+    api.get(endpoints.catalog.meta).then(({ data }) => setCatalog(data)).catch(() => setCatalog(getMockMeta()));
   }, []);
 
   useEffect(() => {
     setLoading(true);
+
+    if (useLocalPreviewData) {
+      const fallbackProducts = getMockProducts(filters);
+      setProducts(fallbackProducts);
+      setPagination({ page: 1, pages: 1 });
+      setLoading(false);
+      return;
+    }
+
     api
       .get(endpoints.catalog.products, { params: filters })
       .then(({ data }) => {
         setProducts(data.products || []);
         setPagination(data.pagination || { page: 1, pages: 1 });
+      })
+      .catch(() => {
+        const fallbackProducts = getMockProducts(filters);
+        setProducts(fallbackProducts);
+        setPagination({ page: 1, pages: 1 });
       })
       .finally(() => setLoading(false));
   }, [filters]);
@@ -129,7 +149,7 @@ const ShopPage = () => {
           <div className="mb-5 flex items-center justify-between gap-4">
             <p className="text-sm text-ink/60 dark:text-white/60">{products.length} products</p>
             <p className="text-sm text-ink/60 dark:text-white/60">
-              Price range: {currency(Number(filters.minPrice || 0))} - {currency(Number(filters.maxPrice || 1000))}
+              Price range: {currency(Number(filters.minPrice || 0))} - {currency(Number(filters.maxPrice || 100000))}
             </p>
           </div>
           <div className={layout === "grid" ? "grid gap-5 sm:grid-cols-2 xl:grid-cols-3" : "space-y-5"}>
@@ -180,4 +200,3 @@ const ShopPage = () => {
 };
 
 export default ShopPage;
-

@@ -3,10 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Meta from "../../components/ui/Meta";
 import ProductCard from "../../components/ui/ProductCard";
+import { useLocalPreviewData } from "../../data/mockStorefront";
 import { useAuth } from "../../contexts/AuthContext";
 import { useShop } from "../../contexts/ShopContext";
 import api, { endpoints } from "../../services/api";
-import { shortDate } from "../../utils/format";
+import { currency, shortDate } from "../../utils/format";
 
 const tabs = [
   { key: "profile", label: "Profile", icon: UserRoundCog },
@@ -17,7 +18,7 @@ const tabs = [
 ];
 
 const DashboardPage = () => {
-  const { user, refreshProfile } = useAuth();
+  const { user, updateProfile: saveProfile } = useAuth();
   const { wishlist, recentlyViewed } = useShop();
   const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
@@ -34,15 +35,25 @@ const DashboardPage = () => {
       phone: user.phone || "",
       avatar: user.avatar || ""
     });
-    api.get(endpoints.orders.mine).then(({ data }) => setOrders(data.orders || []));
-    api.get(endpoints.notifications.mine).then(({ data }) => setNotifications(data.notifications || []));
-    api.get(endpoints.auth.addresses).then(({ data }) => setAddresses(data.addresses || []));
+
+    if (useLocalPreviewData) {
+      setOrders(user.orders || []);
+      setNotifications(user.notifications || []);
+      setAddresses(user.addresses || []);
+      return;
+    }
+
+    api.get(endpoints.orders.mine).then(({ data }) => setOrders(data.orders || [])).catch(() => setOrders([]));
+    api
+      .get(endpoints.notifications.mine)
+      .then(({ data }) => setNotifications(data.notifications || []))
+      .catch(() => setNotifications([]));
+    api.get(endpoints.auth.addresses).then(({ data }) => setAddresses(data.addresses || [])).catch(() => setAddresses([]));
   }, [user]);
 
   const updateProfile = async (event) => {
     event.preventDefault();
-    await api.put(endpoints.auth.profile, profile);
-    await refreshProfile();
+    await saveProfile(profile);
   };
 
   const content = useMemo(() => {
@@ -58,7 +69,7 @@ const DashboardPage = () => {
                 </div>
                 <div className="text-right">
                   <p className="font-semibold capitalize">{order.status}</p>
-                  <p className="text-sm text-ink/50 dark:text-white/50">${order.total}</p>
+                  <p className="text-sm text-ink/50 dark:text-white/50">{currency(order.total)}</p>
                 </div>
               </div>
             </div>
@@ -123,7 +134,7 @@ const DashboardPage = () => {
         </div>
       </div>
     );
-  }, [addresses, currentTab, notifications, orders, profile, recentlyViewed, refreshProfile, wishlist]);
+  }, [addresses, currentTab, notifications, orders, profile, recentlyViewed, saveProfile, wishlist]);
 
   return (
     <section className="section-shell py-12">

@@ -13,6 +13,7 @@ import ContentBlock from "../services/content-service/src/models/ContentBlock.js
 import Cart from "../services/order-service/src/models/Cart.js";
 import Order from "../services/order-service/src/models/Order.js";
 import Notification from "../services/notification-service/src/models/Notification.js";
+import { brandSeeds, categorySeeds, contentSeeds, productSeeds } from "./catalog-seed-data.js";
 
 const connect = async (uri) => {
   await mongoose.disconnect().catch(() => undefined);
@@ -65,170 +66,50 @@ const seedCatalog = async (customer) => {
     Wishlist.deleteMany({})
   ]);
 
-  const categories = await Category.insertMany([
-    {
-      name: "Outerwear",
-      slug: "outerwear",
-      description: "Layered silhouettes with premium finishing.",
-      featured: true
-    },
-    {
-      name: "Footwear",
-      slug: "footwear",
-      description: "Clean lines, comfort, and subtle statement design.",
-      featured: true
-    },
-    {
-      name: "Accessories",
-      slug: "accessories",
-      description: "Small luxuries that complete the look.",
-      featured: true
-    },
-    {
-      name: "Home Edit",
-      slug: "home-edit",
-      description: "Soft forms and refined utility for interiors.",
-      featured: true
-    }
-  ]);
+  const categories = await Category.insertMany(categorySeeds);
+  const brands = await Brand.insertMany(brandSeeds);
+  const categoryMap = Object.fromEntries(categories.map((category) => [category.slug, category._id]));
+  const brandMap = Object.fromEntries(brands.map((brand) => [brand.slug, brand._id]));
 
-  const brands = await Brand.insertMany([
-    { name: "Atelier North", slug: "atelier-north", featured: true },
-    { name: "Velour House", slug: "velour-house", featured: true },
-    { name: "Drift Studio", slug: "drift-studio", featured: true }
-  ]);
-
-  const products = await Product.insertMany([
-    {
-      name: "Cashmere Blend Trench",
-      slug: "cashmere-blend-trench",
-      shortDescription: "A softly tailored trench with a fluid drape and warm tonal finish.",
-      description: "Designed for transitional weather with a premium brushed surface, lined interior, and understated detailing that works day to evening.",
-      category: categories[0]._id,
-      brand: brands[0]._id,
-      images: [
-        { url: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=80", alt: "Trench coat" }
-      ],
-      price: 249,
-      compareAtPrice: 319,
-      discountPercent: 22,
-      sku: "LX-TR-1001",
-      stock: 12,
-      soldCount: 48,
-      featured: true,
-      trending: true,
-      tags: ["coat", "winter", "luxury"],
-      colors: ["Oat", "Espresso"],
-      sizes: ["S", "M", "L"],
-      averageRating: 4.8,
-      reviewCount: 16,
-      flashSaleEndsAt: new Date(Date.now() + 1000 * 60 * 60 * 48),
-      specs: {
-        material: "Wool blend",
-        fit: "Relaxed",
-        warranty: "1 year",
-        care: "Dry clean",
-        origin: "Italy"
+  const products = await Product.insertMany(
+    productSeeds.map((product) => ({
+      name: product.name,
+      slug: product.slug,
+      shortDescription: product.shortDescription,
+      description: product.description,
+      category: categoryMap[product.categorySlug],
+      brand: brandMap[product.brandSlug],
+      images: [{ url: product.image, alt: product.name }],
+      price: product.price,
+      compareAtPrice: product.compareAtPrice,
+      discountPercent: product.compareAtPrice
+        ? Math.max(0, Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100))
+        : 0,
+      sku: product.sku,
+      stock: product.stock,
+      soldCount: product.soldCount,
+      featured: Boolean(product.featured),
+      trending: Boolean(product.trending),
+      tags: product.tags,
+      colors: product.colors,
+      sizes: product.sizes,
+      averageRating: product.averageRating,
+      reviewCount: product.reviewCount,
+      flashSaleEndsAt: product.featured || product.trending ? new Date(Date.now() + 1000 * 60 * 60 * 48) : undefined,
+      specs: product.specs,
+      seo: {
+        title: `${product.name} | Luxeva`,
+        description: product.shortDescription
       }
-    },
-    {
-      name: "Sculpt Leather Sneaker",
-      slug: "sculpt-leather-sneaker",
-      shortDescription: "Minimal sneaker design with premium leather and cushioned support.",
-      description: "A clean low-profile silhouette with supple leather, subtle branding, and a comfort-focused footbed.",
-      category: categories[1]._id,
-      brand: brands[1]._id,
-      images: [
-        { url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1200&q=80", alt: "Leather sneaker" }
-      ],
-      price: 179,
-      compareAtPrice: 229,
-      sku: "LX-SN-2001",
-      stock: 8,
-      soldCount: 67,
-      featured: true,
-      trending: true,
-      tags: ["sneaker", "leather", "minimal"],
-      colors: ["Ivory", "Onyx"],
-      sizes: ["40", "41", "42", "43"],
-      averageRating: 4.7,
-      reviewCount: 24,
-      specs: {
-        material: "Full-grain leather",
-        fit: "True to size",
-        warranty: "6 months",
-        care: "Wipe clean",
-        origin: "Portugal"
-      }
-    },
-    {
-      name: "Stoneware Aura Lamp",
-      slug: "stoneware-aura-lamp",
-      shortDescription: "Ambient table lamp with sculptural ceramic body and linen shade.",
-      description: "Soft diffused light, textured finish, and a calm neutral palette designed for refined interior settings.",
-      category: categories[3]._id,
-      brand: brands[2]._id,
-      images: [
-        { url: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80", alt: "Designer lamp" }
-      ],
-      price: 129,
-      compareAtPrice: 159,
-      sku: "LX-HM-3001",
-      stock: 21,
-      soldCount: 19,
-      featured: false,
-      trending: true,
-      tags: ["home", "lamp", "decor"],
-      colors: ["Sandstone"],
-      sizes: ["Standard"],
-      averageRating: 4.9,
-      reviewCount: 9,
-      specs: {
-        material: "Ceramic and linen",
-        fit: "Tabletop",
-        warranty: "1 year",
-        care: "Dust gently",
-        origin: "Japan"
-      }
-    },
-    {
-      name: "Contour Carry Bag",
-      slug: "contour-carry-bag",
-      shortDescription: "Structured daily bag with refined hardware and soft-grain texture.",
-      description: "Designed to move from commute to dinner with quiet confidence, smart compartments, and effortless polish.",
-      category: categories[2]._id,
-      brand: brands[0]._id,
-      images: [
-        { url: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=1200&q=80", alt: "Leather bag" }
-      ],
-      price: 199,
-      compareAtPrice: 249,
-      sku: "LX-AC-4001",
-      stock: 6,
-      soldCount: 55,
-      featured: true,
-      trending: false,
-      tags: ["bag", "accessory", "structured"],
-      colors: ["Cocoa", "Black"],
-      sizes: ["One size"],
-      averageRating: 4.6,
-      reviewCount: 13,
-      specs: {
-        material: "Textured leather",
-        fit: "Handheld",
-        warranty: "1 year",
-        care: "Leather conditioner",
-        origin: "Spain"
-      }
-    }
-  ]);
+    }))
+  );
 
   await Coupon.create({
     code: "LUXE10",
     description: "10% off for first-time customers",
     type: "percentage",
     value: 10,
-    minOrderAmount: 100,
+    minOrderAmount: 2499,
     active: true
   });
 
@@ -238,8 +119,8 @@ const seedCatalog = async (customer) => {
       userId: customer._id,
       userName: customer.name,
       rating: 5,
-      title: "Beautiful finish",
-      comment: "The fabric and shape feel premium immediately.",
+      title: "Great everyday pick",
+      comment: "The fit, finish, and price all feel much better matched for regular shopping.",
       status: "approved"
     },
     {
@@ -247,8 +128,8 @@ const seedCatalog = async (customer) => {
       userId: customer._id,
       userName: customer.name,
       rating: 4,
-      title: "Really comfortable",
-      comment: "Great cushioning and very easy to style.",
+      title: "Good value",
+      comment: "The catalogue feels more practical now and the product quality still looks polished.",
       status: "approved"
     }
   ]);
@@ -265,27 +146,13 @@ const seedContent = async () => {
   await connect(process.env.CONTENT_MONGO_URI || "mongodb://localhost:27017/luxeva-content");
   await Promise.all([Banner.deleteMany({}), ContentBlock.deleteMany({})]);
 
-  await Banner.create({
-    title: "Quiet luxury for everyday movement",
-    subtitle: "Seasonal essentials, elevated",
-    description: "Refined products across fashion, accessories, and home with a premium responsive experience from browsing to checkout.",
-    image: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1400&q=80",
-    ctaLabel: "Discover the edit",
-    ctaLink: "/shop",
-    theme: "sand",
-    active: true,
-    order: 1
-  });
+  await Banner.create(contentSeeds.banner);
 
   await ContentBlock.insertMany([
     {
       key: "testimonials",
       title: "Customer love",
-      items: [
-        { name: "Noah Bennett", role: "Creative director", quote: "It feels closer to a luxury editorial experience than a standard storefront." },
-        { name: "Ira Kapoor", role: "Interior stylist", quote: "The product detail and checkout flow are both incredibly smooth." },
-        { name: "Sara Lin", role: "Repeat customer", quote: "Fast to browse, beautiful on mobile, and the admin side feels truly usable." }
-      ]
+      items: contentSeeds.testimonials
     },
     {
       key: "faq",
@@ -324,22 +191,25 @@ const seedOrders = async (customer, products) => {
   await connect(process.env.ORDER_MONGO_URI || "mongodb://localhost:27017/luxeva-order");
   await Promise.all([Cart.deleteMany({}), Order.deleteMany({})]);
 
+  const cartProduct = products.find((product) => product.slug === "spf-50-daily-sunscreen") || products[0];
+  const orderProduct = products.find((product) => product.slug === "cotton-printed-kurta-set") || products[0];
+
   await Cart.create({
     userId: customer._id,
     items: [
       {
-        productId: products[2]._id,
-        name: products[2].name,
-        slug: products[2].slug,
-        image: products[2].images[0].url,
-        price: products[2].price,
+        productId: cartProduct._id,
+        name: cartProduct.name,
+        slug: cartProduct.slug,
+        image: cartProduct.images[0].url,
+        price: cartProduct.price,
         quantity: 1
       }
     ],
-    subtotal: products[2].price,
-    shippingFee: 18,
-    tax: 15.48,
-    total: 162.48
+    subtotal: cartProduct.price,
+    shippingFee: 99,
+    tax: 90,
+    total: cartProduct.price + 99 + 90
   });
 
   await Order.create({
@@ -348,13 +218,13 @@ const seedOrders = async (customer, products) => {
     customer: { name: customer.name, email: customer.email },
     items: [
       {
-        productId: products[0]._id,
-        name: products[0].name,
-        slug: products[0].slug,
-        image: products[0].images[0].url,
-        price: products[0].price,
+        productId: orderProduct._id,
+        name: orderProduct.name,
+        slug: orderProduct.slug,
+        image: orderProduct.images[0].url,
+        price: orderProduct.price,
         quantity: 1,
-        color: "Oat",
+        color: "Blue",
         size: "M"
       }
     ],
@@ -387,11 +257,11 @@ const seedOrders = async (customer, products) => {
       { status: "packed", note: "Packed by warehouse" },
       { status: "shipped", note: "In transit" }
     ],
-    subtotal: products[0].price,
-    discount: 24.9,
+    subtotal: orderProduct.price,
+    discount: 190,
     shippingFee: 0,
-    tax: 29.88,
-    total: 253.98,
+    tax: 342,
+    total: orderProduct.price - 190 + 342,
     couponCode: "LUXE10"
   });
 };

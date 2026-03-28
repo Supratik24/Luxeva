@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react";
 import Meta from "../components/ui/Meta";
+import { getMockPage, useLocalPreviewData } from "../data/mockStorefront";
 import api, { endpoints } from "../services/api";
 
 const PolicyPage = ({ slug, title }) => {
   const [page, setPage] = useState(null);
 
   useEffect(() => {
-    api.get(endpoints.content.page(slug)).then(({ data }) => setPage(data.page)).catch(() => undefined);
+    if (useLocalPreviewData) {
+      setPage(getMockPage(slug));
+      return;
+    }
+
+    api.get(endpoints.content.page(slug)).then(({ data }) => setPage(data.page)).catch(() => setPage(getMockPage(slug)));
   }, [slug]);
 
   return (
@@ -38,4 +44,3 @@ const PolicyPage = ({ slug, title }) => {
 };
 
 export default PolicyPage;
-

@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react";
 import Meta from "../components/ui/Meta";
+import { getMockPage, useLocalPreviewData } from "../data/mockStorefront";
 import api, { endpoints } from "../services/api";
 
 const AboutPage = () => {
   const [page, setPage] = useState(null);
 
   useEffect(() => {
-    api.get(endpoints.content.page("about")).then(({ data }) => setPage(data.page)).catch(() => undefined);
+    if (useLocalPreviewData) {
+      setPage(getMockPage("about"));
+      return;
+    }
+
+    api.get(endpoints.content.page("about")).then(({ data }) => setPage(data.page)).catch(() => setPage(getMockPage("about")));
   }, []);
 
   return (
@@ -36,4 +42,3 @@ const AboutPage = () => {
 };
 
 export default AboutPage;
-
