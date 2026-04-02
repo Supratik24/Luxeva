@@ -9,6 +9,12 @@ import { useAuth } from "../contexts/AuthContext";
 import api, { endpoints } from "../services/api";
 import { useShop } from "../contexts/ShopContext";
 import { currency, shortDate } from "../utils/format";
+import {
+  getColorConfig,
+  getVariantImage,
+  hasRealColorOptions,
+  hasVariantImageOptions
+} from "../utils/productOptions";
 
 const ProductPage = () => {
   const { isAuthenticated } = useAuth();
@@ -17,6 +23,7 @@ const ProductPage = () => {
   const [payload, setPayload] = useState({ product: null, reviews: [], relatedProducts: [] });
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
+  const [selectedImage, setSelectedImage] = useState(0);
   const [selection, setSelection] = useState({ color: "", size: "" });
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "", title: "" });
 
@@ -28,6 +35,7 @@ const ProductPage = () => {
       if (fallback) {
         setPayload(fallback);
         saveRecentlyViewed(fallback.product);
+        setSelectedImage(0);
         setSelection({
           color: fallback.product.colors?.[0] || "",
           size: fallback.product.sizes?.[0] || ""
@@ -45,6 +53,7 @@ const ProductPage = () => {
         setPayload(data);
         if (data.product) {
           saveRecentlyViewed(data.product);
+          setSelectedImage(0);
           setSelection({
             color: data.product.colors?.[0] || "",
             size: data.product.sizes?.[0] || ""
@@ -56,6 +65,7 @@ const ProductPage = () => {
         if (fallback) {
           setPayload(fallback);
           saveRecentlyViewed(fallback.product);
+          setSelectedImage(0);
           setSelection({
             color: fallback.product.colors?.[0] || "",
             size: fallback.product.sizes?.[0] || ""
@@ -68,6 +78,10 @@ const ProductPage = () => {
   }, [slug]);
 
   const product = payload.product;
+  const colorConfig = getColorConfig(selection.color || product?.colors?.[0] || "standard");
+  const showColorOptions = hasRealColorOptions(product?.colors);
+  const hasImageVariants = hasVariantImageOptions(product);
+  const activeImage = hasImageVariants ? getVariantImage(product, selection.color) : product?.images?.[0];
 
   const submitReview = async (event) => {
     event.preventDefault();
@@ -113,14 +127,36 @@ const ProductPage = () => {
       <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="grid gap-4 md:grid-cols-[120px_1fr]">
           <div className="space-y-3">
-            {product.images?.map((image, index) => (
-              <img key={index} src={image.url} alt={image.alt || product.name} className="h-24 w-full rounded-[1.4rem] object-cover" />
+            {(hasImageVariants ? product.colors.map((color) => getVariantImage(product, color)) : product.images)?.map((image, index) => (
+              <button
+                key={`${image?.url || "image"}-${index}`}
+                type="button"
+                onClick={() => {
+                  if (hasImageVariants) {
+                    const color = product.colors[index];
+                    setSelection((current) => ({ ...current, color }));
+                  } else {
+                    setSelectedImage(index);
+                  }
+                }}
+                className={`block w-full overflow-hidden rounded-[1.4rem] p-1 transition ${
+                  (hasImageVariants ? selection.color === product.colors[index] : selectedImage === index)
+                    ? "ring-2 ring-ink/70 dark:ring-white/70"
+                    : "ring-1 ring-ink/8 dark:ring-white/10"
+                }`}
+              >
+                <img src={image?.url} alt={image?.alt || product.name} className="h-24 w-full rounded-[1.1rem] object-cover" />
+              </button>
             ))}
           </div>
-          <div className="glass overflow-hidden rounded-[2rem] p-3 shadow-soft">
+          <div className="glass overflow-hidden rounded-[2rem] p-3 shadow-soft" style={{ background: colorConfig.surface }}>
             <img
-              src={product.images?.[0]?.url || "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1200&q=80"}
-              alt={product.name}
+              src={
+                (hasImageVariants ? activeImage?.url : product.images?.[selectedImage]?.url) ||
+                product.images?.[0]?.url ||
+                "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1200&q=80"
+              }
+              alt={hasImageVariants ? activeImage?.alt || product.name : product.name}
               className="h-[620px] w-full rounded-[1.6rem] object-cover"
             />
           </div>
@@ -139,22 +175,47 @@ const ProductPage = () => {
           </div>
           <p className="mt-6 text-3xl font-semibold">{currency(product.price)}</p>
           <p className="mt-5 max-w-xl text-base leading-7 text-ink/68 dark:text-white/68">{product.description}</p>
+          {showColorOptions || product.colors?.length === 1 ? (
+            <div className="mt-5 inline-flex items-center gap-3 rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold dark:border-white/10">
+              <span
+                className="h-4 w-4 rounded-full"
+                style={{ backgroundColor: colorConfig.swatch, border: `1px solid ${colorConfig.border}` }}
+              />
+              Selected color: {selection.color}
+            </div>
+          ) : null}
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             <div>
               <p className="mb-3 text-sm font-semibold">Color</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-3">
                 {product.colors?.map((color) => (
                   <button
                     key={color}
                     type="button"
                     onClick={() => setSelection((current) => ({ ...current, color }))}
-                    className={`rounded-full px-4 py-2 text-sm ${selection.color === color ? "bg-ink text-white" : "glass"}`}
+                    className={`flex min-w-[118px] items-center gap-3 rounded-full px-4 py-3 text-sm transition ${
+                      selection.color === color
+                        ? "bg-ink text-white shadow-soft"
+                        : "glass hover:ring-1 hover:ring-ink/20 dark:hover:ring-white/20"
+                    }`}
                   >
-                    {color}
+                    <span
+                      className="h-5 w-5 rounded-full"
+                      style={{
+                        backgroundColor: getColorConfig(color).swatch,
+                        border: `1px solid ${getColorConfig(color).border}`
+                      }}
+                    />
+                    <span>{color}</span>
                   </button>
                 ))}
               </div>
+              {!hasImageVariants && product.colors?.length > 1 ? (
+                <p className="mt-3 text-xs text-ink/50 dark:text-white/50">
+                  Color selection is available. The image stays the same because only one verified product photo is available right now.
+                </p>
+              ) : null}
             </div>
             <div>
               <p className="mb-3 text-sm font-semibold">Size</p>

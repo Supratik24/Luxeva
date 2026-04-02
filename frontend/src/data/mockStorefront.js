@@ -244,38 +244,158 @@ const productGroups = [
 
 const categoryMap = Object.fromEntries(mockCategories.map((category) => [category.slug, category]));
 const brandMap = Object.fromEntries(mockBrands.map((brand) => [brand.slug, brand]));
+const productOverrides = {
+  "cotton-printed-kurta-set": {
+    colors: ["Blue"],
+    variantImages: { Blue: "/products/cotton-printed-kurta-set.png" }
+  },
+  "festive-anarkali-kurta": {
+    colors: ["Pink"],
+    variantImages: { Pink: "/products/festive-anarkali-kurta.png" }
+  },
+  "chikankari-straight-kurta": {
+    colors: ["Blue"],
+    variantImages: { Blue: "/products/chikankari-straight-kurta.png" }
+  },
+  "organza-saree-with-border": {
+    colors: ["Magenta"],
+    variantImages: { Magenta: "/products/organza-saree-with-border.png" }
+  },
+  "printed-co-ord-suit": {
+    colors: ["Ivory"],
+    variantImages: { Ivory: "/products/printed-co-ord-suit.png" }
+  },
+  "everyday-polo-tshirt": {
+    colors: ["Olive"],
+    variantImages: { Olive: "/products/everyday-polo-tshirt.png" }
+  },
+  "festive-nehru-jacket": {
+    colors: ["Ivory"],
+    variantImages: { Ivory: "/products/festive-nehru-jacket.png" }
+  },
+  "cotton-pathani-kurta": {
+    colors: ["Blue"],
+    variantImages: { Blue: "/products/cotton-pathani-kurta.png" }
+  },
+  "city-loafers": {
+    colors: ["Brown"],
+    variantImages: { Brown: "/products/city-loafers.png" }
+  },
+  "portable-bluetooth-speaker": {
+    colors: ["Black"],
+    variantImages: { Black: "/products/portable-bluetooth-speaker.png" }
+  },
+  "spf-50-daily-sunscreen": {
+    colors: ["White"],
+    variantImages: { White: "/products/spf-50-daily-sunscreen.png" }
+  },
+  "argan-hair-serum": {
+    colors: ["Amber"],
+    variantImages: { Amber: "/products/argan-hair-serum.png" }
+  },
+  "nonstick-cookware-set": {
+    colors: ["Red"],
+    variantImages: { Red: "/products/nonstick-cookware-set.png" }
+  },
+  "stainless-steel-pressure-cooker": {
+    colors: ["Silver"],
+    variantImages: { Silver: "/products/stainless-steel-pressure-cooker.png" }
+  },
+  "glass-storage-canister-set": {
+    colors: ["Cream"],
+    variantImages: { Cream: "/products/glass-storage-canister-set.png" }
+  },
+  "stoneware-dinner-plate-set": {
+    colors: ["Teal"],
+    variantImages: { Teal: "/products/stoneware-dinner-plate-set.png" }
+  },
+  "chef-knife-trio": {
+    colors: ["Black"],
+    variantImages: { Black: "/products/chef-knife-trio.png" }
+  },
+  "travel-duffel-bag": {
+    colors: ["Brown"],
+    variantImages: { Brown: "/products/travel-duffel-bag.png" }
+  },
+  "laptop-tote-bag": {
+    colors: ["Black"],
+    variantImages: { Black: "/products/laptop-tote-bag.png" }
+  },
+  "textured-table-lamp": {
+    colors: ["Amber"],
+    variantImages: { Amber: "/products/textured-table-lamp.png" }
+  },
+  "accent-wall-mirror": {
+    colors: ["Walnut"],
+    variantImages: { Walnut: "/products/accent-wall-mirror.png" }
+  },
+  "ceramic-planter-pair": {
+    colors: ["Verdigris"],
+    variantImages: { Verdigris: "/products/ceramic-planter-pair.png" }
+  },
+  "soft-throw-blanket": {
+    colors: ["Mint"],
+    variantImages: { Mint: "/products/soft-throw-blanket.png" }
+  },
+  "750w-mixer-grinder": {
+    colors: ["Blue"],
+    variantImages: { Blue: "/products/750w-mixer-grinder.png" }
+  },
+  "induction-cooktop": {
+    colors: ["Black"],
+    variantImages: { Black: "/products/induction-cooktop.png" }
+  },
+  "electric-kettle": {
+    colors: ["Silver"],
+    variantImages: { Silver: "/products/electric-kettle.png" }
+  },
+  "digital-air-fryer": {
+    colors: ["Black"],
+    variantImages: { Black: "/products/digital-air-fryer.png" }
+  },
+  "steam-iron": {
+    colors: ["Blue"],
+    variantImages: { Blue: "/products/steam-iron.png" }
+  }
+};
 
 export const mockProducts = productGroups.flatMap((group, groupIndex) =>
-  group.items.map(([name, slug, price, compareAtPrice, featured, trending], itemIndex) => ({
-    _id: `product-${groupIndex + 1}-${itemIndex + 1}`,
-    name,
-    slug,
-    shortDescription: `${name} curated for Indian shopping with practical everyday value and polished presentation.`,
-    description: `${name} is part of the local preview collection, chosen to feel relevant for Indian shoppers across fashion, essentials, and home categories.`,
-    category: categoryMap[group.categorySlug],
-    brand: brandMap[group.brandSlug],
-    images: [{ url: group.images[itemIndex] || categoryMap[group.categorySlug]?.image || imageBank.womenEthnic, alt: name }],
-    price,
-    compareAtPrice,
-    discountPercent: Math.round(((compareAtPrice - price) / compareAtPrice) * 100),
-    sku: `MOCK-${groupIndex + 1}${itemIndex + 1}`,
-    stock: 12 + itemIndex * 4,
-    soldCount: 30 + groupIndex * 11 + itemIndex * 7,
-    featured,
-    trending,
-    tags: [group.categorySlug, group.brandSlug, "india-preview"],
-    colors: group.colors,
-    sizes: group.sizes,
-    averageRating: Number((4.2 + ((groupIndex + itemIndex) % 5) * 0.15).toFixed(1)),
-    reviewCount: 18 + groupIndex * 3 + itemIndex,
-    specs: {
-      material: "Preview assortment",
-      fit: "Everyday use",
-      warranty: "Brand warranty",
-      care: "See label",
-      origin: "India"
-    }
-  }))
+  group.items.map(([name, slug, price, compareAtPrice, featured, trending], itemIndex) => {
+    const override = productOverrides[slug] || {};
+    const fallbackImage = group.images[itemIndex] || categoryMap[group.categorySlug]?.image || imageBank.womenEthnic;
+
+    return {
+      _id: `product-${groupIndex + 1}-${itemIndex + 1}`,
+      name,
+      slug,
+      shortDescription: `${name} curated for Indian shopping with practical everyday value and polished presentation.`,
+      description: `${name} is part of the local preview collection, chosen to feel relevant for Indian shoppers across fashion, essentials, and home categories.`,
+      category: categoryMap[group.categorySlug],
+      brand: brandMap[group.brandSlug],
+      images: [{ url: fallbackImage, alt: name }],
+      variantImages: override.variantImages || {},
+      price,
+      compareAtPrice,
+      discountPercent: Math.round(((compareAtPrice - price) / compareAtPrice) * 100),
+      sku: `MOCK-${groupIndex + 1}${itemIndex + 1}`,
+      stock: 12 + itemIndex * 4,
+      soldCount: 30 + groupIndex * 11 + itemIndex * 7,
+      featured,
+      trending,
+      tags: [group.categorySlug, group.brandSlug, "india-preview"],
+      colors: override.colors || group.colors,
+      sizes: group.sizes,
+      averageRating: Number((4.2 + ((groupIndex + itemIndex) % 5) * 0.15).toFixed(1)),
+      reviewCount: 18 + groupIndex * 3 + itemIndex,
+      specs: {
+        material: "Preview assortment",
+        fit: "Everyday use",
+        warranty: "Brand warranty",
+        care: "See label",
+        origin: "India"
+      }
+    };
+  })
 );
 
 export const mockCoupons = [

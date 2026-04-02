@@ -86,18 +86,25 @@ export const ShopProvider = ({ children }) => {
   }, [cart, coupon, syncRemoteCart]);
 
   const addToCart = (product, selection = {}) => {
+    const selectedColor = selection.color || product.colors?.[0];
+    const selectedSize = selection.size || product.sizes?.[0];
+    let cartMessage = "Added to cart";
+
     startTransition(() => {
       setCart((current) => {
         const match = current.find(
           (item) =>
             item.productId === product._id &&
-            item.color === selection.color &&
-            item.size === selection.size
+            item.color === selectedColor &&
+            item.size === selectedSize
         );
 
         if (match) {
+          const nextQuantity = Math.min(match.quantity + 1, product.stock || 10);
+          cartMessage = nextQuantity === match.quantity ? "Already in cart" : "Already in cart, quantity updated";
+
           return current.map((item) =>
-            item === match ? { ...item, quantity: Math.min(item.quantity + 1, product.stock || 10) } : item
+            item === match ? { ...item, quantity: nextQuantity } : item
           );
         }
 
@@ -110,27 +117,39 @@ export const ShopProvider = ({ children }) => {
             image: product.images?.[0]?.url,
             price: product.price,
             quantity: 1,
-            color: selection.color || product.colors?.[0],
-            size: selection.size || product.sizes?.[0],
+            color: selectedColor,
+            size: selectedSize,
             stock: product.stock
           }
         ];
       });
     });
 
-    toast.success("Added to cart");
+    toast.success(cartMessage);
   };
 
   const updateQuantity = (productId, quantity, selection = {}) => {
+    let removed = false;
+
     setCart((current) =>
       current
-        .map((item) =>
-          item.productId === productId && item.color === selection.color && item.size === selection.size
-            ? { ...item, quantity: Math.max(quantity, 1) }
-            : item
-        )
+        .map((item) => {
+          if (item.productId === productId && item.color === selection.color && item.size === selection.size) {
+            const nextQuantity = Math.max(quantity, 0);
+            if (nextQuantity === 0) {
+              removed = true;
+            }
+            return { ...item, quantity: nextQuantity };
+          }
+
+          return item;
+        })
         .filter((item) => item.quantity > 0)
     );
+
+    if (removed) {
+      toast.success("Removed from cart");
+    }
   };
 
   const removeFromCart = (productId, selection = {}) => {
