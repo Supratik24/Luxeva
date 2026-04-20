@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import Meta from "../components/ui/Meta";
 import { useLocalPreviewData } from "../data/mockStorefront";
+import { useAuth } from "../contexts/AuthContext";
 import { useShop } from "../contexts/ShopContext";
 import api, { endpoints } from "../services/api";
 import { currency } from "../utils/format";
@@ -20,6 +21,7 @@ const initialAddress = {
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
+  const { createPreviewOrder } = useAuth();
   const { cart, coupon, clearCart } = useShop();
   const [address, setAddress] = useState(initialAddress);
   const [paymentMethod, setPaymentMethod] = useState("card");
@@ -40,9 +42,21 @@ const CheckoutPage = () => {
     setSubmitting(true);
     try {
       if (useLocalPreviewData) {
+        const { order } = await createPreviewOrder({
+          items: cart,
+          totals: {
+            subtotal,
+            shippingFee,
+            tax,
+            total
+          },
+          shippingAddress: address,
+          paymentMethod,
+          coupon
+        });
         clearCart();
-        toast.success("Preview order placed successfully");
-        navigate("/dashboard?tab=orders");
+        toast.success("Order placed successfully");
+        navigate(`/dashboard?tab=orders&highlight=${order._id}`);
         return;
       }
 
@@ -119,8 +133,18 @@ const CheckoutPage = () => {
             <div className="flex justify-between"><span>Subtotal</span><span>{currency(subtotal)}</span></div>
             <div className="flex justify-between"><span>Shipping</span><span>{currency(shippingFee)}</span></div>
             <div className="flex justify-between"><span>Tax</span><span>{currency(tax)}</span></div>
-            <div className="flex justify-between"><span>Discount</span><span>-{currency(coupon?.discountAmount || 0)}</span></div>
+            <div className="flex justify-between text-olive"><span>Discount</span><span>-{currency(coupon?.discountAmount || 0)}</span></div>
           </div>
+          {coupon?.code ? (
+            <div className="mt-5 rounded-[1.4rem] border border-olive/25 bg-olive/10 p-4 text-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-olive">Coupon applied</p>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <p className="font-display text-2xl">{coupon.code}</p>
+                <p className="font-semibold text-olive">Saved {currency(coupon.discountAmount)}</p>
+              </div>
+              <p className="mt-2 text-xs text-ink/55 dark:text-white/55">{coupon.label}</p>
+            </div>
+          ) : null}
           <div className="mt-6 flex justify-between text-lg font-semibold">
             <span>Total</span>
             <span>{currency(total)}</span>

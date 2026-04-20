@@ -1,4 +1,5 @@
-import { ArrowRight, ShoppingBag, Trash2 } from "lucide-react";
+import { ArrowRight, BadgePercent, CheckCircle2, ShoppingBag, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import Meta from "../components/ui/Meta";
 import { mockCoupons, useLocalPreviewData } from "../data/mockStorefront";
@@ -7,10 +8,19 @@ import { currency } from "../utils/format";
 
 const CartPage = () => {
   const { cart, coupon, updateQuantity, removeFromCart, applyCoupon } = useShop();
+  const [couponCode, setCouponCode] = useState("");
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shipping = subtotal >= 2499 ? 0 : 99;
   const tax = subtotal * 0.12;
   const total = subtotal + shipping + tax - (coupon?.discountAmount || 0);
+
+  const handleApplyCoupon = (code = couponCode) => {
+    const nextCode = String(code || "").trim().toUpperCase();
+    if (!nextCode) return;
+
+    setCouponCode(nextCode);
+    applyCoupon(nextCode);
+  };
 
   return (
     <section className="section-shell py-12">
@@ -63,31 +73,60 @@ const CartPage = () => {
               <div className="flex justify-between"><span>Tax</span><span>{currency(tax)}</span></div>
               <div className="flex justify-between text-olive"><span>Discount</span><span>-{currency(coupon?.discountAmount || 0)}</span></div>
             </div>
-            <div className="mt-6 rounded-[1.5rem] border border-dashed border-ink/15 p-4 dark:border-white/15">
-              <p className="mb-3 text-sm font-semibold">Apply coupon</p>
+
+            <div className="mt-6 rounded-[1.7rem] border border-ink/10 bg-white/40 p-4 dark:border-white/10 dark:bg-white/5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-olive/10 p-2 text-olive">
+                    <BadgePercent size={18} />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold">Apply coupon</p>
+                    <p className="text-xs text-ink/50 dark:text-white/50">Pick an offer or enter a code</p>
+                  </div>
+                </div>
+                {coupon?.code ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-olive px-3 py-1 text-xs font-semibold text-white">
+                    <CheckCircle2 size={13} />
+                    Applied
+                  </span>
+                ) : null}
+              </div>
+
               <div className="flex gap-2">
-                <input id="coupon-code" className="w-full rounded-full border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10" placeholder="WELCOME10" />
+                <input
+                  value={couponCode}
+                  onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+                  className="w-full rounded-full border border-ink/10 bg-transparent px-4 py-3 text-sm uppercase outline-none dark:border-white/10"
+                  placeholder="WELCOME10"
+                />
                 <button
                   type="button"
-                  onClick={() => applyCoupon(document.getElementById("coupon-code")?.value)}
+                  onClick={() => handleApplyCoupon()}
                   className="rounded-full bg-ink px-4 py-3 text-sm font-semibold text-white"
                 >
                   Apply
                 </button>
               </div>
+
               {useLocalPreviewData ? (
                 <div className="mt-5">
                   <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink/50 dark:text-white/50">Best offers for your cart</p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {mockCoupons.map((offer) => {
                       const eligible = subtotal >= offer.minOrderAmount;
+                      const applied = coupon?.code === offer.code;
                       return (
                         <button
                           key={offer.code}
                           type="button"
-                          onClick={() => applyCoupon(offer.code)}
+                          onClick={() => handleApplyCoupon(offer.code)}
                           className={`overflow-hidden rounded-[1.4rem] p-0 text-left transition hover:-translate-y-0.5 ${
-                            eligible ? "ring-1 ring-ink/10 dark:ring-white/10" : "opacity-80"
+                            applied
+                              ? "ring-2 ring-olive"
+                              : eligible
+                                ? "ring-1 ring-ink/10 dark:ring-white/10"
+                                : "opacity-80"
                           }`}
                         >
                           <div className={`${offer.theme} h-full p-4`}>
@@ -97,7 +136,7 @@ const CartPage = () => {
                                 <p className="mt-1 font-display text-2xl">{offer.code}</p>
                               </div>
                               <span className="rounded-full bg-white/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-current dark:bg-black/20">
-                                {eligible ? "Ready" : `Rs. ${offer.minOrderAmount}+`}
+                                {applied ? "Applied" : eligible ? "Ready" : `Rs. ${offer.minOrderAmount}+`}
                               </span>
                             </div>
                             <p className="mt-4 text-sm font-semibold">{offer.highlight}</p>
@@ -108,13 +147,18 @@ const CartPage = () => {
                     })}
                   </div>
                   {coupon?.code ? (
-                    <div className="mt-4 rounded-[1.2rem] bg-olive px-4 py-3 text-sm font-semibold text-white">
-                      Applied: {coupon.code} • You saved {currency(coupon.discountAmount)}
+                    <div className="mt-4 rounded-[1.3rem] bg-olive px-4 py-3 text-sm font-semibold text-white">
+                      <div className="flex items-center justify-between gap-3">
+                        <span>{coupon.code} applied</span>
+                        <span>You saved {currency(coupon.discountAmount)}</span>
+                      </div>
+                      {coupon.label ? <p className="mt-1 text-xs text-white/75">{coupon.label}</p> : null}
                     </div>
                   ) : null}
                 </div>
               ) : null}
             </div>
+
             <p className="mt-3 text-xs text-ink/55 dark:text-white/55">
               {subtotal >= 2499 ? "You unlocked free shipping." : `Add ${currency(2499 - subtotal)} more for free shipping.`}
             </p>

@@ -40,6 +40,17 @@ export const ShopProvider = ({ children }) => {
   }, [wishlist]);
 
   useEffect(() => {
+    if (!coupon) {
+      return;
+    }
+
+    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    if (!cart.length || subtotal < (coupon.minOrderAmount || 0)) {
+      setCoupon(null);
+    }
+  }, [cart, coupon]);
+
+  useEffect(() => {
     if (!isAuthenticated) {
       setWishlist([]);
       return;
@@ -166,7 +177,10 @@ export const ShopProvider = ({ children }) => {
     toast.success("Removed from cart");
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = () => {
+    setCart([]);
+    setCoupon(null);
+  };
 
   const toggleWishlist = async (productId) => {
     if (!isAuthenticated) {
@@ -229,9 +243,10 @@ export const ShopProvider = ({ children }) => {
         code: normalizedCode,
         discountAmount,
         minOrderAmount: selectedCoupon.minOrderAmount,
-        label: selectedCoupon.label
+        label: selectedCoupon.label,
+        highlight: selectedCoupon.highlight
       });
-      toast.success("Coupon applied");
+      toast.success(`${normalizedCode} applied`);
       return;
     }
 

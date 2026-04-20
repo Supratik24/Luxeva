@@ -393,6 +393,56 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  const createPreviewOrder = async ({ items, totals, shippingAddress, paymentMethod, coupon }) => {
+    const session = readStorage(PREVIEW_SESSION_KEY, null);
+    const users = getPreviewUsers();
+
+    if (!session?.user) {
+      throw createPreviewError("Please log in before placing an order");
+    }
+
+    const orderId = `order-${Date.now()}`;
+    const order = {
+      _id: orderId,
+      orderNumber: `LX-${Math.floor(100000 + Math.random() * 900000)}`,
+      status: "packed",
+      items,
+      subtotal: totals.subtotal,
+      shippingFee: totals.shippingFee,
+      tax: totals.tax,
+      total: totals.total,
+      coupon: coupon || null,
+      shippingAddress,
+      paymentMethod,
+      createdAt: new Date().toISOString()
+    };
+
+    const notification = {
+      _id: `notification-${Date.now()}`,
+      title: "Order placed successfully",
+      message: `${order.orderNumber} has been added to your order history.`,
+      createdAt: new Date().toISOString()
+    };
+
+    const nextUser = {
+      ...session.user,
+      orders: [order, ...(session.user.orders || [])],
+      notifications: [notification, ...(session.user.notifications || [])]
+    };
+
+    const nextUsers = users.map((entry) =>
+      entry._id === nextUser._id ? { ...entry, ...nextUser, password: entry.password } : entry
+    );
+
+    writePreviewUsers(nextUsers);
+    persistSession({
+      token: session.token || `preview-token-${nextUser._id}`,
+      user: nextUser
+    });
+
+    return { order };
+  };
+
   const value = useMemo(
     () => ({
       token,
@@ -406,6 +456,7 @@ export const AuthProvider = ({ children }) => {
       verifySignupOtp,
       logout,
       updateProfile,
+      createPreviewOrder,
       refreshProfile: fetchProfile,
       setUser
     }),
