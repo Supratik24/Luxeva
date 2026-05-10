@@ -6,7 +6,7 @@ import Meta from "../../components/ui/Meta";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   getPasswordError,
-  maskPhone,
+  maskEmail,
   normalizeEmail,
   validateEmail,
   validatePasswordStrength,
@@ -17,6 +17,7 @@ import { useLocalPreviewData } from "../../data/mockStorefront";
 const SignupPage = () => {
   const navigate = useNavigate();
   const { signup, verifySignupOtp, googleLogin } = useAuth();
+  const showPreviewOtp = useLocalPreviewData && import.meta.env.VITE_USE_PREVIEW_AUTH !== "false";
   const [values, setValues] = useState({ name: "", email: "", password: "", confirmPassword: "", phone: "" });
   const [otp, setOtp] = useState("");
   const [otpSentTo, setOtpSentTo] = useState("");
@@ -37,9 +38,7 @@ const SignupPage = () => {
       nextErrors.email = "Please enter a valid email address";
     }
 
-    if (!values.phone.trim()) {
-      nextErrors.phone = "Phone number is required";
-    } else if (!validatePhone(values.phone)) {
+    if (values.phone.trim() && !validatePhone(values.phone)) {
       nextErrors.phone = "Please enter a valid phone number";
     }
 
@@ -71,7 +70,7 @@ const SignupPage = () => {
         email: normalizeEmail(values.email),
         phone: values.phone.trim()
       });
-      setOtpSentTo(maskPhone(values.phone.trim()));
+      setOtpSentTo(maskEmail(values.email));
       setStep("otp");
       setOtp("");
     } catch (apiError) {
@@ -88,7 +87,7 @@ const SignupPage = () => {
     event.preventDefault();
 
     if (!otp.trim()) {
-      setErrors({ otp: "Please enter the OTP sent to your phone" });
+      setErrors({ otp: "Please enter the OTP sent to your email" });
       return;
     }
 
@@ -122,7 +121,7 @@ const SignupPage = () => {
         email: normalizeEmail(values.email),
         phone: values.phone.trim()
       });
-      setOtpSentTo(maskPhone(values.phone.trim()));
+      setOtpSentTo(maskEmail(values.email));
     } catch (apiError) {
       setErrors((current) => ({
         ...current,
@@ -162,9 +161,9 @@ const SignupPage = () => {
           {step === "otp" ? (
             <>
               <p className="mt-4 text-sm text-ink/65 dark:text-white/65">
-                Enter the OTP sent to {otpSentTo || maskPhone(values.phone)} to finish creating your account.
+                Enter the OTP sent to {otpSentTo || maskEmail(values.email)} to finish creating your account.
               </p>
-              {useLocalPreviewData ? (
+              {showPreviewOtp ? (
                 <p className="mt-2 text-xs uppercase tracking-[0.22em] text-olive">Preview OTP: 123456</p>
               ) : null}
               <div className="mt-8 space-y-4">
@@ -231,7 +230,7 @@ const SignupPage = () => {
                 value={values.phone}
                 onChange={(e) => setValues((s) => ({ ...s, phone: e.target.value }))}
                 type="tel"
-                placeholder="Phone"
+                placeholder="Phone (optional)"
                 className="w-full rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10"
               />
               {errors.phone ? <p className="mt-2 text-xs text-[#b42318] dark:text-[#ff8a80]">{errors.phone}</p> : null}

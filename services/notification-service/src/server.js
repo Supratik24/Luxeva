@@ -12,7 +12,20 @@ connectDatabase(mongoUri)
       console.log(`Notification service listening on port ${port}`);
     });
   })
-  .catch((error) => {
-    console.error("Notification service failed to start", error);
-    process.exit(1);
+  .catch(async (error) => {
+    if (process.env.NODE_ENV === "production") {
+      console.error("Notification service failed to start", error);
+      process.exit(1);
+    }
+
+    process.env.NOTIFICATION_FALLBACK_MODE = "memory";
+    console.warn(`Notification service running without MongoDB for local preview: ${error.message}`);
+    try {
+      await startOrderSubscriber();
+    } catch (subscriberError) {
+      console.warn(`Notification subscriber disabled for local preview: ${subscriberError.message}`);
+    }
+    app.listen(port, () => {
+      console.log(`Notification service listening on port ${port}`);
+    });
   });

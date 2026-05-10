@@ -19,18 +19,173 @@ const initialAddress = {
   phone: ""
 };
 
+const loadRazorpayCheckout = () =>
+  new Promise((resolve, reject) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => reject(new Error("Unable to load Razorpay checkout"));
+    document.body.appendChild(script);
+  });
+
+const getRazorpayFriendlyMessage = (errorLike) => {
+  const payload = errorLike?.error || errorLike?.response?.data?.error || errorLike?.response?.data || errorLike;
+  const description = String(payload?.description || payload?.message || "").trim();
+  const code = String(payload?.code || payload?.reason || "").trim().toUpperCase();
+
+  if (description.includes("International cards are not supported")) {
+    return "This Razorpay test account does not support international cards. Please use an Indian test card or netbanking.";
+  }
+
+  if (description.toLowerCase().includes("pay later") || description.toLowerCase().includes("not available")) {
+    return "Pay Later is not enabled for this Razorpay test account. Please try netbanking or another supported test method.";
+  }
+
+  if (code === "BAD_REQUEST_ERROR" && description) {
+    return description;
+  }
+
+  return payload?.message || "Razorpay could not complete this payment method. Please try another supported option.";
+};
+
+const razorpayMethods = ["netbanking", "wallet", "paylater"];
+
+const getRazorpayHiddenMethods = (selectedMethod) =>
+  ["card", "upi", "emi", ...razorpayMethods.filter((method) => method !== selectedMethod)].map((method) => ({
+    method
+  }));
+
 const CheckoutPage = () => {
   const navigate = useNavigate();
-  const { createPreviewOrder } = useAuth();
+  const { user, createPreviewOrder } = useAuth();
   const { cart, coupon, clearCart } = useShop();
+  const usePreviewAuth = useLocalPreviewData && import.meta.env.VITE_USE_PREVIEW_AUTH !== "false";
   const [address, setAddress] = useState(initialAddress);
-  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [paymentMethod, setPaymentMethod] = useState("netbanking");
   const [submitting, setSubmitting] = useState(false);
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shippingFee = subtotal >= 2499 ? 0 : 99;
   const tax = subtotal * 0.12;
   const total = subtotal + shippingFee + tax - (coupon?.discountAmount || 0);
+  const normalizedContact = String(address.phone || user?.phone || "").replace(/\D/g, "").slice(-10);
+  const orderPayload = {
+    items: cart,
+    shippingAddress: address,
+    billingAddress: address,
+    paymentMethod,
+    coupon
+  };
+
+  const finishPreviewOrder = async (paymentDetails = null, method = paymentMethod) => {
+    const { order } = await createPreviewOrder({
+      items: cart,
+      totals: {
+        subtotal,
+        shippingFee,
+        tax,
+        total
+      },
+      shippingAddress: address,
+      paymentMethod: method,
+      coupon,
+      paymentDetails
+    });
+    clearCart();
+    toast.success("Order placed successfully");
+    navigate(`/dashboard?tab=orders&highlight=${order._id}`);
+  };
+
+  const placeRazorpayOrder = async (selectedMethod) => {
+    const { data } = await api.post(endpoints.orders.razorpayOrder, {
+      items: cart,
+      coupon
+    });
+
+    await loadRazorpayCheckout();
+
+    return new Promise((resolve, reject) => {
+      const razorpay = new window.Razorpay({
+        key: data.keyId,
+        amount: data.order.amount,
+        currency: data.order.currency || "INR",
+        name: "Luxeva",
+        description: "Secure checkout payment",
+        order_id: data.order.id,
+        prefill: {
+          name: address.fullName || user?.name || "",
+          email: user?.email || "",
+          contact: normalizedContact
+        },
+        notes: {
+          userId: user?.id || user?._id || "",
+          email: user?.email || "",
+          fullName: address.fullName || user?.name || "",
+          phone: normalizedContact,
+          addressLine1: address.line1,
+          city: address.city,
+          postalCode: address.postalCode
+        },
+        config: {
+          display: {
+            language: "en",
+            hide: getRazorpayHiddenMethods(selectedMethod),
+            preferences: {
+              show_default_blocks: true
+            }
+          }
+        },
+        remember_customer: true,
+        theme: {
+          color: "#5f6f52"
+        },
+        handler: async (response) => {
+          try {
+            await api.post(endpoints.orders.razorpayVerify, response);
+
+            if (usePreviewAuth) {
+              await finishPreviewOrder(response, selectedMethod);
+            } else {
+              const { data: orderData } = await api.post(endpoints.orders.create, {
+                ...orderPayload,
+                paymentMethod: selectedMethod,
+                razorpay: response
+              });
+              clearCart();
+              toast.success("Payment verified and order placed");
+              navigate(`/dashboard?tab=orders&highlight=${orderData.order._id}`);
+            }
+
+            resolve(response);
+          } catch (error) {
+            console.error("Razorpay success handler failed", {
+              verifyOrCreateOrderError: error?.response?.data || error?.message || error,
+              razorpayResponse: response
+            });
+            reject(error);
+          }
+        },
+        modal: {
+          ondismiss: () => reject(new Error("Razorpay payment was cancelled"))
+        }
+      });
+
+      razorpay.on("payment.failed", (response) => {
+        console.error("Razorpay payment failed", response?.error || response);
+        const paymentError = new Error(getRazorpayFriendlyMessage(response));
+        paymentError.razorpay = response;
+        reject(paymentError);
+      });
+
+      razorpay.open();
+    });
+  };
 
   const placeOrder = async (event) => {
     event.preventDefault();
@@ -41,34 +196,31 @@ const CheckoutPage = () => {
 
     setSubmitting(true);
     try {
-      if (useLocalPreviewData) {
-        const { order } = await createPreviewOrder({
-          items: cart,
-          totals: {
-            subtotal,
-            shippingFee,
-            tax,
-            total
-          },
-          shippingAddress: address,
-          paymentMethod,
-          coupon
-        });
-        clearCart();
-        toast.success("Order placed successfully");
-        navigate(`/dashboard?tab=orders&highlight=${order._id}`);
+      if (razorpayMethods.includes(paymentMethod)) {
+        await placeRazorpayOrder(paymentMethod);
+        return;
+      }
+
+      if (usePreviewAuth) {
+        await finishPreviewOrder(null, paymentMethod);
         return;
       }
 
       const { data } = await api.post(endpoints.orders.create, {
-        items: cart,
-        shippingAddress: address,
-        paymentMethod,
-        coupon
+        ...orderPayload
       });
       clearCart();
       toast.success("Order placed successfully");
       navigate(`/dashboard?tab=orders&highlight=${data.order._id}`);
+    } catch (error) {
+      console.error("Checkout failed", error?.response?.data || error);
+      if (error.message === "Razorpay payment was cancelled") {
+        toast.error("Payment cancelled");
+      } else if (error.razorpay) {
+        toast.error(getRazorpayFriendlyMessage(error.razorpay));
+      } else {
+        toast.error(error?.response?.data?.message || error?.message || "Unable to place order");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -96,8 +248,13 @@ const CheckoutPage = () => {
           </div>
           <div className="mt-8">
             <p className="mb-3 text-sm font-semibold">Payment method</p>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {["card", "cod", "stripe"].map((method) => (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                ["netbanking", "Netbanking"],
+                ["wallet", "Wallet"],
+                ["paylater", "Pay Later"],
+                ["cod", "Cash on delivery"]
+              ].map(([method, label]) => (
                 <button
                   key={method}
                   type="button"
@@ -106,13 +263,17 @@ const CheckoutPage = () => {
                     paymentMethod === method ? "bg-ink text-white" : "border border-ink/10 dark:border-white/10"
                   }`}
                 >
-                  {method}
+                  {label}
                 </button>
               ))}
             </div>
           </div>
           <button type="submit" disabled={submitting} className="mt-8 rounded-full bg-olive px-6 py-4 text-sm font-semibold text-white">
-            {submitting ? "Placing order..." : "Place order"}
+            {submitting
+              ? "Processing..."
+              : paymentMethod === "cod"
+                ? "Place order"
+                : `Continue with ${paymentMethod === "paylater" ? "Pay Later" : paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1)}`}
           </button>
         </form>
         <aside className="glass h-fit rounded-[2rem] p-6 shadow-soft">

@@ -14,12 +14,13 @@
     "clsx": "^2.1.1",
     "framer-motion": "^11.15.0",
     "lucide-react": "^0.469.0",
+    "nodemailer": "8.0.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.5.1",
     "react-router-dom": "^6.28.1",
     "recharts": "^2.15.0",
-    "swiper": "^11.2.1"
+    "swiper": "^12.1.4"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",

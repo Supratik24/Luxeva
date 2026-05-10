@@ -32,7 +32,7 @@ router.post(
       .isEmail()
       .withMessage("Please enter a valid email address")
       .normalizeEmail({ gmail_remove_dots: false }),
-    body("phone").trim().notEmpty().withMessage("Phone number is required"),
+    body("phone").optional({ values: "falsy" }).trim(),
     body("password")
       .isLength({ min: 8 })
       .withMessage("Password must be at least 8 characters long")

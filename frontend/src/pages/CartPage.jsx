@@ -13,6 +13,27 @@ const CartPage = () => {
   const shipping = subtotal >= 2499 ? 0 : 99;
   const tax = subtotal * 0.12;
   const total = subtotal + shipping + tax - (coupon?.discountAmount || 0);
+  const couponOffers = useLocalPreviewData
+    ? mockCoupons.map((offer) => {
+        const rawSaving =
+          offer.type === "percentage"
+            ? Math.round((subtotal * offer.value) / 100)
+            : offer.value;
+        const saving = Math.min(rawSaving, offer.maxDiscount || rawSaving, subtotal);
+        const remaining = Math.max(offer.minOrderAmount - subtotal, 0);
+
+        return {
+          ...offer,
+          eligible: subtotal >= offer.minOrderAmount,
+          remaining,
+          saving
+        };
+      })
+    : [];
+  const bestCoupon = couponOffers.reduce(
+    (best, offer) => (offer.eligible && offer.saving > (best?.saving || 0) ? offer : best),
+    null
+  );
 
   const handleApplyCoupon = (code = couponCode) => {
     const nextCode = String(code || "").trim().toUpperCase();
@@ -111,37 +132,76 @@ const CartPage = () => {
 
               {useLocalPreviewData ? (
                 <div className="mt-5">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink/50 dark:text-white/50">Best offers for your cart</p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {mockCoupons.map((offer) => {
-                      const eligible = subtotal >= offer.minOrderAmount;
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/50 dark:text-white/50">Best offers for your cart</p>
+                    {bestCoupon && coupon?.code !== bestCoupon.code ? (
+                      <button
+                        type="button"
+                        onClick={() => handleApplyCoupon(bestCoupon.code)}
+                        className="rounded-full bg-olive/10 px-3 py-1.5 text-xs font-semibold text-olive transition hover:bg-olive hover:text-white"
+                      >
+                        Apply best
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="space-y-2">
+                    {couponOffers.map((offer) => {
                       const applied = coupon?.code === offer.code;
                       return (
                         <button
                           key={offer.code}
                           type="button"
                           onClick={() => handleApplyCoupon(offer.code)}
-                          className={`overflow-hidden rounded-[1.4rem] p-0 text-left transition hover:-translate-y-0.5 ${
+                          className={`w-full rounded-[1.35rem] border p-3 text-left transition hover:-translate-y-0.5 ${
                             applied
-                              ? "ring-2 ring-olive"
-                              : eligible
-                                ? "ring-1 ring-ink/10 dark:ring-white/10"
-                                : "opacity-80"
+                              ? "border-olive bg-olive/10"
+                              : offer.eligible
+                                ? "border-ink/10 bg-white/50 dark:border-white/10 dark:bg-white/5"
+                                : "border-dashed border-ink/15 bg-white/30 opacity-85 dark:border-white/15 dark:bg-white/5"
                           }`}
                         >
-                          <div className={`${offer.theme} h-full p-4`}>
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="text-[11px] uppercase tracking-[0.22em] opacity-70">Coupon</p>
-                                <p className="mt-1 font-display text-2xl">{offer.code}</p>
+                          <div className="flex items-center gap-3">
+                            <span className={`${offer.theme} flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-xs font-black`}>
+                              {offer.type === "percentage" ? `${offer.value}%` : "FLAT"}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="font-display text-xl leading-none">{offer.code}</p>
+                                {bestCoupon?.code === offer.code && offer.eligible ? (
+                                  <span className="rounded-full bg-ink px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white dark:bg-white dark:text-ink">
+                                    Best value
+                                  </span>
+                                ) : null}
                               </div>
-                              <span className="rounded-full bg-white/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-current dark:bg-black/20">
-                                {applied ? "Applied" : eligible ? "Ready" : `Rs. ${offer.minOrderAmount}+`}
-                              </span>
+                              <p className="mt-1 text-xs leading-5 text-ink/60 dark:text-white/60">{offer.label}</p>
+                              <p className="text-[11px] font-semibold text-ink/45 dark:text-white/45">{offer.highlight}</p>
                             </div>
-                            <p className="mt-4 text-sm font-semibold">{offer.highlight}</p>
-                            <p className="mt-2 text-xs leading-5 opacity-80">{offer.label}</p>
+                            <div className="shrink-0 text-right">
+                              <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold ${
+                                applied
+                                  ? "bg-olive text-white"
+                                  : offer.eligible
+                                    ? "bg-olive/10 text-olive"
+                                    : "bg-ink/5 text-ink/55 dark:bg-white/10 dark:text-white/60"
+                              }`}
+                              >
+                                {applied
+                                  ? "Applied"
+                                  : offer.eligible
+                                    ? `Save ${currency(offer.saving)}`
+                                    : `${currency(offer.remaining)} more`}
+                              </span>
+                              <p className="mt-1 text-[11px] text-ink/40 dark:text-white/40">Min {currency(offer.minOrderAmount)}</p>
+                            </div>
                           </div>
+                          {!offer.eligible ? (
+                            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-ink/10 dark:bg-white/10">
+                              <span
+                                className="block h-full rounded-full bg-olive"
+                                style={{ width: `${Math.min(100, (subtotal / offer.minOrderAmount) * 100)}%` }}
+                              />
+                            </div>
+                          ) : null}
                         </button>
                       );
                     })}

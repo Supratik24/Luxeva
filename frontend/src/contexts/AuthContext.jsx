@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useLocalPreviewData } from "../data/mockStorefront";
 import api, { endpoints } from "../services/api";
-import { maskPhone, normalizeEmail } from "../utils/authValidation";
+import { maskEmail, normalizeEmail } from "../utils/authValidation";
 import { readStorage, writeStorage } from "../utils/storage";
 
 const AuthContext = createContext(null);
@@ -10,6 +10,7 @@ const TOKEN_KEY = "luxeva_token";
 const PREVIEW_USERS_KEY = "luxeva_preview_users";
 const PREVIEW_SESSION_KEY = "luxeva_preview_session";
 const PREVIEW_PENDING_SIGNUP_KEY = "luxeva_preview_pending_signup";
+const usePreviewAuth = useLocalPreviewData && import.meta.env.VITE_USE_PREVIEW_AUTH !== "false";
 
 const defaultAdminUser = {
   _id: "preview-admin",
@@ -127,36 +128,50 @@ export const AuthProvider = ({ children }) => {
   const getApiErrorMessage = (error, fallback) =>
     error?.response?.data?.details?.[0]?.msg || error?.response?.data?.message || fallback;
 
+  const mergeUserState = (baseUser, extras = {}) => ({
+    ...baseUser,
+    ...extras,
+    addresses: extras.addresses ?? baseUser?.addresses ?? [],
+    orders: extras.orders ?? baseUser?.orders ?? [],
+    notifications: extras.notifications ?? baseUser?.notifications ?? []
+  });
+
   const fetchProfile = async () => {
-    if (useLocalPreviewData) {
+    if (usePreviewAuth) {
       const session = readStorage(PREVIEW_SESSION_KEY, null);
       if (!session?.user || !session?.token) {
         localStorage.removeItem(TOKEN_KEY);
         setToken(null);
         setUser(null);
         setLoading(false);
-        return;
+        return null;
       }
 
       localStorage.setItem(TOKEN_KEY, session.token);
       setToken(session.token);
       setUser(session.user);
       setLoading(false);
-      return;
+      return session.user;
     }
 
     if (!localStorage.getItem(TOKEN_KEY)) {
       setLoading(false);
-      return;
+      return null;
     }
 
     try {
       const { data } = await api.get(endpoints.auth.me);
-      setUser(data.user);
+      const nextUser = mergeUserState(user || data.user, {
+        ...data.user,
+        addresses: data.addresses || user?.addresses || data.user?.addresses || []
+      });
+      setUser(nextUser);
+      return nextUser;
     } catch (error) {
       localStorage.removeItem(TOKEN_KEY);
       setToken(null);
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -168,7 +183,7 @@ export const AuthProvider = ({ children }) => {
 
   const persistSession = (payload) => {
     localStorage.setItem(TOKEN_KEY, payload.token);
-    if (useLocalPreviewData) {
+    if (usePreviewAuth) {
       writeStorage(PREVIEW_SESSION_KEY, payload);
     }
     setToken(payload.token);
@@ -176,7 +191,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (values, admin = false) => {
-    if (useLocalPreviewData) {
+    if (usePreviewAuth) {
       const email = normalizeEmail(values.email);
       const password = String(values.password || "");
       const users = getPreviewUsers();
@@ -216,7 +231,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signup = async (values) => {
-    if (useLocalPreviewData) {
+    if (usePreviewAuth) {
       const email = normalizeEmail(values.email);
       const users = getPreviewUsers();
 
@@ -231,10 +246,10 @@ export const AuthProvider = ({ children }) => {
       };
 
       writeStorage(PREVIEW_PENDING_SIGNUP_KEY, pendingSignup);
-      toast.success(`Signup OTP sent to ${maskPhone(pendingSignup.phone)}`);
+      toast.success(`Signup OTP sent to ${maskEmail(pendingSignup.email)}`);
       return {
         message: "Signup OTP sent",
-        maskedPhone: maskPhone(pendingSignup.phone)
+        maskedEmail: maskEmail(pendingSignup.email)
       };
     }
 
@@ -246,7 +261,7 @@ export const AuthProvider = ({ children }) => {
         phone: String(values.phone || "").trim()
       };
       const { data } = await api.post(endpoints.auth.signup, payload);
-      toast.success(`Signup OTP sent to ${data.maskedPhone}`);
+      toast.success(`Signup OTP sent to ${data.maskedEmail || data.email}`);
       return data;
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Signup failed"));
@@ -255,7 +270,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const verifySignupOtp = async (values) => {
-    if (useLocalPreviewData) {
+    if (usePreviewAuth) {
       const pendingSignup = readStorage(PREVIEW_PENDING_SIGNUP_KEY, null);
       const email = normalizeEmail(values.email);
       const otp = String(values.otp || "").trim();
@@ -300,7 +315,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const googleLogin = async (credential) => {
-    if (useLocalPreviewData) {
+    if (usePreviewAuth) {
       const previewUser = {
         _id: "preview-google-user",
         name: "Google Preview User",
@@ -340,7 +355,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    if (useLocalPreviewData) {
+    if (usePreviewAuth) {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(PREVIEW_SESSION_KEY);
       setToken(null);
@@ -362,7 +377,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateProfile = async (profile) => {
-    if (useLocalPreviewData) {
+    if (usePreviewAuth) {
       const session = readStorage(PREVIEW_SESSION_KEY, null);
       const users = getPreviewUsers();
       if (!session?.user) {
@@ -387,13 +402,181 @@ export const AuthProvider = ({ children }) => {
       return { user: nextUser };
     }
 
-    const { data } = await api.put(endpoints.auth.profile, profile);
-    setUser(data.user);
-    toast.success("Profile updated");
-    return data;
+    try {
+      const { data } = await api.put(endpoints.auth.profile, profile);
+      const nextUser = mergeUserState(user || data.user, {
+        ...data.user,
+        addresses: user?.addresses || data.user?.addresses || [],
+        orders: user?.orders || data.user?.orders || [],
+        notifications: user?.notifications || data.user?.notifications || []
+      });
+      setUser(nextUser);
+      toast.success("Profile updated");
+      return { ...data, user: nextUser };
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Profile update failed"));
+      throw error;
+    }
   };
 
-  const createPreviewOrder = async ({ items, totals, shippingAddress, paymentMethod, coupon }) => {
+  const addAddress = async (address) => {
+    if (usePreviewAuth) {
+      const session = readStorage(PREVIEW_SESSION_KEY, null);
+      const users = getPreviewUsers();
+      if (!session?.user) {
+        throw createPreviewError("Please log in again");
+      }
+
+      const nextAddress = {
+        _id: `address-${Date.now()}`,
+        label: String(address.label || "Home").trim(),
+        fullName: String(address.fullName || session.user.name || "").trim(),
+        line1: String(address.line1 || "").trim(),
+        line2: String(address.line2 || "").trim(),
+        city: String(address.city || "").trim(),
+        state: String(address.state || "").trim(),
+        postalCode: String(address.postalCode || "").trim(),
+        country: String(address.country || "India").trim(),
+        phone: String(address.phone || session.user.phone || "").trim()
+      };
+
+      const nextUser = {
+        ...session.user,
+        addresses: [nextAddress, ...(session.user.addresses || [])]
+      };
+      const nextUsers = users.map((entry) =>
+        entry._id === nextUser._id ? { ...entry, ...nextUser, password: entry.password } : entry
+      );
+
+      writePreviewUsers(nextUsers);
+      persistSession({
+        token: session.token || `preview-token-${nextUser._id}`,
+        user: nextUser
+      });
+      toast.success("Address added");
+      return { address: nextAddress, addresses: nextUser.addresses };
+    }
+
+    try {
+      const { data } = await api.post(endpoints.auth.addresses, address);
+      const nextAddresses = [data.address, ...(user?.addresses || [])];
+      const nextUser = user
+        ? mergeUserState(user, {
+            ...user,
+            addresses: nextAddresses
+          })
+        : null;
+      if (nextUser) {
+        setUser(nextUser);
+      }
+      toast.success("Address added");
+      return { ...data, addresses: nextAddresses };
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Address save failed"));
+      throw error;
+    }
+  };
+
+  const updateAddress = async (addressId, address) => {
+    if (usePreviewAuth) {
+      const session = readStorage(PREVIEW_SESSION_KEY, null);
+      const users = getPreviewUsers();
+      if (!session?.user) {
+        throw createPreviewError("Please log in again");
+      }
+
+      const nextAddresses = (session.user.addresses || []).map((entry) =>
+        entry._id === addressId ? { ...entry, ...address } : entry
+      );
+      const nextUser = {
+        ...session.user,
+        addresses: nextAddresses
+      };
+      const nextUsers = users.map((entry) =>
+        entry._id === nextUser._id ? { ...entry, ...nextUser, password: entry.password } : entry
+      );
+
+      writePreviewUsers(nextUsers);
+      persistSession({
+        token: session.token || `preview-token-${nextUser._id}`,
+        user: nextUser
+      });
+      toast.success("Address updated");
+      return {
+        address: nextAddresses.find((entry) => entry._id === addressId),
+        addresses: nextAddresses
+      };
+    }
+
+    try {
+      const { data } = await api.put(`${endpoints.auth.addresses}/${addressId}`, address);
+      const nextAddresses = (user?.addresses || []).map((entry) =>
+        entry._id === addressId ? { ...entry, ...data.address } : entry
+      );
+      const nextUser = user
+        ? mergeUserState(user, {
+            ...user,
+            addresses: nextAddresses
+          })
+        : null;
+      if (nextUser) {
+        setUser(nextUser);
+      }
+      toast.success("Address updated");
+      return { ...data, addresses: nextAddresses };
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Address update failed"));
+      throw error;
+    }
+  };
+
+  const deleteAddress = async (addressId) => {
+    if (usePreviewAuth) {
+      const session = readStorage(PREVIEW_SESSION_KEY, null);
+      const users = getPreviewUsers();
+      if (!session?.user) {
+        throw createPreviewError("Please log in again");
+      }
+
+      const nextAddresses = (session.user.addresses || []).filter((entry) => entry._id !== addressId);
+      const nextUser = {
+        ...session.user,
+        addresses: nextAddresses
+      };
+      const nextUsers = users.map((entry) =>
+        entry._id === nextUser._id ? { ...entry, ...nextUser, password: entry.password } : entry
+      );
+
+      writePreviewUsers(nextUsers);
+      persistSession({
+        token: session.token || `preview-token-${nextUser._id}`,
+        user: nextUser
+      });
+      toast.success("Address deleted");
+      return { addresses: nextAddresses };
+    }
+
+    try {
+      await api.delete(`${endpoints.auth.addresses}/${addressId}`);
+      const nextAddresses = (user?.addresses || []).filter((entry) => entry._id !== addressId);
+      const nextUser = user
+        ? mergeUserState(user, {
+            ...user,
+            addresses: nextAddresses
+          })
+        : null;
+      if (nextUser) {
+        setUser(nextUser);
+      }
+      toast.success("Address deleted");
+      return { addresses: nextAddresses };
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Address delete failed"));
+      throw error;
+    }
+  };
+
+  const createPreviewOrder = async ({ items, totals, shippingAddress, paymentMethod, coupon, paymentDetails }) => {
     const session = readStorage(PREVIEW_SESSION_KEY, null);
     const users = getPreviewUsers();
 
@@ -414,6 +597,7 @@ export const AuthProvider = ({ children }) => {
       coupon: coupon || null,
       shippingAddress,
       paymentMethod,
+      paymentDetails: paymentDetails || null,
       createdAt: new Date().toISOString()
     };
 
@@ -456,6 +640,9 @@ export const AuthProvider = ({ children }) => {
       verifySignupOtp,
       logout,
       updateProfile,
+      addAddress,
+      updateAddress,
+      deleteAddress,
       createPreviewOrder,
       refreshProfile: fetchProfile,
       setUser

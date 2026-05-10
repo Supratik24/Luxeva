@@ -1,0 +1,53 @@
+{
+  "users": [
+    {
+      "_id": "fallback-admin",
+      "name": "Supratik Admin",
+      "email": "admin@luxeva.com",
+      "password": "$2a$12$c4MSVY9QYOwJtB1vjLecGei7LkgrKhKhE8JPODIEvQXH3NbaLxE.m",
+      "phone": "8918654138",
+      "avatar": "",
+      "googleId": "",
+      "role": "admin",
+      "isActive": true,
+      "isVerified": true,
+      "defaultAddressId": "",
+      "wishlistProductIds": [],
+      "recentlyViewed": [],
+      "resetPasswordToken": "",
+      "resetPasswordExpiresAt": null,
+      "resetPasswordOtpHash": "",
+      "resetPasswordOtpExpiresAt": null,
+      "resetPasswordOtpVerifiedAt": null,
+      "signupOtpHash": "",
+      "signupOtpExpiresAt": null,
+      "createdAt": "2026-05-10T07:58:25.540Z",
+      "updatedAt": "2026-05-10T07:58:25.542Z"
+    },
+    {
+      "_id": "user-1778399906117-lqxxxf",
+      "name": "Supratik OTP Check 2",
+      "email": "supratiksangram9@gmail.com",
+      "password": "$2a$12$qs/NFewAmWFvDZMqZ.OTTuHBTP2.wH219M9xktRG99Dxb8kt5FECy",
+      "phone": "8918654138",
+      "avatar": "",
+      "googleId": "",
+      "role": "user",
+      "isActive": true,
+      "isVerified": false,
+      "defaultAddressId": "",
+      "wishlistProductIds": [],
+      "recentlyViewed": [],
+      "resetPasswordToken": "",
+      "resetPasswordExpiresAt": null,
+      "resetPasswordOtpHash": "",
+      "resetPasswordOtpExpiresAt": null,
+      "resetPasswordOtpVerifiedAt": null,
+      "signupOtpHash": "5e8264f335ae38e3093ec0cfb3a012472e4f2ba2af257713da52b1b2bccd39bb",
+      "signupOtpExpiresAt": "2026-05-10T08:09:15.131Z",
+      "createdAt": "2026-05-10T07:58:25.545Z",
+      "updatedAt": "2026-05-10T07:59:15.132Z"
+    }
+  ],
+  "addresses": []
+}

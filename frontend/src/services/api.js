@@ -65,6 +65,8 @@ export const endpoints = {
     mine: "/api/orders/mine",
     detail: (id) => `/api/orders/mine/${id}`,
     paymentIntent: "/api/orders/payments/intent",
+    razorpayOrder: "/api/orders/payments/razorpay/order",
+    razorpayVerify: "/api/orders/payments/razorpay/verify",
     adminOrders: "/api/orders/admin/all",
     adminAnalytics: "/api/orders/admin/analytics/overview",
     updateStatus: (id) => `/api/orders/admin/${id}/status`

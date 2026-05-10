@@ -18,11 +18,15 @@ export const protect = async (req, res, next) => {
   }
 
   try {
-    const redis = getRedis();
-    const isBlacklisted = await redis.get(`blacklist:${token}`);
+    try {
+      const redis = getRedis();
+      const isBlacklisted = await redis.get(`blacklist:${token}`);
 
-    if (isBlacklisted) {
-      return next(new ApiError(401, "Session has been revoked"));
+      if (isBlacklisted) {
+        return next(new ApiError(401, "Session has been revoked"));
+      }
+    } catch (redisError) {
+      console.warn(`Redis session check skipped: ${redisError.message}`);
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

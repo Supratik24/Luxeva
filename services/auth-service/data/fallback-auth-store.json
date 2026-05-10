@@ -1,0 +1,29 @@
+{
+  "users": [
+    {
+      "_id": "fallback-admin",
+      "name": "Supratik Admin",
+      "email": "admin@luxeva.com",
+      "password": "$2a$12$TBekX.L4L83xfT2iI6A1A.rny2N2/FOXOovgUCva3dUqwYWgDBUGy",
+      "phone": "8918654138",
+      "avatar": "",
+      "googleId": "",
+      "role": "admin",
+      "isActive": true,
+      "isVerified": true,
+      "defaultAddressId": "",
+      "wishlistProductIds": [],
+      "recentlyViewed": [],
+      "resetPasswordToken": "",
+      "resetPasswordExpiresAt": null,
+      "resetPasswordOtpHash": "",
+      "resetPasswordOtpExpiresAt": null,
+      "resetPasswordOtpVerifiedAt": null,
+      "signupOtpHash": "",
+      "signupOtpExpiresAt": null,
+      "createdAt": "2026-05-10T07:56:29.864Z",
+      "updatedAt": "2026-05-10T07:56:29.864Z"
+    }
+  ],
+  "addresses": []
+}

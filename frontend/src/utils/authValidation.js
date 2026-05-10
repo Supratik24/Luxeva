@@ -5,6 +5,16 @@ export const validateEmail = (email = "") => {
 
 export const normalizeEmail = (email = "") => String(email).trim().toLowerCase();
 
+export const maskEmail = (email = "") => {
+  const [localPart = "", domain = ""] = normalizeEmail(email).split("@");
+  if (!localPart || !domain) {
+    return normalizeEmail(email);
+  }
+
+  const visible = localPart.slice(0, 2);
+  return `${visible}${"*".repeat(Math.max(localPart.length - 2, 1))}@${domain}`;
+};
+
 export const validatePasswordStrength = (password = "") => {
   const value = String(password);
 

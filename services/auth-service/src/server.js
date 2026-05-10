@@ -11,6 +11,14 @@ connectDatabase(mongoUri)
     });
   })
   .catch((error) => {
-    console.error("Auth service failed to start", error);
-    process.exit(1);
+    if (process.env.NODE_ENV === "production") {
+      console.error("Auth service failed to start", error);
+      process.exit(1);
+    }
+
+    process.env.AUTH_FALLBACK_MODE = "memory";
+    console.warn(`Auth service running without MongoDB for local preview: ${error.message}`);
+    app.listen(port, () => {
+      console.log(`Auth service listening on port ${port}`);
+    });
   });

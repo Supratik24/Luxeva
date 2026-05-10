@@ -37,14 +37,18 @@ const createMemoryRedis = () => ({
   }
 });
 
+const memoryRedis = createMemoryRedis();
+
 const createRedisClient = () => {
   if (redisDisabled || !process.env.REDIS_URL) {
     redisDisabled = true;
-    return createMemoryRedis();
+    return memoryRedis;
   }
 
   try {
     const client = new Redis(process.env.REDIS_URL, {
+      connectTimeout: 500,
+      enableOfflineQueue: false,
       maxRetriesPerRequest: 1,
       lazyConnect: true
     });
@@ -53,6 +57,8 @@ const createRedisClient = () => {
       if (!redisDisabled) {
         redisDisabled = true;
         console.warn(`Redis unavailable, falling back to in-memory mode: ${error.message}`);
+        redisClient = memoryRedis;
+        redisSubscriber = memoryRedis;
       }
     });
 
@@ -60,11 +66,16 @@ const createRedisClient = () => {
   } catch (error) {
     redisDisabled = true;
     console.warn(`Redis setup failed, falling back to in-memory mode: ${error.message}`);
-    return createMemoryRedis();
+    return memoryRedis;
   }
 };
 
 export const getRedis = () => {
+  if (redisDisabled) {
+    redisClient = memoryRedis;
+    return redisClient;
+  }
+
   if (!redisClient) {
     redisClient = createRedisClient();
   }
@@ -73,6 +84,11 @@ export const getRedis = () => {
 };
 
 export const getRedisSubscriber = () => {
+  if (redisDisabled) {
+    redisSubscriber = memoryRedis;
+    return redisSubscriber;
+  }
+
   if (!redisSubscriber) {
     redisSubscriber = createRedisClient();
   }

@@ -11,6 +11,14 @@ connectDatabase(mongoUri)
     });
   })
   .catch((error) => {
-    console.error("Order service failed to start", error);
-    process.exit(1);
+    if (process.env.NODE_ENV === "production") {
+      console.error("Order service failed to start", error);
+      process.exit(1);
+    }
+
+    process.env.ORDER_FALLBACK_MODE = "memory";
+    console.warn(`Order service running without MongoDB for local preview: ${error.message}`);
+    app.listen(port, () => {
+      console.log(`Order service listening on port ${port}`);
+    });
   });
