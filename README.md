@@ -1,6 +1,6 @@
 # Luxeva Commerce Platform
 
-Luxeva is a modern full-stack eCommerce platform built with a React storefront, a hidden role-protected admin portal, and a Node.js microservices backend using MongoDB and Redis.
+Luxeva is a production-style eCommerce platform built with a React storefront, a hidden role-protected admin portal, and a Node.js microservices backend using MongoDB and Redis. The repo is structured to run locally as a monorepo and to deploy cleanly on Render with one public gateway, one public frontend, and private internal services.
 
 ## Stack
 
@@ -16,7 +16,7 @@ Luxeva is a modern full-stack eCommerce platform built with a React storefront, 
   - `notification-service`
 - Shared infrastructure: Redis for JWT blacklist support, catalog caching, and pub/sub order events
 - Auth: JWT with hashed passwords
-- Payments: Stripe-ready payment intent endpoint
+- Payments: Razorpay checkout for online payments plus cash on delivery
 - Uploads: Local multi-image upload support for admin product management
 
 ## Highlights
@@ -27,7 +27,7 @@ Luxeva is a modern full-stack eCommerce platform built with a React storefront, 
 - Product, category, brand, coupon, review, banner, content, user, cart, order, and notification models
 - Redis-backed catalog caching and order event fan-out
 - Sales analytics, low-stock alerts, admin notifications, and status updates
-- Seed data for products, content, customers, admin users, carts, orders, and notifications
+- Render blueprint included in `render.yaml`
 
 ## Monorepo Layout
 
@@ -94,7 +94,13 @@ Important variables:
 - `ORDER_SERVICE_URL`
 - `CONTENT_SERVICE_URL`
 - `NOTIFICATION_SERVICE_URL`
-- `STRIPE_SECRET_KEY`
+- `RAZORPAY_KEY_ID`
+- `RAZORPAY_KEY_SECRET`
+- `SMTP_USER`
+- `SMTP_PASS`
+- `SMTP_FROM`
+- `TWO_FACTOR_API_KEY`
+- `VITE_USE_PREVIEW_AUTH`
 
 ## Local Development
 
@@ -112,16 +118,16 @@ Use local services or Docker.
 docker compose up -d mongo redis
 ```
 
-### 3. Seed the databases
-
-```bash
-npm run seed
-```
-
-### 4. Run everything
+### 3. Run everything
 
 ```bash
 npm run dev
+```
+
+### 4. Optional seed step
+
+```bash
+npm run seed
 ```
 
 ### 5. App URLs
@@ -195,5 +201,67 @@ docker compose up --build
 
 - The microservices communicate through the gateway for client-facing traffic.
 - Redis is intentionally used for more than caching: it also handles logout invalidation and cross-service order event fan-out.
-- Stripe is wired as a backend endpoint and can be completed by adding real keys and frontend payment UI enhancements.
+- In production, preview authentication should stay disabled. The frontend now defaults to preview auth only during local development unless `VITE_USE_PREVIEW_AUTH=true`.
 - Local image upload is implemented for product administration; Cloudinary can be layered in later if needed.
+
+## Render Deployment
+
+The repo now includes a Render blueprint at `render.yaml`.
+
+### Recommended Render sequence
+
+1. Push this repo to GitHub.
+2. In Render, create a new Blueprint and point it to the repo.
+3. Let Render create:
+   - `luxeva-frontend` as a static site
+   - `luxeva-api-gateway` as the public API
+   - `luxeva-auth-service`, `luxeva-catalog-service`, `luxeva-order-service`, `luxeva-content-service`, and `luxeva-notification-service` as private services
+   - `luxeva-redis` as a Render Key Value instance
+4. Before the first successful deploy, fill the `sync: false` environment variables in Render:
+   - `MONGO_URI`
+   - `CATALOG_MONGO_URI`
+   - `ORDER_MONGO_URI`
+   - `CONTENT_MONGO_URI`
+   - `NOTIFICATION_MONGO_URI`
+   - `VITE_GOOGLE_CLIENT_ID`
+   - `GOOGLE_CLIENT_ID`
+   - `SMTP_USER`
+   - `SMTP_PASS`
+   - `SMTP_FROM`
+   - `TWO_FACTOR_API_KEY`
+   - `RAZORPAY_KEY_ID`
+   - `RAZORPAY_KEY_SECRET`
+   - `ADMIN_ALERT_EMAIL`
+   - `ADMIN_ALERT_PHONE`
+5. Use one Mongo Atlas cluster with separate databases or connection strings for each service. A common pattern is:
+   - auth: `luxeva-auth`
+   - catalog: `luxeva-catalog`
+   - orders: `luxeva-order`
+   - content: `luxeva-content`
+   - notifications: `luxeva-notifications`
+6. After the blueprint finishes, verify these health URLs:
+   - frontend: Render static site URL
+   - gateway: `/health`
+   - auth: internal `/health`
+   - catalog: internal `/health`
+   - order: internal `/health`
+   - content: internal `/health`
+   - notification: internal `/health`
+
+### Production checklist
+
+- `VITE_USE_PREVIEW_AUTH=false`
+- Mongo Atlas network access allows Render egress
+- Redis is connected from Render Key Value or another reachable hosted Redis
+- Gmail SMTP or another SMTP provider is configured for OTP and reset email
+- Razorpay test or live keys are added only to the order service environment
+- `FRONTEND_URL` points to the deployed frontend origin so CORS and reset-password links work
+- The gateway points to the private Render service hostports, not localhost
+
+### What is already production-safe in this repo
+
+- Health endpoints exist on every service at `/health`
+- Gateway proxy targets now accept Render private `host:port` values directly
+- Frontend preview auth no longer turns on by default in production
+- Razorpay online payment flow and COD flow both persist backend orders
+- Redis failures degrade more gracefully during local development while production still fails fast if core databases are unavailable

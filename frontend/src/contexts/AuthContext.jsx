@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { useLocalPreviewData } from "../data/mockStorefront";
 import api, { endpoints } from "../services/api";
 import { maskEmail, normalizeEmail } from "../utils/authValidation";
+import { isPreviewAuthEnabled } from "../utils/previewMode";
 import { readStorage, writeStorage } from "../utils/storage";
 
 const AuthContext = createContext(null);
@@ -10,7 +11,7 @@ const TOKEN_KEY = "luxeva_token";
 const PREVIEW_USERS_KEY = "luxeva_preview_users";
 const PREVIEW_SESSION_KEY = "luxeva_preview_session";
 const PREVIEW_PENDING_SIGNUP_KEY = "luxeva_preview_pending_signup";
-const usePreviewAuth = useLocalPreviewData && import.meta.env.VITE_USE_PREVIEW_AUTH !== "false";
+const usePreviewAuth = useLocalPreviewData && isPreviewAuthEnabled;
 
 const defaultAdminUser = {
   _id: "preview-admin",

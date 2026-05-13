@@ -4,6 +4,7 @@
   "type": "module",
   "main": "src/server.js",
   "scripts": {
+    "build": "node -e \"console.log('No build step required for catalog-service')\"",
     "dev": "nodemon src/server.js",
     "start": "node src/server.js"
   },

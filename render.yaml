@@ -1,0 +1,224 @@
+services:
+  - type: web
+    name: luxeva-frontend
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: frontend/dist
+    pullRequestPreviewsEnabled: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: luxeva-api-gateway
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: VITE_USE_PREVIEW_AUTH
+        value: "false"
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
+
+  - type: web
+    name: luxeva-api-gateway
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm run start:gateway
+    healthCheckPath: /health
+    pullRequestPreviewsEnabled: false
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: luxeva-frontend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: AUTH_SERVICE_URL
+        fromService:
+          type: pserv
+          name: luxeva-auth-service
+          property: hostport
+      - key: CATALOG_SERVICE_URL
+        fromService:
+          type: pserv
+          name: luxeva-catalog-service
+          property: hostport
+      - key: ORDER_SERVICE_URL
+        fromService:
+          type: pserv
+          name: luxeva-order-service
+          property: hostport
+      - key: CONTENT_SERVICE_URL
+        fromService:
+          type: pserv
+          name: luxeva-content-service
+          property: hostport
+      - key: NOTIFICATION_SERVICE_URL
+        fromService:
+          type: pserv
+          name: luxeva-notification-service
+          property: hostport
+
+  - type: pserv
+    name: luxeva-auth-service
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm run start:auth
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        fromService:
+          type: web
+          name: luxeva-api-gateway
+          envVarKey: JWT_SECRET
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: luxeva-frontend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: luxeva-redis
+          property: connectionString
+      - key: MONGO_URI
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: TWO_FACTOR_API_KEY
+        sync: false
+      - key: ADMIN_ALERT_EMAIL
+        sync: false
+      - key: ADMIN_ALERT_PHONE
+        sync: false
+
+  - type: pserv
+    name: luxeva-catalog-service
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm run start:catalog
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        fromService:
+          type: web
+          name: luxeva-api-gateway
+          envVarKey: JWT_SECRET
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: luxeva-frontend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: luxeva-redis
+          property: connectionString
+      - key: CATALOG_MONGO_URI
+        sync: false
+
+  - type: pserv
+    name: luxeva-order-service
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm run start:order
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        fromService:
+          type: web
+          name: luxeva-api-gateway
+          envVarKey: JWT_SECRET
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: luxeva-frontend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: luxeva-redis
+          property: connectionString
+      - key: ORDER_MONGO_URI
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+
+  - type: pserv
+    name: luxeva-content-service
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm run start:content
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        fromService:
+          type: web
+          name: luxeva-api-gateway
+          envVarKey: JWT_SECRET
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: luxeva-frontend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: CONTENT_MONGO_URI
+        sync: false
+
+  - type: pserv
+    name: luxeva-notification-service
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm run start:notifications
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        fromService:
+          type: web
+          name: luxeva-api-gateway
+          envVarKey: JWT_SECRET
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: luxeva-frontend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: luxeva-redis
+          property: connectionString
+      - key: NOTIFICATION_MONGO_URI
+        sync: false
+
+  - type: keyvalue
+    name: luxeva-redis
+    plan: free

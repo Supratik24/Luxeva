@@ -7,6 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useShop } from "../contexts/ShopContext";
 import api, { endpoints } from "../services/api";
 import { currency } from "../utils/format";
+import { isPreviewAuthEnabled } from "../utils/previewMode";
 
 const initialAddress = {
   fullName: "",
@@ -65,7 +66,7 @@ const CheckoutPage = () => {
   const navigate = useNavigate();
   const { user, createPreviewOrder } = useAuth();
   const { cart, coupon, clearCart } = useShop();
-  const usePreviewAuth = useLocalPreviewData && import.meta.env.VITE_USE_PREVIEW_AUTH !== "false";
+  const usePreviewAuth = useLocalPreviewData && isPreviewAuthEnabled;
   const [address, setAddress] = useState(initialAddress);
   const [paymentMethod, setPaymentMethod] = useState("netbanking");
   const [submitting, setSubmitting] = useState(false);

@@ -8,6 +8,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useShop } from "../../contexts/ShopContext";
 import api, { endpoints } from "../../services/api";
 import { currency, shortDate } from "../../utils/format";
+import { isPreviewAuthEnabled } from "../../utils/previewMode";
 
 const tabs = [
   { key: "profile", label: "Profile", icon: UserRoundCog },
@@ -60,7 +61,7 @@ const getVisibleOrderItems = (order) => {
 const DashboardPage = () => {
   const { user, updateProfile: saveProfile, addAddress, updateAddress, deleteAddress } = useAuth();
   const { wishlist, recentlyViewed } = useShop();
-  const usePreviewAuth = useLocalPreviewData && import.meta.env.VITE_USE_PREVIEW_AUTH !== "false";
+  const usePreviewAuth = useLocalPreviewData && isPreviewAuthEnabled;
   const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [notifications, setNotifications] = useState([]);

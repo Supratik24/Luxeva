@@ -13,11 +13,12 @@ import {
   validatePhone
 } from "../../utils/authValidation";
 import { useLocalPreviewData } from "../../data/mockStorefront";
+import { isPreviewAuthEnabled } from "../../utils/previewMode";
 
 const SignupPage = () => {
   const navigate = useNavigate();
   const { signup, verifySignupOtp, googleLogin } = useAuth();
-  const showPreviewOtp = useLocalPreviewData && import.meta.env.VITE_USE_PREVIEW_AUTH !== "false";
+  const showPreviewOtp = useLocalPreviewData && isPreviewAuthEnabled;
   const [values, setValues] = useState({ name: "", email: "", password: "", confirmPassword: "", phone: "" });
   const [otp, setOtp] = useState("");
   const [otpSentTo, setOtpSentTo] = useState("");

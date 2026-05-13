@@ -10,6 +10,14 @@
   "scripts": {
     "dev": "concurrently \"npm run dev --workspace services/api-gateway\" \"npm run dev --workspace services/auth-service\" \"npm run dev --workspace services/catalog-service\" \"npm run dev --workspace services/order-service\" \"npm run dev --workspace services/content-service\" \"npm run dev --workspace services/notification-service\" \"npm run dev --workspace frontend\"",
     "dev:backend": "concurrently \"npm run dev --workspace services/api-gateway\" \"npm run dev --workspace services/auth-service\" \"npm run dev --workspace services/catalog-service\" \"npm run dev --workspace services/order-service\" \"npm run dev --workspace services/content-service\" \"npm run dev --workspace services/notification-service\"",
+    "build": "npm run build --workspace frontend",
+    "start:frontend": "npm run start --workspace frontend",
+    "start:gateway": "npm run start --workspace services/api-gateway",
+    "start:auth": "npm run start --workspace services/auth-service",
+    "start:catalog": "npm run start --workspace services/catalog-service",
+    "start:order": "npm run start --workspace services/order-service",
+    "start:content": "npm run start --workspace services/content-service",
+    "start:notifications": "npm run start --workspace services/notification-service",
     "seed": "node scripts/seed-all.js"
   },
   "devDependencies": {
