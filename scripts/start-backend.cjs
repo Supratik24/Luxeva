@@ -106,7 +106,20 @@ process.on("SIGINT", () => stopAll("SIGINT"));
 process.on("SIGTERM", () => stopAll("SIGTERM"));
 process.on("exit", () => stopAll());
 
-console.log(`[supervisor] Starting backend services. Gateway will listen on port ${gatewayPort}.`);
-for (const service of services) {
-  startService(service);
-}
+const main = async () => {
+  if (String(process.env.SEED_ON_START || "").toLowerCase() === "true") {
+    console.log("[supervisor] Running startup seed check before launching backend services.");
+    const { runSeed } = await import("./seed-all.js");
+    await runSeed({ force: String(process.env.SEED_FORCE || "").toLowerCase() === "true" });
+  }
+
+  console.log(`[supervisor] Starting backend services. Gateway will listen on port ${gatewayPort}.`);
+  for (const service of services) {
+    startService(service);
+  }
+};
+
+main().catch((error) => {
+  console.error(`[supervisor] startup failed: ${error.message}`);
+  process.exit(1);
+});

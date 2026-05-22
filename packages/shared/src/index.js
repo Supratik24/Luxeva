@@ -1,5 +1,6 @@
 export * from "./config/database.js";
 export * from "./config/env.js";
+export * from "./config/media.js";
 export * from "./config/redis.js";
 export * from "./middleware/auth.js";
 export * from "./middleware/errorHandler.js";

@@ -26,7 +26,7 @@ Luxeva is a production-style eCommerce platform with a polished React storefront
 - Product, category, brand, coupon, review, banner, content, user, cart, order, and notification models.
 - Redis-backed catalog caching, JWT logout invalidation, and order event fan-out.
 - Razorpay online payments plus cash on delivery.
-- Local multi-image upload support for admin product management.
+- Cloudinary-backed product and banner media handling.
 - Render deployment blueprint in `render.yaml`.
 
 ## Tech Stack
@@ -95,17 +95,19 @@ ORDER_MONGO_URI
 CONTENT_MONGO_URI
 NOTIFICATION_MONGO_URI
 REDIS_URL
-AUTH_SERVICE_URL
-CATALOG_SERVICE_URL
-ORDER_SERVICE_URL
-CONTENT_SERVICE_URL
-NOTIFICATION_SERVICE_URL
+FRONTEND_URL
+GOOGLE_CLIENT_ID
 RAZORPAY_KEY_ID
 RAZORPAY_KEY_SECRET
+CLOUDINARY_CLOUD_NAME
+CLOUDINARY_API_KEY
+CLOUDINARY_API_SECRET
 SMTP_USER
 SMTP_PASS
 SMTP_FROM
 TWO_FACTOR_API_KEY
+VITE_API_URL
+VITE_GOOGLE_CLIENT_ID
 VITE_USE_PREVIEW_AUTH
 ```
 
@@ -169,7 +171,7 @@ npm run seed
 
 - Private admin login route that is not exposed in public navigation.
 - Dashboard analytics cards, sales chart, low-stock alerts, and admin notifications.
-- Product CRUD with local image uploads.
+- Product CRUD with Cloudinary-backed image uploads.
 - Category and brand management.
 - Coupon creation and review moderation.
 - Order management with status changes.
@@ -267,21 +269,20 @@ The root `Dockerfile.workspace` is set up so every service can build from the mo
 
 ## Render Deployment
 
-This repo includes a Render blueprint at `render.yaml`.
+This repo includes a backend-only Render blueprint at `render.yaml`.
 
 Recommended flow:
 
 1. Push this repo to GitHub.
 2. Create a new Render Blueprint and connect it to the repo.
-3. Let Render create the frontend, one Docker backend service, and Redis instance.
-4. Fill every `sync: false` environment variable before the first successful deploy.
-5. Verify the frontend URL and the backend `/health` endpoint.
+3. Let Render create one Docker backend service and Redis.
+4. Fill every `sync: false` environment variable before the first successful deploy, including `FRONTEND_URL` for your Vercel site.
+5. Verify the backend `/health` endpoint.
 
 Render services created by the blueprint:
 
 | Render Service | Type |
 | --- | --- |
-| `luxeva-frontend` | Static site |
 | `luxeva-backend` | Docker web service running the gateway and backend services |
 | `luxeva-redis` | Render Key Value |
 
@@ -291,15 +292,19 @@ Production checklist:
 - Mongo Atlas network access allows Render egress.
 - Redis is connected from Render Key Value or another hosted Redis.
 - SMTP credentials are configured for OTP and reset email.
-- Razorpay keys are added only to the order service environment.
+- Razorpay keys are added to the backend environment.
 - `FRONTEND_URL` points to the deployed frontend origin.
 - The backend Docker service receives MongoDB connection strings from Render environment variables.
 - The gateway uses `127.0.0.1` service URLs inside the backend container.
+- Cloudinary credentials are set so uploaded files and pasted image URLs can be mirrored to Cloudinary.
+- Set `SEED_ON_START=true` only when you want the backend to seed data on boot.
+- `SEED_FORCE=true` is optional and only needed when you want to reseed existing data.
 
 ## Production Notes
 
 - The public backend health endpoint is available at `/health`.
 - The production backend image is built from `Dockerfile.backend`.
+- Uploaded product files are transferred to Cloudinary and temp files are deleted after upload.
 - Frontend preview auth does not turn on by default in production.
 - Razorpay online payment flow and COD flow both persist backend orders.
 - Redis failures degrade more gracefully during local development while production database failures remain strict.

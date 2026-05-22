@@ -1,4 +1,6 @@
 import express from "express";
+import fs from "node:fs";
+import path from "node:path";
 import multer from "multer";
 import { body } from "express-validator";
 import { protect, restrictTo, validateRequest } from "@luxeva/shared";
@@ -33,8 +35,11 @@ import {
 } from "../controllers/catalogController.js";
 
 const router = express.Router();
+const uploadDirectory = path.resolve("tmp", "uploads");
+fs.mkdirSync(uploadDirectory, { recursive: true });
+
 const storage = multer.diskStorage({
-  destination: "uploads",
+  destination: uploadDirectory,
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, "-")}`);
   }

@@ -1,6 +1,5 @@
 import crypto from "crypto";
 import axios from "axios";
-import Stripe from "stripe";
 import {
   ApiError,
   asyncHandler,
@@ -10,7 +9,6 @@ import {
 import Cart from "../models/Cart.js";
 import Order from "../models/Order.js";
 
-const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 const fallbackCarts = new Map();
 const fallbackOrders = [];
 const razorpayManagedMethods = new Set(["razorpay", "netbanking", "wallet", "paylater"]);
@@ -123,26 +121,6 @@ export const syncCart = asyncHandler(async (req, res) => {
   );
 
   sendSuccess(res, 200, "Cart synced successfully", { cart });
-});
-
-export const createPaymentIntent = asyncHandler(async (req, res) => {
-  if (!stripe) {
-    throw new ApiError(500, "Stripe is not configured");
-  }
-
-  const totals = computeTotals(req.body.items || [], req.body.coupon);
-  const intent = await stripe.paymentIntents.create({
-    amount: Math.round(totals.total * 100),
-    currency: "usd",
-    metadata: {
-      userId: String(req.user.id)
-    }
-  });
-
-  sendSuccess(res, 200, "Payment intent created", {
-    clientSecret: intent.client_secret,
-    totals
-  });
 });
 
 export const createRazorpayOrder = asyncHandler(async (req, res) => {

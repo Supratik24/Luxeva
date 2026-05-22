@@ -1,6 +1,14 @@
-import { ApiError, asyncHandler, sendSuccess } from "@luxeva/shared";
+import { ApiError, asyncHandler, normalizeImageUrl, sendSuccess } from "@luxeva/shared";
 import Banner from "../models/Banner.js";
 import ContentBlock from "../models/ContentBlock.js";
+
+const normalizeBannerPayload = async (payload) => {
+  const nextPayload = { ...payload };
+  if (nextPayload.image) {
+    nextPayload.image = await normalizeImageUrl(nextPayload.image, { folder: "luxeva/banners" });
+  }
+  return nextPayload;
+};
 
 export const getHomeContent = asyncHandler(async (req, res) => {
   const [banners, testimonials, faq, pages] = await Promise.all([
@@ -33,12 +41,12 @@ export const getBanners = asyncHandler(async (req, res) => {
 });
 
 export const createBanner = asyncHandler(async (req, res) => {
-  const banner = await Banner.create(req.body);
+  const banner = await Banner.create(await normalizeBannerPayload(req.body));
   sendSuccess(res, 201, "Banner created successfully", { banner });
 });
 
 export const updateBanner = asyncHandler(async (req, res) => {
-  const banner = await Banner.findByIdAndUpdate(req.params.id, req.body, {
+  const banner = await Banner.findByIdAndUpdate(req.params.id, await normalizeBannerPayload(req.body), {
     new: true,
     runValidators: true
   });
@@ -66,4 +74,3 @@ export const upsertBlock = asyncHandler(async (req, res) => {
   );
   sendSuccess(res, 200, "Content block saved successfully", { block });
 });
-

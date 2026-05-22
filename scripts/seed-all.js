@@ -1,5 +1,6 @@
 import "dotenv/config";
 import mongoose from "mongoose";
+import { isCloudinaryConfigured, normalizeImageUrl } from "@luxeva/shared";
 import User from "../services/auth-service/src/models/User.js";
 import Address from "../services/auth-service/src/models/Address.js";
 import Category from "../services/catalog-service/src/models/Category.js";
@@ -15,13 +16,34 @@ import Order from "../services/order-service/src/models/Order.js";
 import Notification from "../services/notification-service/src/models/Notification.js";
 import { brandSeeds, categorySeeds, contentSeeds, productSeeds } from "./catalog-seed-data.js";
 
+const seedKey = "luxeva-bootstrap";
+const seedVersion = process.env.SEED_VERSION || "2026-05-22";
+
+const authUri = process.env.MONGO_URI || "mongodb://localhost:27017/luxeva-auth";
+const catalogUri = process.env.CATALOG_MONGO_URI || "mongodb://localhost:27017/luxeva-catalog";
+const contentUri = process.env.CONTENT_MONGO_URI || "mongodb://localhost:27017/luxeva-content";
+const orderUri = process.env.ORDER_MONGO_URI || "mongodb://localhost:27017/luxeva-order";
+const notificationUri = process.env.NOTIFICATION_MONGO_URI || "mongodb://localhost:27017/luxeva-notifications";
+
 const connect = async (uri) => {
   await mongoose.disconnect().catch(() => undefined);
   await mongoose.connect(uri);
 };
 
+const maybeMirrorImage = async (imageUrl, folder) => {
+  if (!imageUrl) {
+    return imageUrl;
+  }
+
+  if (!isCloudinaryConfigured()) {
+    return imageUrl;
+  }
+
+  return normalizeImageUrl(imageUrl, { folder });
+};
+
 const seedAuth = async () => {
-  await connect(process.env.MONGO_URI || "mongodb://localhost:27017/luxeva-auth");
+  await connect(authUri);
   await Promise.all([User.deleteMany({}), Address.deleteMany({})]);
 
   const admin = await User.create({
@@ -52,11 +74,11 @@ const seedAuth = async () => {
     isDefault: true
   });
 
-  return { admin, customer };
+  return { customer };
 };
 
 const seedCatalog = async (customer) => {
-  await connect(process.env.CATALOG_MONGO_URI || "mongodb://localhost:27017/luxeva-catalog");
+  await connect(catalogUri);
   await Promise.all([
     Category.deleteMany({}),
     Brand.deleteMany({}),
@@ -66,42 +88,56 @@ const seedCatalog = async (customer) => {
     Wishlist.deleteMany({})
   ]);
 
-  const categories = await Category.insertMany(categorySeeds);
+  const categories = await Category.insertMany(
+    await Promise.all(
+      categorySeeds.map(async (category) => ({
+        ...category,
+        image: await maybeMirrorImage(category.image, "luxeva/categories")
+      }))
+    )
+  );
   const brands = await Brand.insertMany(brandSeeds);
   const categoryMap = Object.fromEntries(categories.map((category) => [category.slug, category._id]));
   const brandMap = Object.fromEntries(brands.map((brand) => [brand.slug, brand._id]));
 
   const products = await Product.insertMany(
-    productSeeds.map((product) => ({
-      name: product.name,
-      slug: product.slug,
-      shortDescription: product.shortDescription,
-      description: product.description,
-      category: categoryMap[product.categorySlug],
-      brand: brandMap[product.brandSlug],
-      images: [{ url: product.image, alt: product.name }],
-      price: product.price,
-      compareAtPrice: product.compareAtPrice,
-      discountPercent: product.compareAtPrice
-        ? Math.max(0, Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100))
-        : 0,
-      sku: product.sku,
-      stock: product.stock,
-      soldCount: product.soldCount,
-      featured: Boolean(product.featured),
-      trending: Boolean(product.trending),
-      tags: product.tags,
-      colors: product.colors,
-      sizes: product.sizes,
-      averageRating: product.averageRating,
-      reviewCount: product.reviewCount,
-      flashSaleEndsAt: product.featured || product.trending ? new Date(Date.now() + 1000 * 60 * 60 * 48) : undefined,
-      specs: product.specs,
-      seo: {
-        title: `${product.name} | Luxeva`,
-        description: product.shortDescription
-      }
-    }))
+    await Promise.all(
+      productSeeds.map(async (product) => ({
+        name: product.name,
+        slug: product.slug,
+        shortDescription: product.shortDescription,
+        description: product.description,
+        category: categoryMap[product.categorySlug],
+        brand: brandMap[product.brandSlug],
+        images: [
+          {
+            url: await maybeMirrorImage(product.image, "luxeva/products"),
+            alt: product.name
+          }
+        ],
+        price: product.price,
+        compareAtPrice: product.compareAtPrice,
+        discountPercent: product.compareAtPrice
+          ? Math.max(0, Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100))
+          : 0,
+        sku: product.sku,
+        stock: product.stock,
+        soldCount: product.soldCount,
+        featured: Boolean(product.featured),
+        trending: Boolean(product.trending),
+        tags: product.tags,
+        colors: product.colors,
+        sizes: product.sizes,
+        averageRating: product.averageRating,
+        reviewCount: product.reviewCount,
+        flashSaleEndsAt: product.featured || product.trending ? new Date(Date.now() + 1000 * 60 * 60 * 48) : undefined,
+        specs: product.specs,
+        seo: {
+          title: `${product.name} | Luxeva`,
+          description: product.shortDescription
+        }
+      }))
+    )
   );
 
   await Coupon.create({
@@ -139,14 +175,17 @@ const seedCatalog = async (customer) => {
     products: [products[0]._id, products[3]._id]
   });
 
-  return { categories, brands, products };
+  return { products };
 };
 
 const seedContent = async () => {
-  await connect(process.env.CONTENT_MONGO_URI || "mongodb://localhost:27017/luxeva-content");
+  await connect(contentUri);
   await Promise.all([Banner.deleteMany({}), ContentBlock.deleteMany({})]);
 
-  await Banner.create(contentSeeds.banner);
+  await Banner.create({
+    ...contentSeeds.banner,
+    image: await maybeMirrorImage(contentSeeds.banner.image, "luxeva/banners")
+  });
 
   await ContentBlock.insertMany([
     {
@@ -159,7 +198,7 @@ const seedContent = async () => {
       title: "Frequently asked questions",
       items: [
         { question: "How long does shipping take?", answer: "Domestic orders usually arrive in 3 to 5 business days depending on your location." },
-        { question: "Can I update my order after checkout?", answer: "You can contact support quickly after placing the order and we’ll help if fulfillment has not started." },
+        { question: "Can I update my order after checkout?", answer: "You can contact support quickly after placing the order and we will help if fulfillment has not started." },
         { question: "How are admin routes secured?", answer: "Admin pages are protected in the frontend and every admin API route is enforced with backend role-based authorization." }
       ]
     },
@@ -188,7 +227,7 @@ const seedContent = async () => {
 };
 
 const seedOrders = async (customer, products) => {
-  await connect(process.env.ORDER_MONGO_URI || "mongodb://localhost:27017/luxeva-order");
+  await connect(orderUri);
   await Promise.all([Cart.deleteMany({}), Order.deleteMany({})]);
 
   const cartProduct = products.find((product) => product.slug === "spf-50-daily-sunscreen") || products[0];
@@ -267,7 +306,7 @@ const seedOrders = async (customer, products) => {
 };
 
 const seedNotifications = async (customer) => {
-  await connect(process.env.NOTIFICATION_MONGO_URI || "mongodb://localhost:27017/luxeva-notifications");
+  await connect(notificationUri);
   await Notification.deleteMany({});
 
   await Notification.insertMany([
@@ -288,18 +327,56 @@ const seedNotifications = async (customer) => {
   ]);
 };
 
-const run = async () => {
+const markSeedComplete = async () => {
+  await connect(authUri);
+  await mongoose.connection.db.collection("seed_states").updateOne(
+    { key: seedKey },
+    {
+      $set: {
+        key: seedKey,
+        version: seedVersion,
+        seededAt: new Date()
+      }
+    },
+    { upsert: true }
+  );
+};
+
+const hasExistingSeed = async () => {
+  await connect(authUri);
+
+  const [marker, admin] = await Promise.all([
+    mongoose.connection.db.collection("seed_states").findOne({ key: seedKey, version: seedVersion }),
+    User.findOne({ email: "admin@luxeva.com" }).select("_id")
+  ]);
+
+  return Boolean(marker || admin);
+};
+
+export const runSeed = async ({ force = false } = {}) => {
+  if (!force && (await hasExistingSeed())) {
+    console.log(`Seed skipped. Existing Luxeva data or seed marker found for version ${seedVersion}.`);
+    await mongoose.disconnect();
+    return false;
+  }
+
   const { customer } = await seedAuth();
   const { products } = await seedCatalog(customer);
   await seedContent();
   await seedOrders(customer, products);
   await seedNotifications(customer);
+  await markSeedComplete();
   await mongoose.disconnect();
-  console.log("Seeded Luxeva microservices data successfully.");
+  console.log(`Seeded Luxeva data successfully${isCloudinaryConfigured() ? " with Cloudinary-backed media" : ""}.`);
+  return true;
 };
 
-run().catch(async (error) => {
-  console.error(error);
-  await mongoose.disconnect();
-  process.exit(1);
-});
+const isDirectRun = process.argv[1]?.endsWith("seed-all.js");
+
+if (isDirectRun) {
+  runSeed({ force: process.argv.includes("--force") }).catch(async (error) => {
+    console.error(error);
+    await mongoose.disconnect();
+    process.exit(1);
+  });
+}

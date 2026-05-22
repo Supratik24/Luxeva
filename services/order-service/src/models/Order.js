@@ -49,7 +49,7 @@ const orderSchema = new mongoose.Schema(
     shippingAddress: addressSchema,
     billingAddress: addressSchema,
     payment: {
-      method: { type: String, enum: ["card", "cod", "razorpay", "stripe"], default: "card" },
+      method: { type: String, enum: ["card", "cod", "razorpay", "netbanking", "wallet", "paylater"], default: "card" },
       status: { type: String, enum: ["pending", "paid", "failed"], default: "pending" },
       transactionId: String
     },
@@ -73,4 +73,3 @@ const orderSchema = new mongoose.Schema(
 const Order = mongoose.model("Order", orderSchema);
 
 export default Order;
-

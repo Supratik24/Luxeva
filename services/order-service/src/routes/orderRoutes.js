@@ -2,7 +2,6 @@ import express from "express";
 import { protect, restrictTo } from "@luxeva/shared";
 import {
   createOrder,
-  createPaymentIntent,
   createRazorpayOrder,
   getAllOrders,
   getAnalytics,
@@ -30,7 +29,6 @@ router.post("/payments/razorpay/verify", allowPreviewPaymentAuth, verifyRazorpay
 router.use(protect);
 router.get("/cart", getCart);
 router.put("/cart", syncCart);
-router.post("/payments/intent", createPaymentIntent);
 router.post("/", createOrder);
 router.get("/mine", getMyOrders);
 router.get("/mine/:id", getMyOrderById);

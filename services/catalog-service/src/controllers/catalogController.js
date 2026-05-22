@@ -1,9 +1,12 @@
+import fs from "node:fs/promises";
 import {
   ApiError,
   asyncHandler,
   buildCacheKey,
   getPagination,
   getRedis,
+  normalizeImageRecords,
+  normalizeImageUrl,
   sendSuccess
 } from "@luxeva/shared";
 import Brand from "../models/Brand.js";
@@ -91,6 +94,32 @@ const buildSort = (sort = "newest") => {
     default:
       return { createdAt: -1 };
   }
+};
+
+const normalizeProductPayload = async (payload) => {
+  const nextPayload = { ...payload };
+
+  if (Array.isArray(nextPayload.images) && nextPayload.images.length) {
+    nextPayload.images = await normalizeImageRecords(nextPayload.images, { folder: "luxeva/products" });
+  }
+
+  return nextPayload;
+};
+
+const normalizeCategoryPayload = async (payload) => {
+  const nextPayload = { ...payload };
+  if (nextPayload.image) {
+    nextPayload.image = await normalizeImageUrl(nextPayload.image, { folder: "luxeva/categories" });
+  }
+  return nextPayload;
+};
+
+const normalizeBrandPayload = async (payload) => {
+  const nextPayload = { ...payload };
+  if (nextPayload.logo) {
+    nextPayload.logo = await normalizeImageUrl(nextPayload.logo, { folder: "luxeva/brands" });
+  }
+  return nextPayload;
 };
 
 export const getCatalogMeta = asyncHandler(async (req, res) => {
@@ -209,10 +238,10 @@ export const getSearchSuggestions = asyncHandler(async (req, res) => {
 });
 
 export const createProduct = asyncHandler(async (req, res) => {
-  const payload = {
+  const payload = await normalizeProductPayload({
     ...req.body,
     slug: slugify(req.body.name)
-  };
+  });
 
   const product = await Product.create(payload);
   await invalidateCatalogCache();
@@ -220,7 +249,7 @@ export const createProduct = asyncHandler(async (req, res) => {
 });
 
 export const updateProduct = asyncHandler(async (req, res) => {
-  const payload = { ...req.body };
+  const payload = await normalizeProductPayload({ ...req.body });
   if (payload.name) {
     payload.slug = slugify(payload.name);
   }
@@ -254,21 +283,23 @@ export const getCategories = asyncHandler(async (req, res) => {
 });
 
 export const createCategory = asyncHandler(async (req, res) => {
-  const category = await Category.create({
+  const category = await Category.create(await normalizeCategoryPayload({
     ...req.body,
     slug: slugify(req.body.name)
-  });
+  }));
   await invalidateCatalogCache();
   sendSuccess(res, 201, "Category created successfully", { category });
 });
 
 export const updateCategory = asyncHandler(async (req, res) => {
+  const payload = await normalizeCategoryPayload({
+    ...req.body,
+    slug: req.body.name ? slugify(req.body.name) : undefined
+  });
+
   const category = await Category.findByIdAndUpdate(
     req.params.id,
-    {
-      ...req.body,
-      slug: req.body.name ? slugify(req.body.name) : undefined
-    },
+    payload,
     { new: true, runValidators: true }
   );
   if (!category) {
@@ -290,21 +321,23 @@ export const getBrands = asyncHandler(async (req, res) => {
 });
 
 export const createBrand = asyncHandler(async (req, res) => {
-  const brand = await Brand.create({
+  const brand = await Brand.create(await normalizeBrandPayload({
     ...req.body,
     slug: slugify(req.body.name)
-  });
+  }));
   await invalidateCatalogCache();
   sendSuccess(res, 201, "Brand created successfully", { brand });
 });
 
 export const updateBrand = asyncHandler(async (req, res) => {
+  const payload = await normalizeBrandPayload({
+    ...req.body,
+    slug: req.body.name ? slugify(req.body.name) : undefined
+  });
+
   const brand = await Brand.findByIdAndUpdate(
     req.params.id,
-    {
-      ...req.body,
-      slug: req.body.name ? slugify(req.body.name) : undefined
-    },
+    payload,
     { new: true, runValidators: true }
   );
 
@@ -430,10 +463,19 @@ export const toggleWishlist = asyncHandler(async (req, res) => {
 });
 
 export const uploadProductImages = asyncHandler(async (req, res) => {
-  const files = (req.files || []).map((file) => ({
-    url: `/uploads/${file.filename}`,
-    alt: file.originalname
-  }));
+  const files = await Promise.all(
+    (req.files || []).map(async (file) => {
+      try {
+        const normalized = await normalizeImageUrl(file.path, { folder: "luxeva/products" });
+        return {
+          url: normalized,
+          alt: file.originalname
+        };
+      } finally {
+        await fs.unlink(file.path).catch(() => undefined);
+      }
+    })
+  );
 
   sendSuccess(res, 201, "Images uploaded successfully", { files });
 });

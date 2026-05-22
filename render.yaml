@@ -1,26 +1,5 @@
 services:
   - type: web
-    name: luxeva-frontend
-    runtime: static
-    buildCommand: npm install && npm run build
-    staticPublishPath: frontend/dist
-    pullRequestPreviewsEnabled: false
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      - key: VITE_API_URL
-        fromService:
-          type: web
-          name: luxeva-backend
-          envVarKey: RENDER_EXTERNAL_URL
-      - key: VITE_USE_PREVIEW_AUTH
-        value: "false"
-      - key: VITE_GOOGLE_CLIENT_ID
-        sync: false
-
-  - type: web
     name: luxeva-backend
     runtime: docker
     dockerfilePath: ./Dockerfile.backend
@@ -30,15 +9,18 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: SEED_ON_START
+        sync: false
+      - key: SEED_FORCE
+        sync: false
+      - key: SEED_VERSION
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: luxeva-frontend
-          envVarKey: RENDER_EXTERNAL_URL
+        sync: false
       - key: REDIS_URL
         fromService:
           type: keyvalue
@@ -72,13 +54,15 @@ services:
         sync: false
       - key: ADMIN_ALERT_PHONE
         sync: false
-      - key: STRIPE_SECRET_KEY
-        sync: false
-      - key: STRIPE_WEBHOOK_SECRET
-        sync: false
       - key: RAZORPAY_KEY_ID
         sync: false
       - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
         sync: false
 
   - type: keyvalue
