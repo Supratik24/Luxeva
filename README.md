@@ -1,39 +1,51 @@
 # Luxeva Commerce Platform
 
-Luxeva is a production-style eCommerce platform built with a React storefront, a hidden role-protected admin portal, and a Node.js microservices backend using MongoDB and Redis. The repo is structured to run locally as a monorepo and to deploy cleanly on Render with one public gateway, one public frontend, and private internal services.
+![React](https://img.shields.io/badge/Frontend-React-61DAFB?style=for-the-badge&logo=react&logoColor=111827)
+![Node.js](https://img.shields.io/badge/Backend-Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![Express](https://img.shields.io/badge/API-Express-000000?style=for-the-badge&logo=express&logoColor=white)
+![MongoDB](https://img.shields.io/badge/Database-MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![Redis](https://img.shields.io/badge/Cache%20%2B%20Events-Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![Razorpay](https://img.shields.io/badge/Payments-Razorpay-0C2451?style=for-the-badge)
+![Render](https://img.shields.io/badge/Deploy-Render-46E3B7?style=for-the-badge&logo=render&logoColor=111827)
 
-## Stack
+Luxeva is a production-style eCommerce platform with a polished React storefront, hidden role-protected admin portal, and Node.js microservices backend. It is built as a monorepo, runs locally with one command, and includes a Render blueprint for production deployment.
 
-- Frontend: React, React Router, Context API, Axios, Tailwind CSS, Framer Motion, Recharts
-- Backend: Node.js, Express.js, MongoDB, Mongoose
-- Architecture: API gateway + microservices
-- Services:
-  - `api-gateway`
-  - `auth-service`
-  - `catalog-service`
-  - `order-service`
-  - `content-service`
-  - `notification-service`
-- Shared infrastructure: Redis for JWT blacklist support, catalog caching, and pub/sub order events
-- Auth: JWT with hashed passwords
-- Payments: Razorpay checkout for online payments plus cash on delivery
-- Uploads: Local multi-image upload support for admin product management
+## Stickers
 
-## Highlights
+| Storefront | Admin | Backend | Production |
+| --- | --- | --- | --- |
+| Premium shopping UX | Hidden admin portal | API gateway + services | Render blueprint |
+| Search, filters, wishlist | Analytics and inventory | MongoDB + Mongoose | Private service topology |
+| Cart, coupons, checkout | Products, orders, content | Redis cache + pub/sub | Health checks included |
+| Razorpay + COD | Role-based protection | JWT auth + blacklist | Environment checklist |
 
-- Premium responsive storefront with polished typography, search suggestions, filters, quick view, wishlist, cart, checkout, and account dashboard
-- Secure hidden admin login at `/portal/admin/login`
-- Backend-enforced role-based access control for every admin API route
-- Product, category, brand, coupon, review, banner, content, user, cart, order, and notification models
-- Redis-backed catalog caching and order event fan-out
-- Sales analytics, low-stock alerts, admin notifications, and status updates
-- Render blueprint included in `render.yaml`
+## What It Includes
 
-## Monorepo Layout
+- Responsive storefront with homepage, product listing, product detail, wishlist, cart, checkout, account dashboard, content pages, and theme toggle.
+- Hidden admin login at `/portal/admin/login` with backend-enforced role-based access control.
+- Product, category, brand, coupon, review, banner, content, user, cart, order, and notification models.
+- Redis-backed catalog caching, JWT logout invalidation, and order event fan-out.
+- Razorpay online payments plus cash on delivery.
+- Local multi-image upload support for admin product management.
+- Render deployment blueprint in `render.yaml`.
+
+## Tech Stack
+
+| Layer | Tools |
+| --- | --- |
+| Frontend | React, React Router, Context API, Axios, Tailwind CSS, Framer Motion, Recharts |
+| Backend | Node.js, Express.js, MongoDB, Mongoose |
+| Architecture | API gateway, microservices, shared package workspace |
+| Infrastructure | Redis, Docker Compose, Render |
+| Auth | JWT, hashed passwords, admin RBAC |
+| Payments | Razorpay checkout, cash on delivery |
+
+## Monorepo Map
 
 ```text
 frontend/
-packages/shared/
+packages/
+  shared/
 services/
   api-gateway/
   auth-service/
@@ -42,67 +54,22 @@ services/
   content-service/
   notification-service/
 scripts/
+docker-compose.yml
+render.yaml
 ```
 
-## Key Features
+## Services
 
-### Storefront
+| Service | Purpose | Local Port |
+| --- | --- | --- |
+| `api-gateway` | Public API entrypoint and proxy | `8080` |
+| `auth-service` | Auth, users, profile, addresses, admin login | `4001` |
+| `catalog-service` | Products, categories, reviews, wishlist, coupons | `4002` |
+| `order-service` | Cart, checkout, payments, orders, analytics | `4003` |
+| `content-service` | Homepage content, banners, static pages | `4004` |
+| `notification-service` | Customer and admin notifications | `4005` |
 
-- Homepage hero, featured products, trending products, category highlights, testimonials, newsletter
-- Product listing with filters and sorting
-- Product detail with image gallery, reviews, specs, related products, and review submission
-- Wishlist, cart, coupon support, checkout, recently viewed products
-- Login, signup, forgot password, reset password
-- Customer dashboard for profile, orders, addresses, wishlist, and notifications
-- About, contact, FAQ, terms, privacy, 404, and error boundary fallback UI
-- Dark/light theme toggle
-
-### Admin
-
-- Private admin login route not exposed in public navigation
-- Dashboard analytics cards and sales chart
-- Product CRUD with local image uploads
-- Category and brand creation
-- Coupon creation
-- Review moderation
-- Order management and status changes
-- User role/status management
-- Banner and content block management
-- Sales report snapshot
-
-## Redis Usage
-
-- JWT blacklist support on logout so revoked tokens stop working across protected services
-- Cached product list, product detail, and search suggestion responses in the catalog service
-- Redis pub/sub channel `orders.events` for order creation and status update notifications
-
-## Environment Setup
-
-Copy `.env.example` to `.env` and adjust values as needed.
-
-Important variables:
-
-- `JWT_SECRET`
-- `MONGO_URI`
-- `CATALOG_MONGO_URI`
-- `ORDER_MONGO_URI`
-- `CONTENT_MONGO_URI`
-- `NOTIFICATION_MONGO_URI`
-- `REDIS_URL`
-- `AUTH_SERVICE_URL`
-- `CATALOG_SERVICE_URL`
-- `ORDER_SERVICE_URL`
-- `CONTENT_SERVICE_URL`
-- `NOTIFICATION_SERVICE_URL`
-- `RAZORPAY_KEY_ID`
-- `RAZORPAY_KEY_SECRET`
-- `SMTP_USER`
-- `SMTP_PASS`
-- `SMTP_FROM`
-- `TWO_FACTOR_API_KEY`
-- `VITE_USE_PREVIEW_AUTH`
-
-## Local Development
+## Quick Start
 
 ### 1. Install dependencies
 
@@ -110,158 +77,236 @@ Important variables:
 npm install
 ```
 
-### 2. Start MongoDB and Redis
+### 2. Configure environment
 
-Use local services or Docker.
+Copy the example file and fill in the values you need.
+
+```bash
+cp .env.example .env
+```
+
+Important variables:
+
+```text
+JWT_SECRET
+MONGO_URI
+CATALOG_MONGO_URI
+ORDER_MONGO_URI
+CONTENT_MONGO_URI
+NOTIFICATION_MONGO_URI
+REDIS_URL
+AUTH_SERVICE_URL
+CATALOG_SERVICE_URL
+ORDER_SERVICE_URL
+CONTENT_SERVICE_URL
+NOTIFICATION_SERVICE_URL
+RAZORPAY_KEY_ID
+RAZORPAY_KEY_SECRET
+SMTP_USER
+SMTP_PASS
+SMTP_FROM
+TWO_FACTOR_API_KEY
+VITE_USE_PREVIEW_AUTH
+```
+
+### 3. Start MongoDB and Redis
 
 ```bash
 docker compose up -d mongo redis
 ```
 
-### 3. Run everything
+### 4. Run the full app
 
 ```bash
 npm run dev
 ```
 
-### 4. Optional seed step
+### 5. Seed demo data
 
 ```bash
 npm run seed
 ```
 
-### 5. App URLs
+## Local URLs
 
-- Frontend: `http://localhost:5173`
-- Gateway: `http://localhost:8080`
-- Auth service: `http://localhost:4001`
-- Catalog service: `http://localhost:4002`
-- Order service: `http://localhost:4003`
-- Content service: `http://localhost:4004`
-- Notification service: `http://localhost:4005`
+| App | URL |
+| --- | --- |
+| Frontend | `http://localhost:5173` |
+| Gateway | `http://localhost:8080` |
+| Auth service | `http://localhost:4001` |
+| Catalog service | `http://localhost:4002` |
+| Order service | `http://localhost:4003` |
+| Content service | `http://localhost:4004` |
+| Notification service | `http://localhost:4005` |
 
+## NPM Scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Run gateway, all services, and frontend together |
+| `npm run dev:backend` | Run only backend services |
+| `npm run build` | Build the frontend workspace |
+| `npm run start:frontend` | Start the built frontend |
+| `npm run start:gateway` | Start the API gateway |
+| `npm run start:auth` | Start auth service |
+| `npm run start:catalog` | Start catalog service |
+| `npm run start:order` | Start order service |
+| `npm run start:content` | Start content service |
+| `npm run start:notifications` | Start notification service |
+| `npm run seed` | Seed all demo data |
+
+## Storefront Features
+
+- Homepage hero, featured products, trending products, category highlights, testimonials, and newsletter.
+- Product listings with search, suggestions, filters, and sorting.
+- Product detail pages with image gallery, specs, reviews, related products, and review submission.
+- Wishlist, cart, coupons, checkout, recently viewed products, and order history.
+- Login, signup, forgot password, reset password, profile, addresses, and notifications.
+- About, contact, FAQ, terms, privacy, 404, and error boundary fallback UI.
+
+## Admin Features
+
+- Private admin login route that is not exposed in public navigation.
+- Dashboard analytics cards, sales chart, low-stock alerts, and admin notifications.
+- Product CRUD with local image uploads.
+- Category and brand management.
+- Coupon creation and review moderation.
+- Order management with status changes.
+- User role and account status management.
+- Banner, content block, and sales report management.
+
+## Redis Usage
+
+- JWT blacklist support after logout so revoked tokens stop working across protected services.
+- Catalog cache for product lists, product details, and search suggestions.
+- Pub/sub channel `orders.events` for order creation and status update notifications.
+
+## API Snapshot
+
+### Auth
+
+```text
+POST /api/auth/signup
+POST /api/auth/login
+POST /api/auth/admin/login
+POST /api/auth/forgot-password
+POST /api/auth/reset-password/:token
+GET  /api/auth/me
+PUT  /api/auth/profile
+PUT  /api/auth/password
+GET  /api/auth/addresses
+POST /api/auth/addresses
+```
+
+### Catalog
+
+```text
+GET  /api/catalog/meta
+GET  /api/catalog/products
+GET  /api/catalog/products/:slug
+GET  /api/catalog/products/suggestions
+POST /api/catalog/products/:productId/reviews
+GET  /api/catalog/wishlist
+POST /api/catalog/wishlist/toggle
+POST /api/catalog/coupons/validate
+```
+
+Admin CRUD routes live under:
+
+```text
+/api/catalog/admin/*
+```
+
+### Orders
+
+```text
+GET  /api/orders/cart
+PUT  /api/orders/cart
+POST /api/orders/payments/intent
+POST /api/orders
+GET  /api/orders/mine
+```
+
+Admin analytics and order management live under:
+
+```text
+/api/orders/admin/*
+```
+
+### Content
+
+```text
+GET /api/content/home
+GET /api/content/pages/:slug
+```
+
+Admin banner and content management live under:
+
+```text
+/api/content/admin/*
+```
+
+### Notifications
+
+```text
+GET   /api/notifications/mine
+PATCH /api/notifications/mine/:id/read
+GET   /api/notifications/admin/all
+```
 
 ## Docker
 
-The repo includes a root `Dockerfile.workspace` plus `docker-compose.yml` configured to build each workspace from the monorepo root so the shared package is available to every service.
+Run the whole stack with Docker Compose:
 
 ```bash
 docker compose up --build
 ```
 
-## API Overview
-
-### Auth service
-
-- `POST /api/auth/signup`
-- `POST /api/auth/login`
-- `POST /api/auth/admin/login`
-- `POST /api/auth/forgot-password`
-- `POST /api/auth/reset-password/:token`
-- `GET /api/auth/me`
-- `PUT /api/auth/profile`
-- `PUT /api/auth/password`
-- `GET /api/auth/addresses`
-- `POST /api/auth/addresses`
-
-### Catalog service
-
-- `GET /api/catalog/meta`
-- `GET /api/catalog/products`
-- `GET /api/catalog/products/:slug`
-- `GET /api/catalog/products/suggestions`
-- `POST /api/catalog/products/:productId/reviews`
-- `GET /api/catalog/wishlist`
-- `POST /api/catalog/wishlist/toggle`
-- `POST /api/catalog/coupons/validate`
-- Admin CRUD under `/api/catalog/admin/*`
-
-### Order service
-
-- `GET /api/orders/cart`
-- `PUT /api/orders/cart`
-- `POST /api/orders/payments/intent`
-- `POST /api/orders`
-- `GET /api/orders/mine`
-- Admin analytics and order management under `/api/orders/admin/*`
-
-### Content service
-
-- `GET /api/content/home`
-- `GET /api/content/pages/:slug`
-- Admin banner/content management under `/api/content/admin/*`
-
-### Notification service
-
-- `GET /api/notifications/mine`
-- `PATCH /api/notifications/mine/:id/read`
-- `GET /api/notifications/admin/all`
-
-## Notes
-
-- The microservices communicate through the gateway for client-facing traffic.
-- Redis is intentionally used for more than caching: it also handles logout invalidation and cross-service order event fan-out.
-- In production, preview authentication should stay disabled. The frontend now defaults to preview auth only during local development unless `VITE_USE_PREVIEW_AUTH=true`.
-- Local image upload is implemented for product administration; Cloudinary can be layered in later if needed.
+The root `Dockerfile.workspace` is set up so every service can build from the monorepo root and access the shared workspace package.
 
 ## Render Deployment
 
-The repo now includes a Render blueprint at `render.yaml`.
+This repo includes a Render blueprint at `render.yaml`.
 
-### Recommended Render sequence
+Recommended flow:
 
 1. Push this repo to GitHub.
-2. In Render, create a new Blueprint and point it to the repo.
-3. Let Render create:
-   - `luxeva-frontend` as a static site
-   - `luxeva-api-gateway` as the public API
-   - `luxeva-auth-service`, `luxeva-catalog-service`, `luxeva-order-service`, `luxeva-content-service`, and `luxeva-notification-service` as private services
-   - `luxeva-redis` as a Render Key Value instance
-4. Before the first successful deploy, fill the `sync: false` environment variables in Render:
-   - `MONGO_URI`
-   - `CATALOG_MONGO_URI`
-   - `ORDER_MONGO_URI`
-   - `CONTENT_MONGO_URI`
-   - `NOTIFICATION_MONGO_URI`
-   - `VITE_GOOGLE_CLIENT_ID`
-   - `GOOGLE_CLIENT_ID`
-   - `SMTP_USER`
-   - `SMTP_PASS`
-   - `SMTP_FROM`
-   - `TWO_FACTOR_API_KEY`
-   - `RAZORPAY_KEY_ID`
-   - `RAZORPAY_KEY_SECRET`
-   - `ADMIN_ALERT_EMAIL`
-   - `ADMIN_ALERT_PHONE`
-5. Use one Mongo Atlas cluster with separate databases or connection strings for each service. A common pattern is:
-   - auth: `luxeva-auth`
-   - catalog: `luxeva-catalog`
-   - orders: `luxeva-order`
-   - content: `luxeva-content`
-   - notifications: `luxeva-notifications`
-6. After the blueprint finishes, verify these health URLs:
-   - frontend: Render static site URL
-   - gateway: `/health`
-   - auth: internal `/health`
-   - catalog: internal `/health`
-   - order: internal `/health`
-   - content: internal `/health`
-   - notification: internal `/health`
+2. Create a new Render Blueprint and connect it to the repo.
+3. Let Render create the frontend, gateway, private services, and Redis instance.
+4. Fill every `sync: false` environment variable before the first successful deploy.
+5. Verify the frontend URL and every `/health` endpoint.
 
-### Production checklist
+Render services created by the blueprint:
+
+| Render Service | Type |
+| --- | --- |
+| `luxeva-frontend` | Static site |
+| `luxeva-api-gateway` | Public API |
+| `luxeva-auth-service` | Private service |
+| `luxeva-catalog-service` | Private service |
+| `luxeva-order-service` | Private service |
+| `luxeva-content-service` | Private service |
+| `luxeva-notification-service` | Private service |
+| `luxeva-redis` | Render Key Value |
+
+Production checklist:
 
 - `VITE_USE_PREVIEW_AUTH=false`
-- Mongo Atlas network access allows Render egress
-- Redis is connected from Render Key Value or another reachable hosted Redis
-- Gmail SMTP or another SMTP provider is configured for OTP and reset email
-- Razorpay test or live keys are added only to the order service environment
-- `FRONTEND_URL` points to the deployed frontend origin so CORS and reset-password links work
-- The gateway points to the private Render service hostports, not localhost
+- Mongo Atlas network access allows Render egress.
+- Redis is connected from Render Key Value or another hosted Redis.
+- SMTP credentials are configured for OTP and reset email.
+- Razorpay keys are added only to the order service environment.
+- `FRONTEND_URL` points to the deployed frontend origin.
+- Gateway service URLs point to Render private hostports, not localhost.
 
-### What is already production-safe in this repo
+## Production Notes
 
-- Health endpoints exist on every service at `/health`
-- Gateway proxy targets now accept Render private `host:port` values directly
-- Frontend preview auth no longer turns on by default in production
-- Razorpay online payment flow and COD flow both persist backend orders
-- Redis failures degrade more gracefully during local development while production still fails fast if core databases are unavailable
+- Health endpoints exist on every service at `/health`.
+- Gateway proxy targets support Render private `host:port` values.
+- Frontend preview auth does not turn on by default in production.
+- Razorpay online payment flow and COD flow both persist backend orders.
+- Redis failures degrade more gracefully during local development while production database failures remain strict.
+
+## License
+
+Private project.
