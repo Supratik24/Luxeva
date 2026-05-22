@@ -1,3 +1,4 @@
+import { clerkMiddleware } from "@clerk/express";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
@@ -10,6 +11,7 @@ export const createServiceApp = ({ serviceName, rateLimitMax = 200, parseBody = 
   app.set("trust proxy", 1);
 
   app.use(helmet());
+  app.use(clerkMiddleware());
   app.use(
     cors({
       origin: process.env.FRONTEND_URL || "*",

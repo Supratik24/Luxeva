@@ -1,8 +1,13 @@
-import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
+    clerkUserId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true
+    },
     name: {
       type: String,
       required: true,
@@ -15,18 +20,8 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true
     },
-    password: {
-      type: String,
-      required: true,
-      minlength: 8
-    },
     phone: String,
     avatar: String,
-    googleId: {
-      type: String,
-      index: true,
-      sparse: true
-    },
     role: {
       type: String,
       enum: ["user", "admin"],
@@ -36,49 +31,25 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true
     },
-    isVerified: {
-      type: Boolean,
-      default: true
-    },
     defaultAddressId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.Mixed,
       ref: "Address"
     },
     wishlistProductIds: [
       {
-        type: mongoose.Schema.Types.ObjectId
+        type: mongoose.Schema.Types.Mixed
       }
     ],
     recentlyViewed: [
       {
-        type: mongoose.Schema.Types.ObjectId
+        type: mongoose.Schema.Types.Mixed
       }
-    ],
-    resetPasswordToken: String,
-    resetPasswordExpiresAt: Date,
-    resetPasswordOtpHash: String,
-    resetPasswordOtpExpiresAt: Date,
-    resetPasswordOtpVerifiedAt: Date,
-    signupOtpHash: String,
-    signupOtpExpiresAt: Date
+    ]
   },
   {
     timestamps: true
   }
 );
-
-userSchema.pre("save", async function savePassword(next) {
-  if (!this.isModified("password")) {
-    return next();
-  }
-
-  this.password = await bcrypt.hash(this.password, 12);
-  next();
-});
-
-userSchema.methods.comparePassword = function comparePassword(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
-};
 
 const User = mongoose.model("User", userSchema);
 

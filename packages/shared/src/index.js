@@ -1,3 +1,4 @@
+export * from "./config/clerk.js";
 export * from "./config/database.js";
 export * from "./config/env.js";
 export * from "./config/media.js";
@@ -9,7 +10,6 @@ export * from "./middleware/validateRequest.js";
 export * from "./utils/asyncHandler.js";
 export * from "./utils/cache.js";
 export * from "./utils/events.js";
-export * from "./utils/jwt.js";
 export * from "./utils/pagination.js";
 export * from "./utils/response.js";
 export * from "./utils/serviceApp.js";

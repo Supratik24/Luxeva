@@ -1,39 +1,27 @@
-import jwt from "jsonwebtoken";
+import { getClerkUser } from "../config/clerk.js";
 import { ApiError } from "./errorHandler.js";
-import { getRedis } from "../config/redis.js";
 
-const getBearerToken = (req) => {
-  const authHeader = req.headers.authorization || "";
-  if (!authHeader.startsWith("Bearer ")) {
-    return null;
-  }
-
-  return authHeader.split(" ")[1];
-};
+const normalizeAdminEmail = (value = "") => String(value).trim().toLowerCase();
 
 export const protect = async (req, res, next) => {
-  const token = getBearerToken(req);
-  if (!token) {
-    return next(new ApiError(401, "Authentication required"));
-  }
-
   try {
-    try {
-      const redis = getRedis();
-      const isBlacklisted = await redis.get(`blacklist:${token}`);
+    const clerkUser = await getClerkUser(req);
+    const adminEmail = normalizeAdminEmail(process.env.CLERK_ADMIN_EMAIL);
+    const email = normalizeAdminEmail(clerkUser.email);
 
-      if (isBlacklisted) {
-        return next(new ApiError(401, "Session has been revoked"));
-      }
-    } catch (redisError) {
-      console.warn(`Redis session check skipped: ${redisError.message}`);
-    }
+    req.user = {
+      id: clerkUser.id,
+      clerkUserId: clerkUser.id,
+      email: clerkUser.email,
+      name: clerkUser.name,
+      phone: clerkUser.phone,
+      avatar: clerkUser.imageUrl,
+      role: adminEmail && email === adminEmail ? "admin" : "user"
+    };
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
     next();
   } catch (error) {
-    next(new ApiError(401, "Invalid or expired token"));
+    next(error.statusCode ? error : new ApiError(401, "Authentication required"));
   }
 };
 
