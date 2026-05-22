@@ -1,0 +1,14 @@
+.git
+.env
+.env.*
+!.env.example
+node_modules
+*/node_modules
+*/*/node_modules
+logs
+npm-debug.log*
+Dockerfile*
+docker-compose.yml
+README.md
+frontend/dist
+services/catalog-service/uploads

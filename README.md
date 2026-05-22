@@ -146,6 +146,7 @@ npm run seed
 | `npm run dev` | Run gateway, all services, and frontend together |
 | `npm run dev:backend` | Run only backend services |
 | `npm run build` | Build the frontend workspace |
+| `npm run start:backend` | Start the gateway and all backend services in one process group |
 | `npm run start:frontend` | Start the built frontend |
 | `npm run start:gateway` | Start the API gateway |
 | `npm run start:auth` | Start auth service |
@@ -272,21 +273,16 @@ Recommended flow:
 
 1. Push this repo to GitHub.
 2. Create a new Render Blueprint and connect it to the repo.
-3. Let Render create the frontend, gateway, private services, and Redis instance.
+3. Let Render create the frontend, one Docker backend service, and Redis instance.
 4. Fill every `sync: false` environment variable before the first successful deploy.
-5. Verify the frontend URL and every `/health` endpoint.
+5. Verify the frontend URL and the backend `/health` endpoint.
 
 Render services created by the blueprint:
 
 | Render Service | Type |
 | --- | --- |
 | `luxeva-frontend` | Static site |
-| `luxeva-api-gateway` | Public API |
-| `luxeva-auth-service` | Private service |
-| `luxeva-catalog-service` | Private service |
-| `luxeva-order-service` | Private service |
-| `luxeva-content-service` | Private service |
-| `luxeva-notification-service` | Private service |
+| `luxeva-backend` | Docker web service running the gateway and backend services |
 | `luxeva-redis` | Render Key Value |
 
 Production checklist:
@@ -297,12 +293,13 @@ Production checklist:
 - SMTP credentials are configured for OTP and reset email.
 - Razorpay keys are added only to the order service environment.
 - `FRONTEND_URL` points to the deployed frontend origin.
-- Gateway service URLs point to Render private hostports, not localhost.
+- The backend Docker service receives MongoDB connection strings from Render environment variables.
+- The gateway uses `127.0.0.1` service URLs inside the backend container.
 
 ## Production Notes
 
-- Health endpoints exist on every service at `/health`.
-- Gateway proxy targets support Render private `host:port` values.
+- The public backend health endpoint is available at `/health`.
+- The production backend image is built from `Dockerfile.backend`.
 - Frontend preview auth does not turn on by default in production.
 - Razorpay online payment flow and COD flow both persist backend orders.
 - Redis failures degrade more gracefully during local development while production database failures remain strict.
