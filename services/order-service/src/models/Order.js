@@ -40,7 +40,7 @@ const timelineSchema = new mongoose.Schema(
 const orderSchema = new mongoose.Schema(
   {
     orderNumber: { type: String, required: true, unique: true, index: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
+    userId: { type: mongoose.Schema.Types.Mixed, required: true, index: true },
     customer: {
       name: String,
       email: String

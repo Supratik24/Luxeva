@@ -1,22 +1,40 @@
+import { ArrowRight } from "lucide-react";
+
 const NewsletterSection = () => (
-  <section className="section-shell mt-20">
-    <div className="overflow-hidden rounded-[2.6rem] bg-ink px-6 py-12 text-white shadow-soft sm:px-10 lg:px-14">
-      <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]">
-        <div>
-          <p className="eyebrow text-sand/75">Newsletter</p>
-          <h2 className="mt-3 font-display text-4xl">A more tailored inbox.</h2>
-          <p className="mt-4 max-w-md text-sm leading-7 text-white/72">
-            Get new arrivals, flash sale alerts, styling notes, and private drops without the noise.
+  <section className="section-shell mt-24 mb-8">
+    <div className="relative overflow-hidden rounded-3xl bg-ink px-8 py-14 text-white sm:px-12 lg:px-16">
+      {/* Subtle background decoration */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-white/4 blur-2xl" />
+      </div>
+
+      <div className="relative grid items-center gap-10 lg:grid-cols-[1fr_auto]">
+        <div className="max-w-xl">
+          <p className="eyebrow text-white/40">Newsletter</p>
+          <h2 className="mt-3 font-display text-3xl font-semibold leading-snug sm:text-4xl">
+            Get the inside edit.
+          </h2>
+          <p className="mt-3 text-sm leading-relaxed text-white/50">
+            New arrivals, private drops, flash sales — curated weekly, no noise.
           </p>
         </div>
-        <form className="grid gap-3 sm:grid-cols-[1fr_auto]">
+
+        <form
+          className="flex w-full max-w-sm flex-col gap-2.5 sm:flex-row lg:max-w-none lg:flex-col xl:flex-row"
+          onSubmit={(e) => e.preventDefault()}
+        >
           <input
             type="email"
-            placeholder="Enter your email"
-            className="rounded-full border border-white/10 bg-white/10 px-5 py-4 text-sm outline-none placeholder:text-white/50"
+            placeholder="your@email.com"
+            className="input flex-1 border-white/10 bg-white/8 text-white placeholder:text-white/30 focus:border-white/25 focus:ring-white/8"
           />
-          <button type="submit" className="rounded-full bg-white px-6 py-4 text-sm font-semibold text-ink">
+          <button
+            type="submit"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-ink transition hover:bg-white/90 active:scale-95 shrink-0"
+          >
             Subscribe
+            <ArrowRight size={15} />
           </button>
         </form>
       </div>

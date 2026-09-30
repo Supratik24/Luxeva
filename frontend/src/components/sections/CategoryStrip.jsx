@@ -1,39 +1,55 @@
 import { Link } from "react-router-dom";
+import { ArrowUpRight } from "lucide-react";
+import { motion } from "framer-motion";
 
-const categoryThemes = [
-  "from-[#f7efe7] via-white to-[#f2e7dc] dark:from-[#1a1916] dark:via-[#171512] dark:to-[#211b14]",
-  "from-[#eef2ec] via-white to-[#e4ebe0] dark:from-[#151815] dark:via-[#121412] dark:to-[#1a2018]",
-  "from-[#f6f0e8] via-white to-[#ece3d7] dark:from-[#191714] dark:via-[#151311] dark:to-[#211a14]",
-  "from-[#edf2f4] via-white to-[#e5ecef] dark:from-[#14181a] dark:via-[#111416] dark:to-[#182025]"
-];
+const ICONS = ["✦", "◈", "◉", "◆"];
 
 const CategoryStrip = ({ categories = [] }) => (
-  <section className="section-shell mt-20">
-    <div className="flex items-end justify-between gap-4">
+  <section className="section-shell mt-24">
+    <div className="flex items-end justify-between gap-4 mb-8">
       <div>
-        <p className="eyebrow">Top categories</p>
-        <h2 className="mt-3 font-display text-4xl">Designed to browse beautifully</h2>
+        <p className="eyebrow">Collections</p>
+        <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+          Browse by category
+        </h2>
       </div>
-      <Link to="/shop" className="text-sm font-semibold text-olive">
-        Explore all
+      <Link
+        to="/shop"
+        className="hidden items-center gap-1.5 text-sm font-medium text-clay transition hover:text-ink dark:text-white/40 dark:hover:text-white sm:flex"
+      >
+        View all
+        <ArrowUpRight size={15} />
       </Link>
     </div>
-    <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {categories.map((category, index) => (
-        <Link
+        <motion.div
           key={category._id}
-          to={`/shop?category=${category._id}`}
-          className={`group relative overflow-hidden rounded-[1.8rem] border border-black/8 bg-gradient-to-br ${categoryThemes[index % categoryThemes.length]} p-5 shadow-[0_24px_80px_rgba(18,18,18,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_90px_rgba(18,18,18,0.14)] dark:border-white/10 dark:shadow-[0_24px_80px_rgba(0,0,0,0.36)]`}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: index * 0.08 }}
         >
-          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/[0.04] to-transparent dark:from-white/[0.03]" />
-          <div className="relative mb-10 flex h-16 w-16 items-center justify-center rounded-[1.4rem] border border-olive/10 bg-white text-xl font-bold text-olive shadow-[0_10px_30px_rgba(79,90,69,0.12)] dark:border-white/10 dark:bg-white/10 dark:text-sand">
-            {String(index + 1).padStart(2, "0")}
-          </div>
-          <h3 className="relative text-2xl font-display text-ink dark:text-white">{category.name}</h3>
-          <p className="relative mt-2 line-clamp-2 text-base font-medium text-ink/72 dark:text-white/78">
-            {category.description || "Refined pieces, practical details, and a premium finish."}
-          </p>
-        </Link>
+          <Link
+            to={`/shop?category=${category._id}`}
+            className="group flex flex-col gap-4 rounded-2xl border border-black/5 bg-white p-6 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-float dark:border-white/5 dark:bg-white/4"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sand text-xl dark:bg-white/8">
+                {ICONS[index % ICONS.length]}
+              </div>
+              <span className="text-xs font-medium text-clay opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-white/40">
+                Explore →
+              </span>
+            </div>
+            <div>
+              <h3 className="font-semibold text-ink dark:text-white">{category.name}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-clay dark:text-white/40 line-clamp-2">
+                {category.description || "Refined pieces with a premium finish."}
+              </p>
+            </div>
+          </Link>
+        </motion.div>
       ))}
     </div>
   </section>

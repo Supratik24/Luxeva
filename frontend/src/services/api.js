@@ -1,12 +1,18 @@
 import axios from "axios";
 
+let authTokenGetter = null;
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080",
   withCredentials: false
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("luxeva_token");
+export const setAuthTokenGetter = (getter) => {
+  authTokenGetter = getter;
+};
+
+api.interceptors.request.use(async (config) => {
+  const token = authTokenGetter ? await authTokenGetter() : null;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -21,19 +27,9 @@ export const endpoints = {
     adminBlocks: "/api/content/admin/blocks"
   },
   auth: {
-    signup: "/api/auth/signup",
-    verifySignupOtp: "/api/auth/signup/verify-otp",
-    login: "/api/auth/login",
-    google: "/api/auth/google",
-    adminLogin: "/api/auth/admin/login",
+    sync: "/api/auth/sync",
     me: "/api/auth/me",
-    forgotPassword: "/api/auth/forgot-password",
-    verifyResetOtp: "/api/auth/verify-reset-otp",
-    resetPasswordOtp: "/api/auth/reset-password-otp",
-    resetPassword: (token) => `/api/auth/reset-password/${token}`,
-    logout: "/api/auth/logout",
     profile: "/api/auth/profile",
-    password: "/api/auth/password",
     addresses: "/api/auth/addresses",
     users: "/api/users"
   },

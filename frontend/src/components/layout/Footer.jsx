@@ -1,40 +1,71 @@
 import { Link } from "react-router-dom";
 
 const Footer = () => (
-  <footer className="mt-24 border-t border-ink/10 py-16 dark:border-white/10">
-    <div className="section-shell grid gap-12 lg:grid-cols-[1.2fr_0.8fr_0.8fr_1fr]">
-      <div>
-        <p className="font-display text-4xl">Luxeva</p>
-        <p className="mt-4 max-w-sm text-muted">
-          Premium lifestyle essentials, beautifully presented with fast navigation, secure checkout, and a tailored shopping journey.
-        </p>
-      </div>
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-ink/45 dark:text-white/45">Shop</p>
-        <div className="mt-4 space-y-3 text-sm">
-          <Link to="/shop" className="block">All products</Link>
-          <Link to="/shop?sort=best-selling" className="block">Best sellers</Link>
-          <Link to="/shop?featured=true" className="block">Featured</Link>
+  <footer className="mt-16 border-t border-black/5 dark:border-white/5">
+    <div className="section-shell py-16">
+      <div className="grid gap-12 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+        {/* Brand */}
+        <div>
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-ink text-white dark:bg-white dark:text-ink">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+              </svg>
+            </span>
+            <span className="font-display text-xl font-semibold">Luxeva</span>
+          </div>
+          <p className="mt-4 max-w-xs text-sm leading-relaxed text-clay dark:text-white/40">
+            Premium lifestyle essentials, beautifully presented with fast navigation and a tailored shopping journey.
+          </p>
+          <p className="mt-6 text-xs text-clay/60 dark:text-white/20">
+            © {new Date().getFullYear()} Luxeva. All rights reserved.
+          </p>
         </div>
-      </div>
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-ink/45 dark:text-white/45">Company</p>
-        <div className="mt-4 space-y-3 text-sm">
-          <Link to="/about" className="block">About</Link>
-          <Link to="/faq" className="block">FAQ</Link>
-          <Link to="/contact" className="block">Contact</Link>
-        </div>
-      </div>
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-ink/45 dark:text-white/45">Policy</p>
-        <div className="mt-4 space-y-3 text-sm">
-          <Link to="/terms" className="block">Terms</Link>
-          <Link to="/privacy" className="block">Privacy</Link>
-        </div>
+
+        {/* Links */}
+        {[
+          {
+            heading: "Shop",
+            links: [
+              { to: "/shop", label: "All products" },
+              { to: "/shop?sort=best-selling", label: "Best sellers" },
+              { to: "/shop?featured=true", label: "Featured" }
+            ]
+          },
+          {
+            heading: "Company",
+            links: [
+              { to: "/about", label: "About" },
+              { to: "/faq", label: "FAQ" },
+              { to: "/contact", label: "Contact" }
+            ]
+          },
+          {
+            heading: "Legal",
+            links: [
+              { to: "/terms", label: "Terms & Conditions" },
+              { to: "/privacy", label: "Privacy Policy" }
+            ]
+          }
+        ].map(({ heading, links }) => (
+          <div key={heading}>
+            <p className="eyebrow mb-4">{heading}</p>
+            <div className="flex flex-col gap-3">
+              {links.map(({ to, label }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  className="text-sm text-clay transition hover:text-ink dark:text-white/40 dark:hover:text-white"
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   </footer>
 );
 
 export default Footer;
-

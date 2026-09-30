@@ -5,28 +5,41 @@ export default {
   theme: {
     extend: {
       colors: {
-        sand: "#ead9c8",
-        ink: "#121212",
-        mist: "#f5f1eb",
-        olive: "#4f5a45",
-        clay: "#a96b4f",
-        brass: "#c69b53"
+        sand: "#F5F5F0",
+        ink: "#0A0A0A",
+        mist: "#FAFAFA",
+        olive: "#0A0A0A",
+        clay: "#737373",
+        brass: "#525252"
       },
       fontFamily: {
-        sans: ["Manrope", "sans-serif"],
-        display: ["Cormorant Garamond", "serif"]
+        sans: ["'DM Sans'", "sans-serif"],
+        display: ["'Playfair Display'", "serif"]
       },
       boxShadow: {
-        soft: "0 20px 80px rgba(15, 23, 42, 0.12)"
+        soft: "0 4px 32px rgba(0,0,0,0.06)",
+        card: "0 2px 16px rgba(0,0,0,0.04)",
+        float: "0 20px 60px rgba(0,0,0,0.12)"
       },
       backgroundImage: {
-        "mesh-light":
-          "radial-gradient(circle at top left, rgba(198, 155, 83, 0.18), transparent 30%), radial-gradient(circle at top right, rgba(169, 107, 79, 0.16), transparent 35%), linear-gradient(180deg, #fcfaf7 0%, #f6efe6 100%)",
-        "mesh-dark":
-          "radial-gradient(circle at top left, rgba(198, 155, 83, 0.12), transparent 30%), radial-gradient(circle at top right, rgba(234, 217, 200, 0.12), transparent 35%), linear-gradient(180deg, #151515 0%, #111111 100%)"
+        "mesh-light": "linear-gradient(135deg, #FAFAFA 0%, #F5F5F0 100%)",
+        "mesh-dark": "linear-gradient(135deg, #0A0A0A 0%, #111111 100%)"
+      },
+      animation: {
+        "fade-up": "fadeUp 0.5s ease-out",
+        "fade-in": "fadeIn 0.4s ease-out"
+      },
+      keyframes: {
+        fadeUp: {
+          "0%": { opacity: 0, transform: "translateY(20px)" },
+          "100%": { opacity: 1, transform: "translateY(0)" }
+        },
+        fadeIn: {
+          "0%": { opacity: 0 },
+          "100%": { opacity: 1 }
+        }
       }
     }
   },
   plugins: []
 };
-

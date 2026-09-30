@@ -1,15 +1,13 @@
-import { ChevronDown, Heart, LayoutDashboard, Menu, PackageCheck, ShoppingBag, UserRound, X } from "lucide-react";
-import { useState } from "react";
+import { Heart, LayoutDashboard, Menu, PackageCheck, ShoppingBag, UserRound, X } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useShop } from "../../contexts/ShopContext";
 import { cls } from "../../utils/format";
-import BrandMark from "../ui/BrandMark";
 import SearchBar from "../ui/SearchBar";
 import ThemeToggle from "../ui/ThemeToggle";
 
 const navItems = [
-  { label: "Home", to: "/" },
   { label: "Shop", to: "/shop" },
   { label: "About", to: "/about" },
   { label: "Contact", to: "/contact" },
@@ -19,28 +17,59 @@ const navItems = [
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { user, logout } = useAuth();
   const { cart, wishlist } = useShop();
 
+  const cartCount = cart?.reduce((sum, item) => sum + (item?.quantity || 0), 0) || 0;
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Close account dropdown when clicking outside
+  useEffect(() => {
+    if (!accountOpen) return;
+    const handler = () => setAccountOpen(false);
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [accountOpen]);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-white/20 bg-mist/80 backdrop-blur-xl dark:border-white/5 dark:bg-[#101010]/85">
-      <div className="section-shell flex min-h-[86px] items-center gap-4">
-        <Link to="/" className="mr-2 flex items-center gap-3">
-          <BrandMark className="h-12 w-12 shrink-0" />
-          <div>
-            <p className="font-display text-3xl leading-none">Luxeva</p>
-            <p className="text-[11px] uppercase tracking-[0.32em] text-ink/50 dark:text-white/45">Curated Commerce</p>
-          </div>
+    <header
+      className={cls(
+        "sticky top-0 z-50 transition-all duration-300",
+        scrolled
+          ? "border-b border-black/5 bg-white/90 backdrop-blur-xl shadow-soft dark:border-white/5 dark:bg-[#0A0A0A]/90"
+          : "bg-transparent"
+      )}
+    >
+      <div className="section-shell flex h-[72px] items-center gap-6">
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-3 shrink-0" onClick={() => setOpen(false)}>
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-ink text-white dark:bg-white dark:text-ink">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+          </span>
+          <span className="font-display text-xl font-semibold tracking-tight">Luxeva</span>
         </Link>
 
-        <nav className="hidden items-center gap-6 lg:flex">
+        {/* Desktop Nav */}
+        <nav className="hidden items-center gap-1 lg:flex">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
-              onClick={() => setAccountOpen(false)}
               className={({ isActive }) =>
-                cls("text-sm font-semibold transition hover:text-olive", isActive && "text-olive")
+                cls(
+                  "rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150",
+                  isActive
+                    ? "bg-ink/5 text-ink dark:bg-white/10 dark:text-white"
+                    : "text-clay hover:bg-ink/5 hover:text-ink dark:text-white/50 dark:hover:bg-white/5 dark:hover:text-white"
+                )
               }
             >
               {item.label}
@@ -48,162 +77,164 @@ const Navbar = () => {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-3">
-          <SearchBar />
+        {/* Right side actions */}
+        <div className="ml-auto flex items-center gap-2">
+          <div className="hidden md:block">
+            <SearchBar />
+          </div>
           <ThemeToggle />
-          <Link to="/wishlist" className="glass relative hidden rounded-full p-3 md:block">
-            <Heart size={18} />
-            <span className="absolute -right-1 -top-1 rounded-full bg-clay px-1.5 text-[10px] font-bold text-white">
-              {wishlist.length}
-            </span>
+
+          {/* Wishlist */}
+          <Link
+            to="/wishlist"
+            className="relative hidden rounded-full p-2.5 transition hover:bg-ink/5 dark:hover:bg-white/5 md:flex"
+          >
+            <Heart size={19} strokeWidth={1.7} />
+            {wishlist?.length > 0 && (
+              <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-ink text-[9px] font-bold text-white dark:bg-white dark:text-ink">
+                {wishlist.length}
+              </span>
+            )}
           </Link>
-          <Link to="/cart" className="glass relative rounded-full p-3">
-            <ShoppingBag size={18} />
-            <span className="absolute -right-1 -top-1 rounded-full bg-olive px-1.5 text-[10px] font-bold text-white">
-              {cart.reduce((sum, item) => sum + item.quantity, 0)}
-            </span>
+
+          {/* Cart */}
+          <Link
+            to="/cart"
+            className="relative flex rounded-full p-2.5 transition hover:bg-ink/5 dark:hover:bg-white/5"
+          >
+            <ShoppingBag size={19} strokeWidth={1.7} />
+            {cartCount > 0 && (
+              <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-ink text-[9px] font-bold text-white dark:bg-white dark:text-ink">
+                {cartCount}
+              </span>
+            )}
           </Link>
+
+          {/* Account */}
           {user ? (
-            <div className="relative hidden md:block">
+            <div className="relative hidden md:block" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
-                onClick={() => setAccountOpen((value) => !value)}
-                className="glass flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold"
+                onClick={() => setAccountOpen((v) => !v)}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-white transition hover:opacity-80 dark:bg-white dark:text-ink"
               >
                 <UserRound size={16} />
-                {user.name?.split(" ")[0]}
-                <ChevronDown size={16} className={cls("transition", accountOpen && "rotate-180")} />
               </button>
-              {accountOpen ? (
-                <div className="absolute right-0 top-[calc(100%+12px)] z-50 w-64 rounded-[1.6rem] border border-white/30 bg-white/95 p-3 shadow-soft backdrop-blur-xl dark:border-white/10 dark:bg-[#111111]/95">
-                  <p className="px-3 py-2 text-xs uppercase tracking-[0.24em] text-ink/45 dark:text-white/45">
-                    Account
-                  </p>
-                  <div className="space-y-1">
-                    <Link
-                      to="/dashboard"
-                      onClick={() => setAccountOpen(false)}
-                      className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition hover:bg-ink/5 dark:hover:bg-white/5"
-                    >
-                      <UserRound size={16} />
-                      Profile
-                    </Link>
-                    <Link
-                      to="/dashboard?tab=orders"
-                      onClick={() => setAccountOpen(false)}
-                      className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition hover:bg-ink/5 dark:hover:bg-white/5"
-                    >
-                      <PackageCheck size={16} />
-                      Orders
-                    </Link>
-                    <Link
-                      to="/dashboard?tab=wishlist"
-                      onClick={() => setAccountOpen(false)}
-                      className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition hover:bg-ink/5 dark:hover:bg-white/5"
-                    >
-                      <Heart size={16} />
-                      Wishlist
-                    </Link>
-                    {user.role === "admin" ? (
+              {accountOpen && (
+                <div className="absolute right-0 top-[calc(100%+10px)] z-50 w-60 overflow-hidden rounded-2xl border border-black/5 bg-white shadow-float dark:border-white/8 dark:bg-[#111]">
+                  <div className="border-b border-black/5 px-4 py-3 dark:border-white/5">
+                    <p className="text-xs font-medium text-clay dark:text-white/40">Signed in as</p>
+                    <p className="mt-0.5 truncate text-sm font-semibold">{user.name}</p>
+                  </div>
+                  <div className="p-1.5">
+                    {[
+                      { to: "/dashboard", icon: UserRound, label: "Profile" },
+                      { to: "/dashboard?tab=orders", icon: PackageCheck, label: "Orders" },
+                      { to: "/dashboard?tab=wishlist", icon: Heart, label: "Wishlist" },
+                      ...(user.role === "admin" ? [{ to: "/portal/admin", icon: LayoutDashboard, label: "Admin Panel" }] : [])
+                    ].map(({ to, icon: Icon, label }) => (
                       <Link
-                        to="/portal/admin"
+                        key={to}
+                        to={to}
                         onClick={() => setAccountOpen(false)}
-                        className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition hover:bg-ink/5 dark:hover:bg-white/5"
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition hover:bg-ink/5 dark:hover:bg-white/5"
                       >
-                        <LayoutDashboard size={16} />
-                        Admin panel
+                        <Icon size={15} className="text-clay dark:text-white/40" />
+                        {label}
                       </Link>
-                    ) : null}
+                    ))}
+                    <div className="my-1 border-t border-black/5 dark:border-white/5" />
                     <button
                       type="button"
-                      onClick={() => {
-                        setAccountOpen(false);
-                        logout();
-                      }}
-                      className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold transition hover:bg-ink/5 dark:hover:bg-white/5"
+                      onClick={() => { setAccountOpen(false); logout(); }}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10"
                     >
-                      <X size={16} />
-                      Logout
+                      <X size={15} />
+                      Sign out
                     </button>
                   </div>
                 </div>
-              ) : null}
+              )}
             </div>
           ) : (
-            <Link to="/login" className="hidden rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white md:block">
-              Login
+            <Link
+              to="/login"
+              className="hidden rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-80 dark:bg-white dark:text-ink md:inline-flex"
+            >
+              Sign in
             </Link>
           )}
-          <button type="button" onClick={() => setOpen((value) => !value)} className="glass rounded-full p-3 lg:hidden">
-            {open ? <X size={18} /> : <Menu size={18} />}
+
+          {/* Mobile burger */}
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="rounded-full p-2.5 transition hover:bg-ink/5 dark:hover:bg-white/5 lg:hidden"
+          >
+            {open ? <X size={20} strokeWidth={1.7} /> : <Menu size={20} strokeWidth={1.7} />}
           </button>
         </div>
       </div>
 
-      {open ? (
-        <div className="section-shell pb-4 lg:hidden">
-          <div className="glass space-y-3 rounded-[1.6rem] p-4">
+      {/* Mobile drawer */}
+      {open && (
+        <div className="border-t border-black/5 bg-white/95 backdrop-blur-xl dark:border-white/5 dark:bg-[#0A0A0A]/95 lg:hidden">
+          <div className="section-shell py-4 flex flex-col gap-1">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 onClick={() => setOpen(false)}
-                className="block rounded-2xl px-4 py-3 text-sm font-semibold"
+                className={({ isActive }) =>
+                  cls(
+                    "rounded-xl px-4 py-3 text-sm font-medium transition",
+                    isActive ? "bg-ink/5 text-ink dark:bg-white/10" : "hover:bg-ink/5 dark:hover:bg-white/5"
+                  )
+                }
               >
                 {item.label}
               </NavLink>
             ))}
-            {!user ? (
-              <Link
-                to="/login"
-                onClick={() => setOpen(false)}
-                className="block rounded-2xl bg-ink px-4 py-3 text-sm font-semibold text-white"
-              >
-                Login
-              </Link>
-            ) : (
-              <>
-                <Link to="/dashboard" onClick={() => setOpen(false)} className="block rounded-2xl px-4 py-3 text-sm font-semibold">
-                  Dashboard
-                </Link>
+            <div className="mt-2 border-t border-black/5 pt-3 dark:border-white/5">
+              {!user ? (
                 <Link
-                  to="/dashboard?tab=orders"
+                  to="/login"
                   onClick={() => setOpen(false)}
-                  className="block rounded-2xl px-4 py-3 text-sm font-semibold"
+                  className="block rounded-xl bg-ink px-4 py-3 text-center text-sm font-semibold text-white dark:bg-white dark:text-ink"
                 >
-                  Orders
+                  Sign in
                 </Link>
-                <Link
-                  to="/dashboard?tab=wishlist"
-                  onClick={() => setOpen(false)}
-                  className="block rounded-2xl px-4 py-3 text-sm font-semibold"
-                >
-                  Wishlist
-                </Link>
-                {user.role === "admin" ? (
-                  <Link
-                    to="/portal/admin"
-                    onClick={() => setOpen(false)}
-                    className="block rounded-2xl px-4 py-3 text-sm font-semibold"
+              ) : (
+                <>
+                  {[
+                    { to: "/dashboard", label: "Profile" },
+                    { to: "/dashboard?tab=orders", label: "Orders" },
+                    { to: "/dashboard?tab=wishlist", label: "Wishlist" },
+                    { to: "/wishlist", label: "Saved items" },
+                    ...(user.role === "admin" ? [{ to: "/portal/admin", label: "Admin Panel" }] : [])
+                  ].map(({ to, label }) => (
+                    <Link
+                      key={to}
+                      to={to}
+                      onClick={() => setOpen(false)}
+                      className="block rounded-xl px-4 py-3 text-sm font-medium transition hover:bg-ink/5 dark:hover:bg-white/5"
+                    >
+                      {label}
+                    </Link>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => { setOpen(false); logout(); }}
+                    className="mt-1 block w-full rounded-xl px-4 py-3 text-left text-sm font-medium text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10"
                   >
-                    Admin panel
-                  </Link>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpen(false);
-                    logout();
-                  }}
-                  className="w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold"
-                >
-                  Logout
-                </button>
-              </>
-            )}
+                    Sign out
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
-      ) : null}
+      )}
     </header>
   );
 };

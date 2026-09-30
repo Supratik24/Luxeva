@@ -17,7 +17,7 @@ const cartItemSchema = new mongoose.Schema(
 
 const cartSchema = new mongoose.Schema(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, required: true, unique: true, index: true },
+    userId: { type: mongoose.Schema.Types.Mixed, required: true, unique: true, index: true },
     items: [cartItemSchema],
     coupon: {
       code: String,
@@ -34,4 +34,3 @@ const cartSchema = new mongoose.Schema(
 const Cart = mongoose.model("Cart", cartSchema);
 
 export default Cart;
-

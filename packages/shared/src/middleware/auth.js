@@ -1,21 +1,21 @@
-import { getClerkUser } from "../config/clerk.js";
+import { getClerkIdentity } from "../config/clerk.js";
 import { ApiError } from "./errorHandler.js";
 
 const normalizeAdminEmail = (value = "") => String(value).trim().toLowerCase();
 
 export const protect = async (req, res, next) => {
   try {
-    const clerkUser = await getClerkUser(req);
+    const clerkUser = getClerkIdentity(req);
     const adminEmail = normalizeAdminEmail(process.env.CLERK_ADMIN_EMAIL);
     const email = normalizeAdminEmail(clerkUser.email);
 
     req.user = {
-      id: clerkUser.id,
-      clerkUserId: clerkUser.id,
+      id: clerkUser.clerkUserId,
+      clerkUserId: clerkUser.clerkUserId,
       email: clerkUser.email,
       name: clerkUser.name,
       phone: clerkUser.phone,
-      avatar: clerkUser.imageUrl,
+      avatar: clerkUser.avatar,
       role: adminEmail && email === adminEmail ? "admin" : "user"
     };
 

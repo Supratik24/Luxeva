@@ -20,9 +20,7 @@ import AdminOrdersPage from "../pages/admin/AdminOrdersPage";
 import AdminProductsPage from "../pages/admin/AdminProductsPage";
 import AdminReportsPage from "../pages/admin/AdminReportsPage";
 import AdminUsersPage from "../pages/admin/AdminUsersPage";
-import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
 import LoginPage from "../pages/auth/LoginPage";
-import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
 import SignupPage from "../pages/auth/SignupPage";
 import DashboardPage from "../pages/dashboard/DashboardPage";
 
@@ -41,9 +39,6 @@ const App = () => (
       <Route path="/privacy" element={<PolicyPage slug="privacy" title="Privacy Policy" />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
