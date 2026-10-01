@@ -4,7 +4,7 @@ import path from "node:path";
 import multer from "multer";
 import { body } from "express-validator";
 import { protect, restrictTo, validateRequest } from "@luxeva/shared";
-import {\n  createBrand,
+import { createBrand,
   createCategory,
   createCoupon,
   createProduct,
