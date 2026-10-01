@@ -1,3 +1,6 @@
+import dns from "node:dns";
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
 import { connectDatabase, getEnv } from "@luxeva/shared";
 import app from "./app.js";
 
@@ -5,7 +8,9 @@ const port = Number(process.env.PORT || 4003);
 const mongoUri = process.env.ORDER_MONGO_URI || getEnv("ORDER_MONGO_URI");
 
 connectDatabase(mongoUri)
-  .then(() => {
+  .then((connection) => {
+    console.log(`MongoDB connected: ${connection.name}`);
+    
     app.listen(port, () => {
       console.log(`Order service listening on port ${port}`);
     });
