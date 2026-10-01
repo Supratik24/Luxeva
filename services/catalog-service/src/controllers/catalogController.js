@@ -1,4 +1,11 @@
 import fs from "node:fs/promises";
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 import {
   ApiError,
   asyncHandler,
@@ -487,4 +494,44 @@ export const getLowStockProducts = asyncHandler(async (req, res) => {
     .limit(12);
 
   sendSuccess(res, 200, "Low stock products fetched successfully", { products });
+});
+
+// ─── Cloudinary Media Library ─────────────────────────────────────────────────
+
+export const listMedia = asyncHandler(async (req, res) => {
+  const folder = req.query.folder || "luxeva";
+  const nextCursor = req.query.next_cursor || undefined;
+  const maxResults = Number(req.query.max_results) || 30;
+
+  const result = await cloudinary.api.resources({
+    type: "upload",
+    prefix: folder,
+    max_results: maxResults,
+    next_cursor: nextCursor,
+    resource_type: "image"
+  });
+
+  sendSuccess(res, 200, "Media fetched successfully", {
+    resources: result.resources.map((r) => ({
+      publicId: r.public_id,
+      url: r.secure_url,
+      width: r.width,
+      height: r.height,
+      bytes: r.bytes,
+      format: r.format,
+      createdAt: r.created_at
+    })),
+    nextCursor: result.next_cursor || null,
+    totalCount: result.total_count || result.resources.length
+  });
+});
+
+export const deleteMedia = asyncHandler(async (req, res) => {
+  const { publicId } = req.params;
+  if (!publicId) throw new ApiError(400, "publicId is required");
+
+  const decoded = decodeURIComponent(publicId);
+  await cloudinary.uploader.destroy(decoded, { resource_type: "image" });
+
+  sendSuccess(res, 200, "Image deleted successfully");
 });

@@ -1,4 +1,4 @@
-import { BarChart3, Boxes, LayoutPanelTop, PackageSearch, ScrollText, Users } from "lucide-react";
+import { BarChart3, Boxes, Image, LayoutPanelTop, PackageSearch, ScrollText, Users } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 const items = [
@@ -7,16 +7,20 @@ const items = [
   { label: "Orders", to: "/portal/admin/orders", icon: PackageSearch },
   { label: "Users", to: "/portal/admin/users", icon: Users },
   { label: "Content", to: "/portal/admin/content", icon: LayoutPanelTop },
+  { label: "Media", to: "/portal/admin/media", icon: Image },
   { label: "Reports", to: "/portal/admin/reports", icon: ScrollText }
 ];
 
 const AdminLayout = () => (
-  <div className="min-h-screen bg-[#f6efe6] dark:bg-[#0d0d0d]">
-    <div className="mx-auto grid min-h-screen max-w-[1600px] gap-6 p-4 lg:grid-cols-[280px_1fr]">
-      <aside className="glass rounded-[2rem] p-6 shadow-soft">
-        <p className="eyebrow">Private portal</p>
-        <h1 className="mt-2 font-display text-4xl">Luxeva Admin</h1>
-        <div className="mt-8 space-y-2">
+  <div className="min-h-screen bg-sand dark:bg-[#0A0A0A]">
+    <div className="mx-auto grid min-h-screen max-w-[1600px] gap-0 lg:grid-cols-[260px_1fr]">
+      {/* Sidebar */}
+      <aside className="hidden border-r border-ink/5 bg-white px-4 py-8 dark:border-white/5 dark:bg-[#0f0f0f] lg:block">
+        <div className="px-2 mb-8">
+          <p className="eyebrow mb-1">Private Portal</p>
+          <h1 className="font-display text-2xl font-semibold">Luxeva Admin</h1>
+        </div>
+        <nav className="space-y-0.5">
           {items.map((item) => {
             const Icon = item.icon;
             return (
@@ -25,8 +29,10 @@ const AdminLayout = () => (
                 to={item.to}
                 end={item.to === "/portal/admin"}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
-                    isActive ? "bg-ink text-white" : "hover:bg-ink/5 dark:hover:bg-white/5"
+                  `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                    isActive
+                      ? "bg-ink text-white dark:bg-white dark:text-ink"
+                      : "text-clay hover:bg-ink/5 hover:text-ink dark:text-white/40 dark:hover:bg-white/5 dark:hover:text-white"
                   }`
                 }
               >
@@ -35,11 +41,13 @@ const AdminLayout = () => (
               </NavLink>
             );
           })}
-        </div>
+        </nav>
       </aside>
-      <div className="glass rounded-[2rem] p-6 shadow-soft">
+
+      {/* Main content */}
+      <main className="min-h-screen bg-sand p-6 dark:bg-[#0A0A0A] lg:p-10">
         <Outlet />
-      </div>
+      </main>
     </div>
   </div>
 );

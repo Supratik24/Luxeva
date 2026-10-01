@@ -4,8 +4,7 @@ import path from "node:path";
 import multer from "multer";
 import { body } from "express-validator";
 import { protect, restrictTo, validateRequest } from "@luxeva/shared";
-import {
-  createBrand,
+import {\n  createBrand,
   createCategory,
   createCoupon,
   createProduct,
@@ -13,6 +12,7 @@ import {
   deleteBrand,
   deleteCategory,
   deleteCoupon,
+  deleteMedia,
   deleteProduct,
   getBrands,
   getCatalogMeta,
@@ -23,6 +23,7 @@ import {
   getReviews,
   getSearchSuggestions,
   getWishlist,
+  listMedia,
   listProducts,
   moderateReview,
   toggleWishlist,
@@ -82,5 +83,7 @@ router.put("/admin/coupons/:id", updateCoupon);
 router.delete("/admin/coupons/:id", deleteCoupon);
 router.post("/admin/uploads", upload.array("images", 8), uploadProductImages);
 router.get("/admin/inventory/low-stock", getLowStockProducts);
+router.get("/admin/media", listMedia);
+router.delete("/admin/media/:publicId", deleteMedia);
 
 export default router;

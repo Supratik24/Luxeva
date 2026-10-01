@@ -16,6 +16,7 @@ import WishlistPage from "../pages/WishlistPage";
 import AdminContentPage from "../pages/admin/AdminContentPage";
 import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
 import AdminLoginPage from "../pages/admin/AdminLoginPage";
+import AdminMediaPage from "../pages/admin/AdminMediaPage";
 import AdminOrdersPage from "../pages/admin/AdminOrdersPage";
 import AdminProductsPage from "../pages/admin/AdminProductsPage";
 import AdminReportsPage from "../pages/admin/AdminReportsPage";
@@ -54,6 +55,7 @@ const App = () => (
         <Route path="orders" element={<AdminOrdersPage />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="content" element={<AdminContentPage />} />
+        <Route path="media" element={<AdminMediaPage />} />
         <Route path="reports" element={<AdminReportsPage />} />
       </Route>
     </Route>
