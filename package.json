@@ -1,3 +1,4 @@
+
 {
   "name": "luxeva-commerce-platform",
   "private": true,
@@ -8,8 +9,8 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace services/api-gateway\" \"npm run dev --workspace services/auth-service\" \"npm run dev --workspace services/catalog-service\" \"npm run dev --workspace services/order-service\" \"npm run dev --workspace services/content-service\" \"npm run dev --workspace services/notification-service\" \"npm run dev --workspace frontend\"",
-    "dev:backend": "concurrently \"npm run dev --workspace services/api-gateway\" \"npm run dev --workspace services/auth-service\" \"npm run dev --workspace services/catalog-service\" \"npm run dev --workspace services/order-service\" \"npm run dev --workspace services/content-service\" \"npm run dev --workspace services/notification-service\"",
+    "dev": "concurrently \"npm run dev --workspace services/api-gateway\" \"npm run dev --workspace services/auth-service\" \"npm run dev --workspace services/catalog-service\" \"npm run dev --workspace services/order-service\" \"npm run dev --workspace services/content-service\" \"npm run dev --workspace services/notification-service\" \"npm run dev --workspace services/payment-service\" \"npm run dev --workspace frontend\"",
+    "dev:backend": "concurrently \"npm run dev --workspace services/api-gateway\" \"npm run dev --workspace services/auth-service\" \"npm run dev --workspace services/catalog-service\" \"npm run dev --workspace services/order-service\" \"npm run dev --workspace services/content-service\" \"npm run dev --workspace services/notification-service\" \"npm run dev --workspace services/payment-service\"",
     "build": "npm run build --workspace frontend",
     "start:backend": "node scripts/start-backend.cjs",
     "start:frontend": "npm run start --workspace frontend",
@@ -19,6 +20,7 @@
     "start:order": "npm run start --workspace services/order-service",
     "start:content": "npm run start --workspace services/content-service",
     "start:notifications": "npm run start --workspace services/notification-service",
+    "start:payments": "npm run start --workspace services/payment-service",
     "seed": "node scripts/seed-all.js"
   },
   "devDependencies": {
