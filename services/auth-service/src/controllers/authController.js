@@ -38,6 +38,24 @@ const syncLegacyOwnership = async (legacyUserId, clerkUserId) => {
 
 const ensureCurrentUser = async (req, profile = {}) => {
   const clerkUserId = req.user.clerkUserId;
+  
+  if (process.env.AUTH_FALLBACK_MODE === "memory") {
+    console.warn("Using memory fallback for user sync. Database is disabled.");
+    const email = normalizeEmail(profile.email || req.user.email);
+    const adminEmail = normalizeAdminEmail(process.env.CLERK_ADMIN_EMAIL);
+    const role = email && email === adminEmail ? "admin" : "user";
+    const name = String(profile.name || req.user.name || "User").trim();
+    
+    return {
+      _id: "mock_user_id_" + clerkUserId,
+      clerkUserId,
+      name,
+      email,
+      role,
+      isActive: true
+    };
+  }
+
   let user = await User.findOne({ clerkUserId });
 
   // Use email from request body, JWT claims, or fallback to the DB user's email
@@ -48,16 +66,20 @@ const ensureCurrentUser = async (req, profile = {}) => {
     throw new ApiError(400, "A Clerk email address is required for initial sync");
   }
 
-  const adminEmail = normalizeAdminEmail(process.env.CLERK_ADMIN_EMAIL);
-  const role = email && email === adminEmail ? "admin" : (user?.role || "user");
-  const name = String(profile.name || req.user.name || user?.name || "User").trim();
-  const phone = String(profile.phone || req.user.phone || user?.phone || "").trim();
-  const avatar = String(profile.avatar || req.user.avatar || user?.avatar || "").trim();
-
   // If the user wasn't found by clerkUserId, they might be an older user identified by email
   if (!user && email) {
     user = await User.findOne({ email });
   }
+
+  const adminEmail = normalizeAdminEmail(process.env.CLERK_ADMIN_EMAIL);
+  const role = email && email === adminEmail ? "admin" : (user?.role || "user");
+  
+  // Don't overwrite an existing valid name with a generic "User" fallback
+  const incomingName = String(profile.name || req.user.name || "").trim();
+  const name = incomingName !== "User" && incomingName ? incomingName : (user?.name || "User");
+  
+  const phone = String(profile.phone || req.user.phone || user?.phone || "").trim();
+  const avatar = String(profile.avatar || req.user.avatar || user?.avatar || "").trim();
 
   const legacyUserId = user?._id ? String(user._id) : "";
 
@@ -91,7 +113,11 @@ const ensureCurrentUser = async (req, profile = {}) => {
 
 export const syncCurrentUser = asyncHandler(async (req, res) => {
   const user = await ensureCurrentUser(req, req.body || {});
-  const addresses = await Address.find({ user: req.user.clerkUserId }).sort({ isDefault: -1, createdAt: -1 });
+  
+  let addresses = [];
+  if (process.env.AUTH_FALLBACK_MODE !== "memory") {
+    addresses = await Address.find({ user: req.user.clerkUserId }).sort({ isDefault: -1, createdAt: -1 });
+  }
 
   sendSuccess(res, 200, "Profile synced successfully", {
     user: buildUserResponse(user),
@@ -101,7 +127,11 @@ export const syncCurrentUser = asyncHandler(async (req, res) => {
 
 export const getMe = asyncHandler(async (req, res) => {
   const user = await ensureCurrentUser(req);
-  const addresses = await Address.find({ user: req.user.clerkUserId }).sort({ isDefault: -1, createdAt: -1 });
+  
+  let addresses = [];
+  if (process.env.AUTH_FALLBACK_MODE !== "memory") {
+    addresses = await Address.find({ user: req.user.clerkUserId }).sort({ isDefault: -1, createdAt: -1 });
+  }
 
   sendSuccess(res, 200, "Profile fetched successfully", {
     user: buildUserResponse(user),

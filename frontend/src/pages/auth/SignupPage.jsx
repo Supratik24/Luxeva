@@ -7,7 +7,7 @@ const SignupPage = () => {
     <section className="flex min-h-screen items-center justify-center bg-[#f6efe6] p-4 dark:bg-[#0d0d0d]">
       <Meta title="Create account" description="Create a Luxeva customer account." />
       <SignedIn>
-        <Navigate to="/dashboard" replace />
+        <Navigate to="/" replace />
       </SignedIn>
       <SignedOut>
         <div className="flex w-full flex-col items-center max-w-md">
@@ -19,7 +19,7 @@ const SignupPage = () => {
             routing="path" 
             path="/signup" 
             signInUrl="/login" 
-            forceRedirectUrl="/dashboard" 
+            forceRedirectUrl="/" 
           />
         </div>
       </SignedOut>

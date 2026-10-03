@@ -16,16 +16,37 @@ import { useAuth } from "./AuthContext";
 const ShopContext = createContext(null);
 
 export const ShopProvider = ({ children }) => {
-  const { isAuthenticated } = useAuth();
-  const [cart, setCart] = useState(() => readStorage("luxeva_cart", []));
-  const [wishlist, setWishlist] = useState(() => readStorage("luxeva_wishlist", []));
+  const { isAuthenticated, user } = useAuth();
+  
+  // Use generic keys initially, they will be updated by useEffect if in preview mode
+  const [cart, setCart] = useState(() => readStorage("luxeva_cart_guest", []));
+  const [wishlist, setWishlist] = useState(() => readStorage("luxeva_wishlist_guest", []));
   const [recentlyViewed, setRecentlyViewed] = useState(() => readStorage("luxeva_recent", []));
   const [quickView, setQuickView] = useState(null);
   const [coupon, setCoupon] = useState(() => readStorage("luxeva_coupon", null));
 
+  // Switch cart/wishlist when auth state changes in preview mode
   useEffect(() => {
-    writeStorage("luxeva_cart", cart);
-  }, [cart]);
+    if (useLocalPreviewData) {
+      if (isAuthenticated && user?.id) {
+        setCart(readStorage(`luxeva_cart_${user.id}`, []));
+        setWishlist(readStorage(`luxeva_wishlist_${user.id}`, []));
+      } else if (!isAuthenticated) {
+        setCart(readStorage("luxeva_cart_guest", []));
+        setWishlist(readStorage("luxeva_wishlist_guest", []));
+        setCoupon(null);
+      }
+    }
+  }, [isAuthenticated, user?.id]);
+
+  useEffect(() => {
+    if (useLocalPreviewData) {
+      const key = isAuthenticated && user?.id ? `luxeva_cart_${user.id}` : "luxeva_cart_guest";
+      writeStorage(key, cart);
+    } else {
+      writeStorage("luxeva_cart", cart);
+    }
+  }, [cart, isAuthenticated, user?.id]);
 
   useEffect(() => {
     writeStorage("luxeva_recent", recentlyViewed);
@@ -36,8 +57,13 @@ export const ShopProvider = ({ children }) => {
   }, [coupon]);
 
   useEffect(() => {
-    writeStorage("luxeva_wishlist", wishlist);
-  }, [wishlist]);
+    if (useLocalPreviewData) {
+      const key = isAuthenticated && user?.id ? `luxeva_wishlist_${user.id}` : "luxeva_wishlist_guest";
+      writeStorage(key, wishlist);
+    } else {
+      writeStorage("luxeva_wishlist", wishlist);
+    }
+  }, [wishlist, isAuthenticated, user?.id]);
 
   useEffect(() => {
     if (!coupon) {
@@ -52,12 +78,15 @@ export const ShopProvider = ({ children }) => {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      setWishlist([]);
+      if (!useLocalPreviewData) {
+        setWishlist([]);
+        setCart([]);
+        setCoupon(null);
+      }
       return;
     }
 
     if (useLocalPreviewData) {
-      setWishlist(readStorage("luxeva_wishlist", []));
       return;
     }
 

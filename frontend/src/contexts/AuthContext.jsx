@@ -92,7 +92,7 @@ export const AuthProvider = ({ children }) => {
     await signUp.authenticateWithRedirect({
       strategy: "oauth_google",
       redirectUrl: "/sso-callback",
-      redirectUrlComplete: "/dashboard"
+      redirectUrlComplete: "/"
     });
   };
 

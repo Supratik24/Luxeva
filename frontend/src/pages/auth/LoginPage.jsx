@@ -6,14 +6,14 @@ const LoginPage = () => (
   <section className="flex min-h-screen items-center justify-center bg-[#f6efe6] p-4 dark:bg-[#0d0d0d]">
     <Meta title="Login" description="Sign in to your Luxeva account." />
     <SignedIn>
-      <Navigate to="/dashboard" replace />
+      <Navigate to="/" replace />
     </SignedIn>
     <SignedOut>
       <SignIn
         routing="path"
         path="/login"
         signUpUrl="/signup"
-        forceRedirectUrl="/dashboard"
+        forceRedirectUrl="/"
       />
     </SignedOut>
   </section>
