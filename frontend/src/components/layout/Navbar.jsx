@@ -18,7 +18,7 @@ const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
   const { cart, wishlist } = useShop();
 
   const cartCount = cart?.reduce((sum, item) => sum + (item?.quantity || 0), 0) || 0;
@@ -111,27 +111,31 @@ const Navbar = () => {
           </Link>
 
           {/* Account */}
-          {user ? (
+          {isAuthenticated ? (
             <div className="relative hidden md:block" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
                 onClick={() => setAccountOpen((v) => !v)}
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-white transition hover:opacity-80 dark:bg-white dark:text-ink"
               >
-                <UserRound size={16} />
+                {user?.avatar ? (
+                  <img src={user.avatar} alt="Profile" className="h-full w-full rounded-full object-cover" />
+                ) : (
+                  <UserRound size={16} />
+                )}
               </button>
               {accountOpen && (
                 <div className="absolute right-0 top-[calc(100%+10px)] z-50 w-60 overflow-hidden rounded-2xl border border-black/5 bg-white shadow-float dark:border-white/8 dark:bg-[#111]">
                   <div className="border-b border-black/5 px-4 py-3 dark:border-white/5">
                     <p className="text-xs font-medium text-clay dark:text-white/40">Signed in as</p>
-                    <p className="mt-0.5 truncate text-sm font-semibold">{user.name}</p>
+                    <p className="mt-0.5 truncate text-sm font-semibold">{user?.name || "User"}</p>
                   </div>
                   <div className="p-1.5">
                     {[
                       { to: "/dashboard", icon: UserRound, label: "Profile" },
                       { to: "/dashboard?tab=orders", icon: PackageCheck, label: "Orders" },
                       { to: "/dashboard?tab=wishlist", icon: Heart, label: "Wishlist" },
-                      ...(user.role === "admin" ? [{ to: "/portal/admin", icon: LayoutDashboard, label: "Admin Panel" }] : [])
+                      ...(user?.role === "admin" ? [{ to: "/portal/admin", icon: LayoutDashboard, label: "Admin Panel" }] : [])
                     ].map(({ to, icon: Icon, label }) => (
                       <Link
                         key={to}
@@ -196,7 +200,7 @@ const Navbar = () => {
               </NavLink>
             ))}
             <div className="mt-2 border-t border-black/5 pt-3 dark:border-white/5">
-              {!user ? (
+              {!isAuthenticated ? (
                 <Link
                   to="/login"
                   onClick={() => setOpen(false)}
@@ -211,7 +215,7 @@ const Navbar = () => {
                     { to: "/dashboard?tab=orders", label: "Orders" },
                     { to: "/dashboard?tab=wishlist", label: "Wishlist" },
                     { to: "/wishlist", label: "Saved items" },
-                    ...(user.role === "admin" ? [{ to: "/portal/admin", label: "Admin Panel" }] : [])
+                    ...(user?.role === "admin" ? [{ to: "/portal/admin", label: "Admin Panel" }] : [])
                   ].map(({ to, label }) => (
                     <Link
                       key={to}

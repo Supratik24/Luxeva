@@ -38,8 +38,8 @@ const App = () => (
       <Route path="/faq" element={<FAQPage />} />
       <Route path="/terms" element={<PolicyPage slug="terms" title="Terms & Conditions" />} />
       <Route path="/privacy" element={<PolicyPage slug="privacy" title="Privacy Policy" />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/login/*" element={<LoginPage />} />
+      <Route path="/signup/*" element={<SignupPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
@@ -47,7 +47,7 @@ const App = () => (
       <Route path="*" element={<NotFoundPage />} />
     </Route>
 
-    <Route path="/portal/admin/login" element={<AdminLoginPage />} />
+    <Route path="/portal/admin/login/*" element={<AdminLoginPage />} />
     <Route element={<ProtectedRoute adminOnly />}>
       <Route path="/portal/admin" element={<AdminLayout />}>
         <Route index element={<AdminDashboardPage />} />

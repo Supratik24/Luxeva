@@ -2,7 +2,7 @@ import { connectDatabase, getEnv } from "@luxeva/shared";
 import app from "./app.js";
 import { startOrderSubscriber } from "./subscriber.js";
 
-const port = Number(process.env.PORT || 4005);
+const port = Number(process.env.NOTIFICATION_SERVICE_PORT || 4006);
 const mongoUri = process.env.NOTIFICATION_MONGO_URI || getEnv("NOTIFICATION_MONGO_URI");
 
 connectDatabase(mongoUri)
