@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const wishlistSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.Mixed, required: true, unique: true, index: true },
-    products: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }]
+    products: [{ type: mongoose.Schema.Types.Mixed, ref: "Product" }]
   },
   { timestamps: true }
 );

@@ -37,21 +37,27 @@ const syncLegacyOwnership = async (legacyUserId, clerkUserId) => {
 };
 
 const ensureCurrentUser = async (req, profile = {}) => {
-  const email = normalizeEmail(profile.email || req.user.email);
-  if (!email) {
-    throw new ApiError(400, "A Clerk email address is required");
+  const clerkUserId = req.user.clerkUserId;
+  let user = await User.findOne({ clerkUserId });
+
+  // Use email from request body, JWT claims, or fallback to the DB user's email
+  const email = normalizeEmail(profile.email || req.user.email || user?.email);
+
+  if (!email && !user) {
+    // We only strictly need an email if we are creating a brand new user
+    throw new ApiError(400, "A Clerk email address is required for initial sync");
   }
 
   const adminEmail = normalizeAdminEmail(process.env.CLERK_ADMIN_EMAIL);
-  const role = email === adminEmail ? "admin" : "user";
-  const clerkUserId = req.user.clerkUserId;
-  const name = String(profile.name || req.user.name || "User").trim();
-  const phone = String(profile.phone || req.user.phone || "").trim();
-  const avatar = String(profile.avatar || req.user.avatar || "").trim();
+  const role = email && email === adminEmail ? "admin" : (user?.role || "user");
+  const name = String(profile.name || req.user.name || user?.name || "User").trim();
+  const phone = String(profile.phone || req.user.phone || user?.phone || "").trim();
+  const avatar = String(profile.avatar || req.user.avatar || user?.avatar || "").trim();
 
-  let user = await User.findOne({
-    $or: [{ clerkUserId }, { email }]
-  });
+  // If the user wasn't found by clerkUserId, they might be an older user identified by email
+  if (!user && email) {
+    user = await User.findOne({ email });
+  }
 
   const legacyUserId = user?._id ? String(user._id) : "";
 

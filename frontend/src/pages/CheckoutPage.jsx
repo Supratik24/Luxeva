@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import Meta from "../components/ui/Meta";
@@ -70,6 +70,38 @@ const CheckoutPage = () => {
   const [address, setAddress] = useState(initialAddress);
   const [paymentMethod, setPaymentMethod] = useState("netbanking");
   const [submitting, setSubmitting] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("new");
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    setLoadingAddresses(true);
+    api.get(endpoints.auth.addresses)
+      .then(({ data }) => {
+        const addrs = data.addresses || [];
+        setSavedAddresses(addrs);
+        if (addrs.length > 0) {
+          const defaultAddr = addrs.find((a) => a.isDefault) || addrs[0];
+          setSelectedAddressId(defaultAddr._id);
+          setAddress(defaultAddr);
+        }
+      })
+      .catch((err) => console.error("Failed to load addresses", err))
+      .finally(() => setLoadingAddresses(false));
+  }, [user]);
+
+  const handleAddressSelect = (addrId) => {
+    setSelectedAddressId(addrId);
+    if (addrId === "new") {
+      setAddress(initialAddress);
+    } else {
+      const selected = savedAddresses.find((a) => a._id === addrId);
+      if (selected) {
+        setAddress(selected);
+      }
+    }
+  };
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shippingFee = subtotal >= 2499 ? 0 : 99;
@@ -234,19 +266,59 @@ const CheckoutPage = () => {
         <form onSubmit={placeOrder} className="glass rounded-[2rem] p-6 shadow-soft">
           <p className="eyebrow">Checkout</p>
           <h1 className="mt-3 font-display text-4xl">Complete your order</h1>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            {Object.entries(address).map(([key, value]) => (
-              <input
-                key={key}
-                value={value}
-                onChange={(event) => setAddress((current) => ({ ...current, [key]: event.target.value }))}
-                placeholder={key}
-                className={`rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none capitalize dark:border-white/10 ${
-                  key === "line1" || key === "line2" ? "sm:col-span-2" : ""
-                }`}
-              />
-            ))}
-          </div>
+          
+          {savedAddresses.length > 0 && (
+            <div className="mt-8 space-y-4">
+              <p className="text-sm font-semibold">Delivery address</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {savedAddresses.map((addr) => (
+                  <button
+                    key={addr._id}
+                    type="button"
+                    onClick={() => handleAddressSelect(addr._id)}
+                    className={`rounded-2xl p-4 text-left border transition ${
+                      selectedAddressId === addr._id
+                        ? "border-ink bg-ink/5 dark:border-white dark:bg-white/5"
+                        : "border-ink/10 hover:border-ink/30 dark:border-white/10 dark:hover:border-white/30"
+                    }`}
+                  >
+                    <p className="font-semibold text-sm">{addr.fullName}</p>
+                    <p className="mt-1 text-xs text-ink/70 dark:text-white/70 line-clamp-2">
+                      {addr.line1}, {addr.line2 ? `${addr.line2}, ` : ""}{addr.city}, {addr.state} {addr.postalCode}
+                    </p>
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => handleAddressSelect("new")}
+                  className={`rounded-2xl p-4 text-left border flex items-center justify-center transition ${
+                    selectedAddressId === "new"
+                      ? "border-ink bg-ink/5 dark:border-white dark:bg-white/5"
+                      : "border-ink/10 hover:border-ink/30 dark:border-white/10 dark:hover:border-white/30"
+                  }`}
+                >
+                  <span className="font-semibold text-sm">+ Add new address</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {selectedAddressId === "new" && (
+            <div className={`grid gap-4 sm:grid-cols-2 ${savedAddresses.length > 0 ? "mt-4" : "mt-8"}`}>
+              {Object.keys(initialAddress).map((key) => (
+                <input
+                  key={key}
+                  value={address[key] || ""}
+                  onChange={(event) => setAddress((current) => ({ ...current, [key]: event.target.value }))}
+                  placeholder={key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}
+                  className={`rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none capitalize dark:border-white/10 ${
+                    key === "line1" || key === "line2" ? "sm:col-span-2" : ""
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+
           <div className="mt-8">
             <p className="mb-3 text-sm font-semibold">Payment method</p>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
