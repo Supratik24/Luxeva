@@ -27,7 +27,8 @@ export default {
       },
       animation: {
         "fade-up": "fadeUp 0.5s ease-out",
-        "fade-in": "fadeIn 0.4s ease-out"
+        "fade-in": "fadeIn 0.4s ease-out",
+        "marquee": "marquee 35s linear infinite"
       },
       keyframes: {
         fadeUp: {
@@ -37,6 +38,10 @@ export default {
         fadeIn: {
           "0%": { opacity: 0 },
           "100%": { opacity: 1 }
+        },
+        marquee: {
+          "0%": { transform: "translateX(0%)" },
+          "100%": { transform: "translateX(-100%)" }
         }
       }
     }
