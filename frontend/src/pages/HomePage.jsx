@@ -43,7 +43,7 @@ const HomePage = () => {
 
   return (
     <>
-      <Meta title="Premium eCommerce" description="Modern full-stack shopping experience with a premium curated storefront." />
+      <Meta description="Modern full-stack shopping experience with a premium curated storefront." />
       <HeroSection banners={content.banners} />
       <CategoryStrip categories={catalog.categories.slice(0, 4)} />
       <ProductShowcase
