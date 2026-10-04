@@ -6,12 +6,8 @@ const Footer = () => (
       <div className="grid gap-12 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
         {/* Brand */}
         <div>
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-ink text-white dark:bg-white dark:text-ink">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-              </svg>
-            </span>
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="Luxeva" className="h-10 w-auto object-contain" />
             <span className="font-display text-xl font-semibold">Luxeva</span>
           </div>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-clay dark:text-white/40">

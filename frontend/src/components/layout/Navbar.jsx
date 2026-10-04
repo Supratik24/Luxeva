@@ -48,12 +48,8 @@ const Navbar = () => {
     >
       <div className="section-shell flex h-[72px] items-center gap-6">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-3 shrink-0" onClick={() => setOpen(false)}>
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-ink text-white dark:bg-white dark:text-ink">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
-          </span>
+        <Link to="/" className="flex items-center gap-2 shrink-0" onClick={() => setOpen(false)}>
+          <img src="/logo.png" alt="Luxeva" className="h-10 w-auto object-contain" />
           <span className="font-display text-xl font-semibold tracking-tight">Luxeva</span>
         </Link>
 
