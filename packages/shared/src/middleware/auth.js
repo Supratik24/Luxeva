@@ -8,6 +8,15 @@ export const protect = async (req, res, next) => {
     const clerkUser = getClerkIdentity(req);
     const adminEmail = normalizeAdminEmail(process.env.CLERK_ADMIN_EMAIL);
     const email = normalizeAdminEmail(clerkUser.email);
+    const adminId = process.env.CLERK_ADMIN_ID;
+    
+    // Determine admin status by either ID or Email (if email is in claims)
+    let role = "user";
+    if (adminId && clerkUser.clerkUserId === adminId) {
+      role = "admin";
+    } else if (adminEmail && email === adminEmail) {
+      role = "admin";
+    }
 
     req.user = {
       id: clerkUser.clerkUserId,
@@ -16,7 +25,7 @@ export const protect = async (req, res, next) => {
       name: clerkUser.name,
       phone: clerkUser.phone,
       avatar: clerkUser.avatar,
-      role: adminEmail && email === adminEmail ? "admin" : "user"
+      role
     };
 
     next();
