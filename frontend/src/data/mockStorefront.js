@@ -11,7 +11,7 @@ const imageBank = {
   appliances: "https://images.unsplash.com/photo-1586208958839-06c17cacdf08?auto=format&fit=crop&w=1200&q=80"
 };
 
-export const useLocalPreviewData = true;
+export const useLocalPreviewData = false;
 
 export const mockCategories = [
   { _id: "cat-1", name: "Women Ethnic", slug: "women-ethnic", description: "Kurtas, sarees, and festive silhouettes.", image: imageBank.womenEthnic, featured: true },
