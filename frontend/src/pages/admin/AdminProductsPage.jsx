@@ -68,7 +68,7 @@ const AdminProductsPage = () => {
     let parsedVariants = [];
     try {
       parsedVariants = form.variants ? JSON.parse(form.variants) : [];
-    } catch {
+    } catch (err) {
       toast.error("Variants must be valid JSON");
       return;
     }
@@ -167,7 +167,7 @@ const AdminProductsPage = () => {
             </div>
 
             <Field label="Product name *">
-              <input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Premium Cotton Tee" className={inputClass} required />
+              <input required value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Premium Cotton Tee" className={inputClass} required />
             </Field>
             <Field label="Short description">
               <input value={form.shortDescription} onChange={(e) => set("shortDescription", e.target.value)} placeholder="One-liner shown on cards" className={inputClass} />
@@ -184,7 +184,7 @@ const AdminProductsPage = () => {
                 <input type="number" value={form.compareAtPrice} onChange={(e) => set("compareAtPrice", e.target.value)} className={inputClass} min={0} />
               </Field>
               <Field label="SKU">
-                <input value={form.sku} onChange={(e) => set("sku", e.target.value)} placeholder="LX-001" className={inputClass} />
+                <input required value={form.sku} onChange={(e) => set("sku", e.target.value)} placeholder="LX-001" className={inputClass} />
               </Field>
               <Field label="Stock">
                 <input type="number" value={form.stock} onChange={(e) => set("stock", e.target.value)} className={inputClass} min={0} />
@@ -192,13 +192,13 @@ const AdminProductsPage = () => {
             </div>
 
             <Field label="Category">
-              <select value={form.category} onChange={(e) => set("category", e.target.value)} className={inputClass}>
+              <select required value={form.category} onChange={(e) => set("category", e.target.value)} className={inputClass}>
                 <option value="">Select category</option>
                 {meta.categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
               </select>
             </Field>
             <Field label="Brand">
-              <select value={form.brand} onChange={(e) => set("brand", e.target.value)} className={inputClass}>
+              <select required value={form.brand} onChange={(e) => set("brand", e.target.value)} className={inputClass}>
                 <option value="">Select brand</option>
                 {meta.brands.map((b) => <option key={b._id} value={b._id}>{b.name}</option>)}
               </select>
