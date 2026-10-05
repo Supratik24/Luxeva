@@ -1,5 +1,6 @@
 import { getClerkIdentity } from "../config/clerk.js";
 import { ApiError } from "./errorHandler.js";
+import mongoose from "mongoose";
 
 const normalizeAdminEmail = (value = "") => String(value).trim().toLowerCase();
 
@@ -8,14 +9,21 @@ export const protect = async (req, res, next) => {
     const clerkUser = getClerkIdentity(req);
     const adminEmail = normalizeAdminEmail(process.env.CLERK_ADMIN_EMAIL);
     const email = normalizeAdminEmail(clerkUser.email);
-    const adminId = process.env.CLERK_ADMIN_ID;
     
-    // Determine admin status by either ID or Email (if email is in claims)
+    // Fallback: Check role dynamically from auth_db
     let role = "user";
-    if (adminId && clerkUser.clerkUserId === adminId) {
+    if (adminEmail && email === adminEmail) {
       role = "admin";
-    } else if (adminEmail && email === adminEmail) {
-      role = "admin";
+    } else if (mongoose.connection.readyState === 1) {
+      try {
+        const authDb = mongoose.connection.useDb("auth_db", { useCache: true });
+        const dbUser = await authDb.collection("users").findOne({ clerkUserId: clerkUser.clerkUserId });
+        if (dbUser && dbUser.role) {
+          role = dbUser.role;
+        }
+      } catch (err) {
+        console.warn("Could not fetch user role from auth_db", err.message);
+      }
     }
 
     req.user = {
