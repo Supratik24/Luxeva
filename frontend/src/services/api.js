@@ -41,7 +41,7 @@ export const endpoints = {
     wishlist: "/api/catalog/wishlist",
     toggleWishlist: "/api/catalog/wishlist/toggle",
     review: (productId) => `/api/catalog/products/${productId}/reviews`,
-    validateCoupon: "/api/catalog/coupons/validate",
+    coupons: "/api/catalog/coupons", validateCoupon: "/api/catalog/coupons/validate",
     adminProducts: "/api/catalog/admin/products",
     adminProduct: (id) => `/api/catalog/admin/products/${id}`,
     adminCategories: "/api/catalog/admin/categories",

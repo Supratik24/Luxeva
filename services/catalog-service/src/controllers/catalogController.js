@@ -414,7 +414,7 @@ export const validateCoupon = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, "Coupon applied successfully", { coupon });
 });
 
-export const getCoupons = asyncHandler(async (req, res) => {
+export const getActiveCoupons = asyncHandler(async (req, res) => { const coupons = await Coupon.find({ active: true }).sort({ minOrderAmount: 1 }); sendSuccess(res, 200, "Active coupons", { coupons }); }); export const getCoupons = asyncHandler(async (req, res) => {
   const coupons = await Coupon.find().sort({ createdAt: -1 });
   sendSuccess(res, 200, "Coupons fetched successfully", { coupons });
 });

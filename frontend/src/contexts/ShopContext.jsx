@@ -279,20 +279,32 @@ export const ShopProvider = ({ children }) => {
       return;
     }
 
-    const { data } = await api.post(endpoints.catalog.validateCoupon, { code });
-    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const discountAmount =
-      data.coupon.type === "percentage"
-        ? Number(((subtotal * data.coupon.value) / 100).toFixed(2))
-        : data.coupon.value;
-
-    const nextCoupon = {
-      code: data.coupon.code,
-      discountAmount
-    };
-
-    setCoupon(nextCoupon);
-    toast.success("Coupon applied");
+    try {
+      const { data } = await api.post(endpoints.catalog.validateCoupon, { code });
+      const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      
+      if (subtotal < data.coupon.minOrderAmount) {
+        toast.error(`This coupon needs a cart total of Rs. ${data.coupon.minOrderAmount} or more`);
+        return;
+      }
+      
+      const discountAmount =
+        data.coupon.type === "percentage"
+          ? Number(((subtotal * data.coupon.value) / 100).toFixed(2))
+          : data.coupon.value;
+  
+      const nextCoupon = {
+        code: data.coupon.code,
+        discountAmount,
+        minOrderAmount: data.coupon.minOrderAmount,
+        label: data.coupon.description || ""
+      };
+  
+      setCoupon(nextCoupon);
+      toast.success(`${data.coupon.code} applied`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Invalid coupon");
+    }
   };
 
   const value = useMemo(

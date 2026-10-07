@@ -17,7 +17,7 @@ import { createBrand,
   getBrands,
   getCatalogMeta,
   getCategories,
-  getCoupons,
+  getActiveCoupons, getCoupons,
   getLowStockProducts,
   getProductBySlug,
   getReviews,
@@ -53,7 +53,7 @@ router.get("/products/suggestions", getSearchSuggestions);
 router.get("/products/:slug", getProductBySlug);
 router.get("/categories", getCategories);
 router.get("/brands", getBrands);
-router.post("/coupons/validate", validateCoupon);
+router.get("/coupons", getActiveCoupons); router.post("/coupons/validate", validateCoupon);
 
 router.get("/wishlist", protect, getWishlist);
 router.post("/wishlist/toggle", protect, toggleWishlist);

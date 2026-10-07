@@ -1,5 +1,6 @@
 import { ArrowRight, BadgePercent, CheckCircle2, ShoppingBag, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import api, { endpoints } from "../services/api";
 import { Link } from "react-router-dom";
 import Meta from "../components/ui/Meta";
 import { mockCoupons, useLocalPreviewData } from "../data/mockStorefront";
@@ -9,12 +10,23 @@ import { currency } from "../utils/format";
 const CartPage = () => {
   const { cart, coupon, updateQuantity, removeFromCart, applyCoupon } = useShop();
   const [couponCode, setCouponCode] = useState("");
+  const [activeCoupons, setActiveCoupons] = useState([]);
+  
+  useEffect(() => {
+    if (!useLocalPreviewData) {
+      api.get(endpoints.catalog.coupons).then((res) => {
+        setActiveCoupons(res.data?.coupons || []);
+      }).catch(console.error);
+    }
+  }, []);
+
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shipping = subtotal >= 2499 ? 0 : 99;
   const tax = subtotal * 0.12;
   const total = subtotal + shipping + tax - (coupon?.discountAmount || 0);
-  const couponOffers = useLocalPreviewData
-    ? mockCoupons.map((offer) => {
+  const rawOffers = useLocalPreviewData ? mockCoupons : activeCoupons;
+  
+  const couponOffers = rawOffers.map((offer) => {
         const rawSaving =
           offer.type === "percentage"
             ? Math.round((subtotal * offer.value) / 100)
@@ -24,12 +36,13 @@ const CartPage = () => {
 
         return {
           ...offer,
+          label: offer.description || offer.label || "",
+          highlight: offer.highlight || "",
           eligible: subtotal >= offer.minOrderAmount,
           remaining,
           saving
         };
-      })
-    : [];
+      });
   const bestCoupon = couponOffers.reduce(
     (best, offer) => (offer.eligible && offer.saving > (best?.saving || 0) ? offer : best),
     null
