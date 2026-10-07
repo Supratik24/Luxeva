@@ -1,4 +1,4 @@
-import { BarChart3, Boxes, Image, LayoutPanelTop, PackageSearch, ScrollText, Users } from "lucide-react";
+import { ArrowLeft, BarChart3, Boxes, Image, LayoutPanelTop, PackageSearch, ScrollText, Users } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 const items = [
@@ -21,6 +21,13 @@ const AdminLayout = () => (
           <h1 className="font-display text-2xl font-semibold">Luxeva Admin</h1>
         </div>
         <nav className="space-y-0.5">
+          <NavLink
+            to="/"
+            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-clay hover:bg-ink/5 hover:text-ink dark:text-white/40 dark:hover:bg-white/5 dark:hover:text-white mb-6"
+          >
+            <ArrowLeft size={16} />
+            Back to Storefront
+          </NavLink>
           {items.map((item) => {
             const Icon = item.icon;
             return (
