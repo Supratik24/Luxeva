@@ -8,7 +8,7 @@ import { useShop } from "../contexts/ShopContext";
 import { currency } from "../utils/format";
 
 const CartPage = () => {
-  const { cart, coupon, updateQuantity, removeFromCart, applyCoupon } = useShop();
+  const { cart, coupon, updateQuantity, removeFromCart, applyCoupon, setCoupon } = useShop();
   const [couponCode, setCouponCode] = useState("");
   const [activeCoupons, setActiveCoupons] = useState([]);
   
@@ -143,19 +143,10 @@ const CartPage = () => {
                 </button>
               </div>
 
-              {useLocalPreviewData ? (
+              {couponOffers.length > 0 ? (
                 <div className="mt-5">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/50 dark:text-white/50">Best offers for your cart</p>
-                    {bestCoupon && coupon?.code !== bestCoupon.code ? (
-                      <button
-                        type="button"
-                        onClick={() => handleApplyCoupon(bestCoupon.code)}
-                        className="rounded-full bg-olive/10 px-3 py-1.5 text-xs font-semibold text-olive transition hover:bg-olive hover:text-white"
-                      >
-                        Apply best
-                      </button>
-                    ) : null}
                   </div>
                   <div className="space-y-2">
                     {couponOffers.map((offer) => {
@@ -180,11 +171,6 @@ const CartPage = () => {
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
                                 <p className="font-display text-xl leading-none">{offer.code}</p>
-                                {bestCoupon?.code === offer.code && offer.eligible ? (
-                                  <span className="rounded-full bg-ink px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white dark:bg-white dark:text-ink">
-                                    Best value
-                                  </span>
-                                ) : null}
                               </div>
                               <p className="mt-1 text-xs leading-5 text-ink/60 dark:text-white/60">{offer.label}</p>
                               <p className="text-[11px] font-semibold text-ink/45 dark:text-white/45">{offer.highlight}</p>
@@ -220,12 +206,20 @@ const CartPage = () => {
                     })}
                   </div>
                   {coupon?.code ? (
-                    <div className="mt-4 rounded-[1.3rem] bg-olive px-4 py-3 text-sm font-semibold text-white">
-                      <div className="flex items-center justify-between gap-3">
+                    <div className="mt-4 rounded-[1.3rem] bg-olive px-4 py-3 text-sm font-semibold text-white relative">
+                      <div className="flex items-center justify-between gap-3 pr-8">
                         <span>{coupon.code} applied</span>
                         <span>You saved {currency(coupon.discountAmount)}</span>
                       </div>
-                      {coupon.label ? <p className="mt-1 text-xs text-white/75">{coupon.label}</p> : null}
+                      {coupon.label ? <p className="mt-1 text-xs text-white/75 pr-8">{coupon.label}</p> : null}
+                      <button
+                        type="button"
+                        onClick={() => { setCoupon(null); setCouponCode(""); }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/20 hover:bg-white/30 transition text-white"
+                        title="Remove coupon"
+                      >
+                        <Trash2 size={15} />
+                      </button>
                     </div>
                   ) : null}
                 </div>
