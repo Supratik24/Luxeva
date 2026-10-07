@@ -16,7 +16,7 @@ const TestimonialsSection = ({ testimonials = [] }) => (
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: index * 0.1 }}
-          className="flex flex-col gap-5 rounded-2xl border border-black/5 bg-white p-6 shadow-card dark:border-white/5 dark:bg-white/4"
+          className="flex flex-col gap-5 rounded-2xl border border-black/5 bg-white p-6 shadow-card dark:border-white/10 dark:bg-[#1E2028]"
         >
           <div className="flex items-center gap-1">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -24,7 +24,7 @@ const TestimonialsSection = ({ testimonials = [] }) => (
             ))}
           </div>
           <Quote size={20} className="text-ink/10 dark:text-white/10 -mb-2" />
-          <p className="text-sm leading-relaxed text-clay dark:text-white/50 flex-1">
+          <p className="text-sm leading-relaxed text-clay dark:text-white/70 flex-1">
             {item.quote || item.message}
           </p>
           <div className="flex items-center gap-3 border-t border-black/5 pt-4 dark:border-white/5">
@@ -33,7 +33,7 @@ const TestimonialsSection = ({ testimonials = [] }) => (
             </div>
             <div>
               <p className="text-sm font-semibold leading-none">{item.name}</p>
-              <p className="mt-1 text-xs text-clay dark:text-white/35">{item.role || "Verified customer"}</p>
+              <p className="mt-1 text-xs text-clay dark:text-white/55">{item.role || "Verified customer"}</p>
             </div>
           </div>
         </motion.article>

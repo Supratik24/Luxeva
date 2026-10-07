@@ -23,58 +23,58 @@ const AdminDashboardPage = () => {
   return (
     <div>
       <p className="eyebrow">Admin dashboard</p>
-      <h1 className="mt-3 font-display text-5xl">Operations overview</h1>
+      <h1 className="mt-3 font-display text-5xl dark:text-white">Operations overview</h1>
       <div className="mt-8 grid gap-4 md:grid-cols-3">
         {[
           { label: "Revenue", value: currency(analytics.revenue) },
           { label: "Orders", value: analytics.orders || 0 },
           { label: "AOV", value: currency(analytics.averageOrderValue) }
         ].map((card) => (
-          <div key={card.label} className="rounded-[1.8rem] border border-ink/10 p-5 dark:border-white/10">
-            <p className="text-sm text-ink/45 dark:text-white/45">{card.label}</p>
-            <p className="mt-4 text-3xl font-semibold">{card.value}</p>
+          <div key={card.label} className="rounded-[1.8rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+            <p className="text-sm text-ink/55 dark:text-white/65">{card.label}</p>
+            <p className="mt-4 text-3xl font-semibold dark:text-white">{card.value}</p>
           </div>
         ))}
       </div>
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-[2rem] border border-ink/10 p-5 dark:border-white/10">
-          <p className="text-sm font-semibold">Sales chart</p>
+        <div className="rounded-[2rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+          <p className="text-sm font-semibold dark:text-white">Sales chart</p>
           <div className="mt-4 h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={analytics.monthlySales || []}>
                 <defs>
                   <linearGradient id="sales" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="5%" stopColor="#4f5a45" stopOpacity={0.6} />
-                    <stop offset="95%" stopColor="#4f5a45" stopOpacity={0.05} />
+                    <stop offset="5%" stopColor="#5C6BC0" stopOpacity={0.6} />
+                    <stop offset="95%" stopColor="#5C6BC0" stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.12} />
-                <XAxis dataKey="month" />
+                <XAxis dataKey="month" tick={{ fill: "currentColor", opacity: 0.6 }} />
                 <Tooltip />
-                <Area dataKey="sales" stroke="#4f5a45" fill="url(#sales)" />
+                <Area dataKey="sales" stroke="#5C6BC0" fill="url(#sales)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
-        <div className="rounded-[2rem] border border-ink/10 p-5 dark:border-white/10">
-          <p className="text-sm font-semibold">Low-stock alerts</p>
+        <div className="rounded-[2rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+          <p className="text-sm font-semibold dark:text-white">Low-stock alerts</p>
           <div className="mt-4 space-y-3">
             {lowStock.map((product) => (
-              <div key={product._id} className="rounded-[1.3rem] bg-ink/5 p-4 dark:bg-white/5">
-                <p className="font-semibold">{product.name}</p>
-                <p className="text-sm text-ink/50 dark:text-white/50">SKU: {product.sku} | {product.stock} left</p>
+              <div key={product._id} className="rounded-[1.3rem] bg-ink/5 p-4 dark:bg-white/8">
+                <p className="font-semibold dark:text-white">{product.name}</p>
+                <p className="text-sm text-ink/55 dark:text-white/65">SKU: {product.sku} | {product.stock} left</p>
               </div>
             ))}
           </div>
         </div>
       </div>
-      <div className="mt-8 rounded-[2rem] border border-ink/10 p-5 dark:border-white/10">
-        <p className="text-sm font-semibold">Admin notifications</p>
+      <div className="mt-8 rounded-[2rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+        <p className="text-sm font-semibold dark:text-white">Admin notifications</p>
         <div className="mt-4 space-y-3">
           {notifications.map((notification) => (
-            <div key={notification._id} className="rounded-[1.3rem] bg-ink/5 p-4 dark:bg-white/5">
-              <p className="font-semibold">{notification.title}</p>
-              <p className="text-sm text-ink/50 dark:text-white/50">{notification.message}</p>
+            <div key={notification._id} className="rounded-[1.3rem] bg-ink/5 p-4 dark:bg-white/8">
+              <p className="font-semibold dark:text-white">{notification.title}</p>
+              <p className="text-sm text-ink/55 dark:text-white/65">{notification.message}</p>
             </div>
           ))}
         </div>

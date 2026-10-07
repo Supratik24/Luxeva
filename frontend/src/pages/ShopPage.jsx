@@ -108,34 +108,34 @@ const ShopPage = () => {
               onChange={(event) => setSearchText(event.target.value)}
               onBlur={() => updateParam("search", searchText)}
               placeholder="Search products"
-              className="w-full rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10"
+              className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#1E2028] dark:text-white"
             />
-            <select value={filters.category} onChange={(e) => updateParam("category", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10">
+            <select value={filters.category} onChange={(e) => updateParam("category", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#1E2028] dark:text-white">
               <option value="">All categories</option>
               {catalog.categories.map((item) => (
                 <option key={item._id} value={item._id}>{item.name}</option>
               ))}
             </select>
-            <select value={filters.brand} onChange={(e) => updateParam("brand", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10">
+            <select value={filters.brand} onChange={(e) => updateParam("brand", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#1E2028] dark:text-white">
               <option value="">All brands</option>
               {catalog.brands.map((item) => (
                 <option key={item._id} value={item._id}>{item.name}</option>
               ))}
             </select>
             <div className="grid grid-cols-2 gap-3">
-              <input type="number" placeholder="Min" value={filters.minPrice} onChange={(e) => updateParam("minPrice", e.target.value)} className="rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10" />
-              <input type="number" placeholder="Max" value={filters.maxPrice} onChange={(e) => updateParam("maxPrice", e.target.value)} className="rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10" />
+              <input type="number" placeholder="Min" value={filters.minPrice} onChange={(e) => updateParam("minPrice", e.target.value)} className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#1E2028] dark:text-white" />
+              <input type="number" placeholder="Max" value={filters.maxPrice} onChange={(e) => updateParam("maxPrice", e.target.value)} className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#1E2028] dark:text-white" />
             </div>
-            <select value={filters.rating} onChange={(e) => updateParam("rating", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10">
+            <select value={filters.rating} onChange={(e) => updateParam("rating", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#1E2028] dark:text-white">
               <option value="">Any rating</option>
               <option value="4">4 stars & up</option>
               <option value="3">3 stars & up</option>
             </select>
-            <select value={filters.availability} onChange={(e) => updateParam("availability", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10">
+            <select value={filters.availability} onChange={(e) => updateParam("availability", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#1E2028] dark:text-white">
               <option value="">Any stock</option>
               <option value="in-stock">In stock</option>
             </select>
-            <select value={filters.sort} onChange={(e) => updateParam("sort", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10">
+            <select value={filters.sort} onChange={(e) => updateParam("sort", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#1E2028] dark:text-white">
               <option value="newest">Newest</option>
               <option value="price-asc">Price low to high</option>
               <option value="price-desc">Price high to low</option>

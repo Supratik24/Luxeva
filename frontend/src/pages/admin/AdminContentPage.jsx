@@ -18,7 +18,7 @@ const initialBlock = { key: "faq", title: "", subtitle: "", items: "[]" };
 
 const Field = ({ label, children }) => (
   <div>
-    <label className="mb-1.5 block text-xs font-semibold text-clay dark:text-white/40">{label}</label>
+    <label className="mb-1.5 block text-xs font-semibold text-clay dark:text-white/65">{label}</label>
     {children}
   </div>
 );
@@ -107,7 +107,7 @@ const AdminContentPage = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-8 border-b border-ink/5 dark:border-white/5">
+      <div className="flex gap-1 mb-8 border-b border-ink/5 dark:border-white/12">
         {TABS.map((t) => (
           <button
             key={t}
@@ -116,7 +116,7 @@ const AdminContentPage = () => {
             className={`-mb-px border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
               tab === t
                 ? "border-ink text-ink dark:border-white dark:text-white"
-                : "border-transparent text-clay hover:text-ink dark:text-white/40 dark:hover:text-white"
+                : "border-transparent text-clay hover:text-ink dark:text-white/65 dark:hover:text-white"
             }`}
           >
             {t}
@@ -128,11 +128,11 @@ const AdminContentPage = () => {
       {tab === "Banners" && (
         <div className="grid gap-8 xl:grid-cols-[420px_1fr]">
           {/* Banner form */}
-          <form onSubmit={handleBannerSubmit} className="space-y-5 rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/5 dark:bg-white/4">
+          <form onSubmit={handleBannerSubmit} className="space-y-5 rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/5 dark:bg-[#1E2028]">
             <div className="flex items-center justify-between">
               <p className="font-semibold">{editingBannerId ? "Edit banner" : "New banner"}</p>
               {editingBannerId && (
-                <button type="button" onClick={() => { setBannerForm(initialBanner); setEditingBannerId(null); }} className="text-xs text-clay hover:text-ink dark:text-white/40">
+                <button type="button" onClick={() => { setBannerForm(initialBanner); setEditingBannerId(null); }} className="text-xs text-clay hover:text-ink dark:text-white/65">
                   Cancel
                 </button>
               )}
@@ -188,7 +188,7 @@ const AdminContentPage = () => {
                   <button
                     type="button"
                     onClick={() => setPickerOpen(true)}
-                    className="flex w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-ink/10 py-8 text-sm font-medium text-clay transition hover:border-ink/30 hover:text-ink dark:border-white/10 dark:text-white/40 dark:hover:border-white/30 dark:hover:text-white"
+                    className="flex w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-ink/10 py-8 text-sm font-medium text-clay transition hover:border-ink/30 hover:text-ink dark:border-white/10 dark:text-white/65 dark:hover:border-white/30 dark:hover:text-white"
                   >
                     <ImageIcon size={24} className="opacity-50" />
                     Click to add banner image
@@ -204,18 +204,18 @@ const AdminContentPage = () => {
 
           {/* Banner list */}
           <div className="space-y-4">
-            <p className="text-sm text-clay dark:text-white/40">{banners.length} banner{banners.length !== 1 ? "s" : ""}</p>
+            <p className="text-sm text-clay dark:text-white/65">{banners.length} banner{banners.length !== 1 ? "s" : ""}</p>
             {banners.map((banner) => (
-              <div key={banner._id} className="overflow-hidden rounded-2xl border border-ink/5 bg-white shadow-card dark:border-white/5 dark:bg-white/4">
+              <div key={banner._id} className="overflow-hidden rounded-2xl border border-ink/5 bg-white shadow-card dark:border-white/5 dark:bg-[#1E2028]">
                 {banner.image && (
-                  <div className="h-36 w-full overflow-hidden bg-sand dark:bg-white/5">
+                  <div className="h-36 w-full overflow-hidden bg-sand dark:bg-white/8">
                     <img src={banner.image} alt={banner.title} className="h-full w-full object-cover" />
                   </div>
                 )}
                 <div className="flex items-center justify-between gap-4 p-4">
                   <div className="min-w-0">
                     <p className="font-semibold truncate">{banner.title}</p>
-                    {banner.subtitle && <p className="text-xs text-clay dark:text-white/40 mt-0.5 truncate">{banner.subtitle}</p>}
+                    {banner.subtitle && <p className="text-xs text-clay dark:text-white/65 mt-0.5 truncate">{banner.subtitle}</p>}
                     {banner.ctaLink && (
                       <p className="text-xs text-clay dark:text-white/30 mt-0.5 font-mono">{banner.ctaLink}</p>
                     )}
@@ -246,7 +246,7 @@ const AdminContentPage = () => {
       {/* ── Content Blocks ── */}
       {tab === "Content Blocks" && (
         <div className="grid gap-8 xl:grid-cols-[420px_1fr]">
-          <div className="space-y-5 rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/5 dark:bg-white/4">
+          <div className="space-y-5 rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/5 dark:bg-[#1E2028]">
             <p className="font-semibold">Edit content block</p>
             <Field label="Block key">
               <select value={blockForm.key} onChange={(e) => setBlockForm((s) => ({ ...s, key: e.target.value }))} className="input">
@@ -278,7 +278,7 @@ const AdminContentPage = () => {
 
           {/* Blocks list */}
           <div className="space-y-4">
-            <p className="text-sm text-clay dark:text-white/40">{blocks.length} block{blocks.length !== 1 ? "s" : ""}</p>
+            <p className="text-sm text-clay dark:text-white/65">{blocks.length} block{blocks.length !== 1 ? "s" : ""}</p>
             {blocks.map((block) => (
               <div
                 key={block._id}
@@ -287,10 +287,10 @@ const AdminContentPage = () => {
               >
                 <div className="flex items-center justify-between">
                   <span className="rounded-lg bg-sand px-3 py-1.5 font-mono text-xs font-semibold dark:bg-white/10">{block.key}</span>
-                  <span className="text-xs text-clay dark:text-white/40">{block.items?.length || 0} items</span>
+                  <span className="text-xs text-clay dark:text-white/65">{block.items?.length || 0} items</span>
                 </div>
                 {block.title && <p className="mt-3 font-semibold text-sm">{block.title}</p>}
-                {block.subtitle && <p className="text-xs text-clay dark:text-white/40 mt-0.5">{block.subtitle}</p>}
+                {block.subtitle && <p className="text-xs text-clay dark:text-white/65 mt-0.5">{block.subtitle}</p>}
               </div>
             ))}
           </div>

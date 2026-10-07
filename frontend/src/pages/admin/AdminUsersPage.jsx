@@ -6,20 +6,18 @@ const AdminUsersPage = () => {
 
   const load = () => api.get(endpoints.auth.users).then(({ data }) => setUsers(data.users || []));
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   return (
     <div>
-      <h1 className="font-display text-4xl">Users</h1>
+      <h1 className="font-display text-4xl dark:text-white">Users</h1>
       <div className="mt-6 space-y-4">
         {users.map((user) => (
-          <div key={user._id} className="rounded-[1.8rem] border border-ink/10 p-5 dark:border-white/10">
+          <div key={user._id} className="rounded-[1.8rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="font-semibold">{user.name}</p>
-                <p className="text-sm text-ink/50 dark:text-white/50">{user.email}</p>
+                <p className="font-semibold dark:text-white">{user.name}</p>
+                <p className="text-sm text-ink/55 dark:text-white/60">{user.email}</p>
               </div>
               <div className="flex items-center gap-3">
                 <select
@@ -28,7 +26,7 @@ const AdminUsersPage = () => {
                     await api.patch(`${endpoints.auth.users}/${user._id}`, { role: e.target.value, isActive: user.isActive, name: user.name, phone: user.phone });
                     await load();
                   }}
-                  className="rounded-full border border-ink/10 bg-transparent px-4 py-2 text-sm outline-none dark:border-white/10"
+                  className="rounded-full border border-ink/10 bg-white px-4 py-2 text-sm outline-none dark:border-white/15 dark:bg-[#2a2d3a] dark:text-white"
                 >
                   <option value="user">user</option>
                   <option value="admin">admin</option>
@@ -39,7 +37,7 @@ const AdminUsersPage = () => {
                     await api.patch(`${endpoints.auth.users}/${user._id}`, { role: user.role, isActive: !user.isActive, name: user.name, phone: user.phone });
                     await load();
                   }}
-                  className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white"
+                  className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-80 dark:bg-[#5C6BC0] dark:hover:bg-[#4a59b0]"
                 >
                   {user.isActive ? "Disable" : "Enable"}
                 </button>
@@ -53,4 +51,3 @@ const AdminUsersPage = () => {
 };
 
 export default AdminUsersPage;
-

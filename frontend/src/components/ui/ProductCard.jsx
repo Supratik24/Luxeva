@@ -38,7 +38,7 @@ const ProductCard = ({ product, compact = false }) => {
       transition={{ duration: 0.4 }}
     >
       {/* Image container */}
-      <div className="relative overflow-hidden rounded-2xl bg-sand dark:bg-white/5 aspect-[3/4]">
+      <div className="relative overflow-hidden rounded-2xl bg-sand dark:bg-[#1E2028] aspect-[3/4]">
         <Link to={`/product/${product.slug}`} className="block h-full w-full">
           <img
             src={
@@ -96,13 +96,13 @@ const ProductCard = ({ product, compact = false }) => {
       <div className="mt-4 flex flex-col flex-1 px-0.5">
         {/* Meta row */}
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[11px] font-medium uppercase tracking-wide text-clay dark:text-white/35">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-clay dark:text-white/55">
             {product.category?.name || "Curated"}
           </span>
-          <span className="flex items-center gap-1 text-[11px] font-medium text-clay dark:text-white/35">
+          <span className="flex items-center gap-1 text-[11px] font-medium text-clay dark:text-white/55">
             <Star size={11} className="fill-amber-400 text-amber-400" />
             {product.averageRating?.toFixed?.(1) || "4.8"}
-            <span className="text-clay/60 dark:text-white/20">({product.reviewCount || 18})</span>
+            <span className="text-clay/60 dark:text-white/40">({product.reviewCount || 18})</span>
           </span>
         </div>
 

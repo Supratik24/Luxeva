@@ -20,7 +20,7 @@ const FAQPage = () => {
     <section className="section-shell py-12">
       <Meta title="FAQ" description="Frequently asked questions about shipping, orders, and support." />
       <p className="eyebrow">FAQ</p>
-      <h1 className="mt-3 font-display text-5xl">Answers that keep things moving</h1>
+      <h1 className="mt-3 font-display text-5xl dark:text-white">Answers that keep things moving</h1>
       <div className="mt-10 space-y-4">
         {faq.map((item, index) => (
           <details key={index} className="glass rounded-[1.8rem] p-5 shadow-soft">

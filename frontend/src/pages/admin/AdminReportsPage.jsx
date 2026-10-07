@@ -11,19 +11,19 @@ const AdminReportsPage = () => {
 
   return (
     <div>
-      <h1 className="font-display text-4xl">Sales reports</h1>
+      <h1 className="font-display text-4xl dark:text-white">Sales reports</h1>
       <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <div className="rounded-[1.8rem] border border-ink/10 p-5 dark:border-white/10">
-          <p className="text-sm text-ink/45 dark:text-white/45">Total revenue</p>
-          <p className="mt-3 text-3xl font-semibold">{currency(analytics.revenue)}</p>
+        <div className="rounded-[1.8rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+          <p className="text-sm text-ink/55 dark:text-white/65">Total revenue</p>
+          <p className="mt-3 text-3xl font-semibold dark:text-white">{currency(analytics.revenue)}</p>
         </div>
-        <div className="rounded-[1.8rem] border border-ink/10 p-5 dark:border-white/10">
-          <p className="text-sm text-ink/45 dark:text-white/45">Total orders</p>
-          <p className="mt-3 text-3xl font-semibold">{analytics.orders || 0}</p>
+        <div className="rounded-[1.8rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+          <p className="text-sm text-ink/55 dark:text-white/65">Total orders</p>
+          <p className="mt-3 text-3xl font-semibold dark:text-white">{analytics.orders || 0}</p>
         </div>
-        <div className="rounded-[1.8rem] border border-ink/10 p-5 dark:border-white/10">
-          <p className="text-sm text-ink/45 dark:text-white/45">Status mix</p>
-          <p className="mt-3 text-sm">{Object.entries(analytics.statusBreakdown || {}).map(([key, value]) => `${key}: ${value}`).join(" | ")}</p>
+        <div className="rounded-[1.8rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+          <p className="text-sm text-ink/55 dark:text-white/65">Status mix</p>
+          <p className="mt-3 text-sm dark:text-white/80">{Object.entries(analytics.statusBreakdown || {}).map(([key, value]) => `${key}: ${value}`).join(" | ")}</p>
         </div>
       </div>
     </div>

@@ -25,7 +25,7 @@ const HeroSection = ({ banners = [] }) => {
               </>
             )}
           </h1>
-          <p className="mt-6 text-base leading-relaxed text-clay dark:text-white/50 max-w-md">
+          <p className="mt-6 text-base leading-relaxed text-clay dark:text-white/65 max-w-md">
             {banner?.description ||
               "A curated collection of premium essentials — where design meets quality at every price point."}
           </p>

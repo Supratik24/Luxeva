@@ -15,7 +15,7 @@ const messages = [
 
 const AnnouncementBar = () => {
   return (
-    <div className="relative flex overflow-hidden bg-ink text-sand py-2.5 text-xs md:text-sm font-medium z-50 dark:bg-sand dark:text-ink">
+    <div className="relative flex overflow-hidden bg-[#111318] text-white/90 py-2.5 text-xs md:text-sm font-medium z-50 dark:bg-[#1E2028] dark:text-white/85">
       {/* 
         We use two identical blocks. To make it seamless, they sit in a parent flex row. 
         Wait, a better seamless marquee in tailwind doesn't need absolute positioning if we just have a flex container that is wider than the screen.

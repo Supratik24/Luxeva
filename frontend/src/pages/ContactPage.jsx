@@ -6,7 +6,7 @@ const ContactPage = () => (
     <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
       <div>
         <p className="eyebrow">Contact</p>
-        <h1 className="mt-3 font-display text-5xl">We’re here to help</h1>
+        <h1 className="mt-3 font-display text-5xl dark:text-white">We’re here to help</h1>
         <p className="mt-5 text-muted">Questions about products, orders, collaborations, or support. Reach out and we’ll respond quickly.</p>
       </div>
       <form className="glass rounded-[2rem] p-6 shadow-soft">

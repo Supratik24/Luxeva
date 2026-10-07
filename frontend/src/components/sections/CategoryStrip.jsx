@@ -15,7 +15,7 @@ const CategoryStrip = ({ categories = [] }) => (
       </div>
       <Link
         to="/shop"
-        className="hidden items-center gap-1.5 text-sm font-medium text-clay transition hover:text-ink dark:text-white/40 dark:hover:text-white sm:flex"
+        className="hidden items-center gap-1.5 text-sm font-medium text-clay transition hover:text-ink dark:text-white/60 dark:hover:text-white sm:flex"
       >
         View all
         <ArrowUpRight size={15} />
@@ -32,19 +32,19 @@ const CategoryStrip = ({ categories = [] }) => (
         >
           <Link
             to={`/shop?category=${category._id}`}
-            className="group flex flex-col gap-4 rounded-2xl border border-black/5 bg-white p-6 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-float dark:border-white/5 dark:bg-white/4"
+            className="group flex flex-col gap-4 rounded-2xl border border-black/5 bg-white p-6 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-float dark:border-white/10 dark:bg-[#1E2028]"
           >
             <div className="flex items-center justify-between">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sand text-xl dark:bg-white/8">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sand text-xl dark:bg-white/10">
                 {ICONS[index % ICONS.length]}
               </div>
-              <span className="text-xs font-medium text-clay opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-white/40">
+              <span className="text-xs font-medium text-clay opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-white/55">
                 Explore →
               </span>
             </div>
             <div>
               <h3 className="font-semibold text-ink dark:text-white">{category.name}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-clay dark:text-white/40 line-clamp-2">
+              <p className="mt-1.5 text-sm leading-relaxed text-clay dark:text-white/55 line-clamp-2">
                 {category.description || "Refined pieces with a premium finish."}
               </p>
             </div>

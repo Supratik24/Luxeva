@@ -8,9 +8,16 @@ export default {
         sand: "#F5F5F0",
         ink: "#0A0A0A",
         mist: "#FAFAFA",
-        olive: "#0A0A0A",
+        // accent replaces "olive" for buttons/highlights — visible on dark bg
+        olive: "#5C6BC0",
+        accent: "#5C6BC0",
         clay: "#737373",
-        brass: "#525252"
+        brass: "#525252",
+        // dark surface palette
+        "dark-bg": "#0D0F14",
+        "dark-surface": "#161820",
+        "dark-card": "#1E2028",
+        "dark-sidebar": "#111318"
       },
       fontFamily: {
         sans: ["'DM Sans'", "sans-serif"],
@@ -19,11 +26,13 @@ export default {
       boxShadow: {
         soft: "0 4px 32px rgba(0,0,0,0.06)",
         card: "0 2px 16px rgba(0,0,0,0.04)",
-        float: "0 20px 60px rgba(0,0,0,0.12)"
+        float: "0 20px 60px rgba(0,0,0,0.12)",
+        "dark-card": "0 2px 16px rgba(0,0,0,0.4)",
+        "dark-float": "0 20px 60px rgba(0,0,0,0.6)"
       },
       backgroundImage: {
         "mesh-light": "linear-gradient(135deg, #FAFAFA 0%, #F5F5F0 100%)",
-        "mesh-dark": "linear-gradient(135deg, #0A0A0A 0%, #111111 100%)"
+        "mesh-dark": "linear-gradient(135deg, #0D0F14 0%, #111318 100%)"
       },
       animation: {
         "fade-up": "fadeUp 0.5s ease-out",

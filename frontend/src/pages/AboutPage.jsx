@@ -20,7 +20,7 @@ const AboutPage = () => {
       <Meta title="About" description="Learn about the Luxeva brand and platform." />
       <div className="glass rounded-[2rem] p-8 shadow-soft sm:p-12">
         <p className="eyebrow">About us</p>
-        <h1 className="mt-3 font-display text-5xl">{page?.title || "Built for premium, modern commerce"}</h1>
+        <h1 className="mt-3 font-display text-5xl dark:text-white">{page?.title || "Built for premium, modern commerce"}</h1>
         <p className="mt-6 max-w-3xl text-base leading-8 text-ink/70 dark:text-white/70">
           {page?.subtitle ||
             "Luxeva pairs a refined shopping interface with a scalable microservices backend, secure authentication, Redis-backed performance, and an admin experience designed for real operations."}

@@ -20,7 +20,7 @@ const PolicyPage = ({ slug, title }) => {
       <Meta title={title} description={`${title} and policy information for Luxeva.`} />
       <div className="glass rounded-[2rem] p-8 shadow-soft sm:p-12">
         <p className="eyebrow">{title}</p>
-        <h1 className="mt-3 font-display text-5xl">{page?.title || title}</h1>
+        <h1 className="mt-3 font-display text-5xl dark:text-white">{page?.title || title}</h1>
         <div className="mt-8 space-y-4 text-base leading-8 text-ink/70 dark:text-white/70">
           {(page?.items || [
             {

@@ -176,7 +176,7 @@ const ProductPage = () => {
           <p className="mt-6 text-3xl font-semibold">{currency(product.price)}</p>
           <p className="mt-5 max-w-xl text-base leading-7 text-ink/68 dark:text-white/68">{product.description}</p>
           {showColorOptions || product.colors?.length === 1 ? (
-            <div className="mt-5 inline-flex items-center gap-3 rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold dark:border-white/10">
+            <div className="mt-5 inline-flex items-center gap-3 rounded-full border border-ink/10 px-4 py-2 text-sm font-semibold dark:border-white/12">
               <span
                 className="h-4 w-4 rounded-full"
                 style={{ backgroundColor: colorConfig.swatch, border: `1px solid ${colorConfig.border}` }}
@@ -251,7 +251,7 @@ const ProductPage = () => {
             >
               Add to cart
             </button>
-            <button type="button" className="rounded-full border border-ink/10 px-6 py-4 text-sm font-semibold dark:border-white/10">
+            <button type="button" className="rounded-full border border-ink/10 px-6 py-4 text-sm font-semibold dark:border-white/12">
               Buy now
             </button>
           </div>
@@ -274,7 +274,7 @@ const ProductPage = () => {
           <h2 className="font-display text-3xl">Specifications</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {Object.entries(product.specs || {}).map(([key, value]) => (
-              <div key={key} className="rounded-[1.3rem] border border-ink/10 p-4 dark:border-white/10">
+              <div key={key} className="rounded-[1.3rem] border border-ink/10 p-4 dark:border-white/12">
                 <p className="text-xs uppercase tracking-[0.24em] text-ink/45 dark:text-white/45">{key}</p>
                 <p className="mt-2 font-semibold">{value}</p>
               </div>
@@ -285,7 +285,7 @@ const ProductPage = () => {
           <h2 className="font-display text-3xl">Ratings & reviews</h2>
           <div className="mt-6 space-y-4">
             {payload.reviews.map((review) => (
-              <article key={review._id} className="rounded-[1.4rem] border border-ink/10 p-4 dark:border-white/10">
+              <article key={review._id} className="rounded-[1.4rem] border border-ink/10 p-4 dark:border-white/12">
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-semibold">{review.userName}</p>
                   <p className="text-sm text-ink/45 dark:text-white/45">{shortDate(review.createdAt)}</p>
@@ -296,11 +296,11 @@ const ProductPage = () => {
             ))}
           </div>
           {isAuthenticated ? (
-            <form onSubmit={submitReview} className="mt-6 rounded-[1.4rem] border border-ink/10 p-4 dark:border-white/10">
+            <form onSubmit={submitReview} className="mt-6 rounded-[1.4rem] border border-ink/10 p-4 dark:border-white/12">
               <p className="text-sm font-semibold">Leave a review</p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <input value={reviewForm.title} onChange={(e) => setReviewForm((s) => ({ ...s, title: e.target.value }))} placeholder="Title" className="rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10" />
-                <select value={reviewForm.rating} onChange={(e) => setReviewForm((s) => ({ ...s, rating: Number(e.target.value) }))} className="rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10">
+                <input value={reviewForm.title} onChange={(e) => setReviewForm((s) => ({ ...s, title: e.target.value }))} placeholder="Title" className="rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/12" />
+                <select value={reviewForm.rating} onChange={(e) => setReviewForm((s) => ({ ...s, rating: Number(e.target.value) }))} className="rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/12">
                   {[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value} stars</option>)}
                 </select>
                 <textarea value={reviewForm.comment} onChange={(e) => setReviewForm((s) => ({ ...s, comment: e.target.value }))} placeholder="Share your experience" rows="4" className="rounded-[1.4rem] border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10 sm:col-span-2" />

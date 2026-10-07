@@ -77,7 +77,7 @@ const AdminMediaPage = () => {
           <p className="eyebrow">Cloudinary</p>
           <h1 className="mt-2 font-display text-4xl font-semibold">Media Library</h1>
           {!loading && (
-            <p className="text-sm text-clay dark:text-white/40 mt-1">
+            <p className="text-sm text-clay dark:text-white/65 mt-1">
               {totalCount} image{totalCount !== 1 ? "s" : ""} in <code className="text-xs">{folder}/</code>
             </p>
           )}
@@ -123,14 +123,14 @@ const AdminMediaPage = () => {
       {/* Grid */}
       {loading ? (
         <div className="flex h-64 items-center justify-center">
-          <Loader2 size={28} className="animate-spin text-clay dark:text-white/40" />
+          <Loader2 size={28} className="animate-spin text-clay dark:text-white/65" />
         </div>
       ) : resources.length === 0 ? (
         <div className="flex h-64 flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-ink/10 dark:border-white/10">
-          <ImageIcon size={36} className="text-clay dark:text-white/20" />
+          <ImageIcon size={36} className="text-clay dark:text-white/40" />
           <div className="text-center">
             <p className="text-sm font-semibold">No images found</p>
-            <p className="text-xs text-clay dark:text-white/40 mt-1">Upload images using the button above</p>
+            <p className="text-xs text-clay dark:text-white/65 mt-1">Upload images using the button above</p>
           </div>
           <button type="button" onClick={() => setPickerOpen(true)} className="btn-primary text-sm px-5 py-2.5">
             Upload now
@@ -212,7 +212,7 @@ const AdminMediaPage = () => {
             <img src={selected.url} alt={selected.publicId} className="h-14 w-14 rounded-xl object-cover shrink-0 ring-2 ring-ink/10 dark:ring-white/10" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate">{selected.publicId}</p>
-              <p className="text-xs text-clay dark:text-white/40 mt-0.5">
+              <p className="text-xs text-clay dark:text-white/65 mt-0.5">
                 {selected.width}×{selected.height} · {formatBytes(selected.bytes)} · {selected.format?.toUpperCase()} · {new Date(selected.createdAt).toLocaleDateString()}
               </p>
               <p className="text-xs text-clay dark:text-white/30 truncate mt-0.5 font-mono">{selected.url}</p>

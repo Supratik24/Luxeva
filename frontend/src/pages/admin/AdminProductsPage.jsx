@@ -27,7 +27,7 @@ const SECTIONS = ["Products", "Categories & Brands", "Coupons", "Reviews"];
 
 const Field = ({ label, children }) => (
   <div>
-    <label className="mb-1.5 block text-xs font-semibold text-clay dark:text-white/40">{label}</label>
+    <label className="mb-1.5 block text-xs font-semibold text-clay dark:text-white/65">{label}</label>
     {children}
   </div>
 );
@@ -48,7 +48,7 @@ const AdminProductsPage = () => {
 
   const load = () =>
     Promise.all([
-      api.get(endpoints.catalog.products),
+      api.get(`${endpoints.catalog.products}?limit=1000`),
       api.get(endpoints.catalog.meta),
       api.get(endpoints.catalog.adminCoupons),
       api.get(endpoints.catalog.adminReviews)
@@ -144,7 +144,7 @@ const AdminProductsPage = () => {
             className={`-mb-px border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
               activeSection === s
                 ? "border-ink text-ink dark:border-white dark:text-white"
-                : "border-transparent text-clay hover:text-ink dark:text-white/40 dark:hover:text-white"
+                : "border-transparent text-clay hover:text-ink dark:text-white/65 dark:hover:text-white"
             }`}
           >
             {s}
@@ -156,11 +156,11 @@ const AdminProductsPage = () => {
       {activeSection === "Products" && (
         <div className="grid gap-8 xl:grid-cols-[400px_1fr]">
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/5 dark:bg-white/4">
+          <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
             <div className="flex items-center justify-between">
               <p className="font-semibold">{editingId ? "Edit product" : "New product"}</p>
               {editingId && (
-                <button type="button" onClick={() => { setForm(initialProduct); setEditingId(null); }} className="text-xs text-clay hover:text-ink dark:text-white/40">
+                <button type="button" onClick={() => { setForm(initialProduct); setEditingId(null); }} className="text-xs text-clay hover:text-ink dark:text-white/65">
                   Cancel edit
                 </button>
               )}
@@ -254,7 +254,7 @@ const AdminProductsPage = () => {
                 <button
                   type="button"
                   onClick={() => setPickerOpen(true)}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-ink/10 py-4 text-sm font-medium text-clay transition hover:border-ink/30 hover:text-ink dark:border-white/10 dark:text-white/40 dark:hover:border-white/30 dark:hover:text-white"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-ink/10 py-4 text-sm font-medium text-clay transition hover:border-ink/30 hover:text-ink dark:border-white/10 dark:text-white/65 dark:hover:border-white/30 dark:hover:text-white"
                 >
                   <ImageIcon size={16} />
                   {form.images.length === 0 ? "Add images" : "Add more images"}
@@ -269,9 +269,9 @@ const AdminProductsPage = () => {
 
           {/* Product list */}
           <div className="space-y-3">
-            <p className="text-sm text-clay dark:text-white/40">{products.length} products total</p>
+            <p className="text-sm text-clay dark:text-white/65">{products.length} products total</p>
             {products.map((product) => (
-              <div key={product._id} className="flex items-center gap-4 rounded-2xl border border-ink/5 bg-white p-4 shadow-card dark:border-white/5 dark:bg-white/4">
+              <div key={product._id} className="flex items-center gap-4 rounded-2xl border border-ink/5 bg-white p-4 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
                 {/* Thumbnail */}
                 <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-sand dark:bg-white/5">
                   {product.images?.[0]?.url ? (
@@ -285,9 +285,9 @@ const AdminProductsPage = () => {
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold truncate">{product.name}</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
-                    <span className="text-xs text-clay dark:text-white/40">SKU: {product.sku || "—"}</span>
-                    <span className="text-xs text-clay dark:text-white/40">Stock: {product.stock}</span>
-                    <span className="text-xs text-clay dark:text-white/40">₹{product.price}</span>
+                    <span className="text-xs text-clay dark:text-white/65">SKU: {product.sku || "—"}</span>
+                    <span className="text-xs text-clay dark:text-white/65">Stock: {product.stock}</span>
+                    <span className="text-xs text-clay dark:text-white/65">₹{product.price}</span>
                     {product.featured && <span className="badge bg-sand text-ink dark:bg-white/10 dark:text-white">Featured</span>}
                     {product.trending && <span className="badge bg-sand text-ink dark:bg-white/10 dark:text-white">Trending</span>}
                   </div>
@@ -317,7 +317,7 @@ const AdminProductsPage = () => {
       {/* ── Categories & Brands Section ── */}
       {activeSection === "Categories & Brands" && (
         <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/5 dark:bg-white/4">
+          <div className="rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
             <p className="font-semibold mb-4">Categories</p>
             <div className="flex gap-2 mb-5">
               <input value={categoryName} onChange={(e) => setCategoryName(e.target.value)} placeholder="New category name" className="input" />
@@ -337,7 +337,7 @@ const AdminProductsPage = () => {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/5 dark:bg-white/4">
+          <div className="rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
             <p className="font-semibold mb-4">Brands</p>
             <div className="flex gap-2 mb-5">
               <input value={brandName} onChange={(e) => setBrandName(e.target.value)} placeholder="New brand name" className="input" />
@@ -362,7 +362,7 @@ const AdminProductsPage = () => {
       {/* ── Coupons Section ── */}
       {activeSection === "Coupons" && (
         <div className="space-y-6">
-          <div className="rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/5 dark:bg-white/4">
+          <div className="rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
             <p className="font-semibold mb-5">Create coupon</p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Code">
@@ -389,12 +389,12 @@ const AdminProductsPage = () => {
 
           <div className="space-y-3">
             {coupons.map((coupon) => (
-              <div key={coupon._id} className="flex items-center justify-between rounded-2xl border border-ink/5 bg-white px-5 py-4 shadow-card dark:border-white/5 dark:bg-white/4">
+              <div key={coupon._id} className="flex items-center justify-between rounded-2xl border border-ink/5 bg-white px-5 py-4 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
                 <div className="flex items-center gap-4">
                   <span className="rounded-lg bg-sand px-3 py-1.5 font-mono text-sm font-bold dark:bg-white/10">{coupon.code}</span>
                   <div>
                     <p className="text-sm font-medium">{coupon.type === "percentage" ? `${coupon.value}% off` : `₹${coupon.value} off`}</p>
-                    {coupon.minOrderAmount > 0 && <p className="text-xs text-clay dark:text-white/40">Min order ₹{coupon.minOrderAmount}</p>}
+                    {coupon.minOrderAmount > 0 && <p className="text-xs text-clay dark:text-white/65">Min order ₹{coupon.minOrderAmount}</p>}
                   </div>
                 </div>
                 <button type="button" onClick={async () => { await api.delete(endpoints.catalog.adminCoupon(coupon._id)); await load(); }} className="text-red-400 hover:text-red-600 transition">
@@ -410,12 +410,12 @@ const AdminProductsPage = () => {
       {activeSection === "Reviews" && (
         <div className="space-y-4">
           {reviews.map((review) => (
-            <div key={review._id} className="rounded-2xl border border-ink/5 bg-white p-5 shadow-card dark:border-white/5 dark:bg-white/4">
+            <div key={review._id} className="rounded-2xl border border-ink/5 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
               <div className="flex flex-wrap items-start justify-between gap-4 mb-3">
                 <div>
                   <p className="font-semibold">{review.product?.name}</p>
                   <div className="flex items-center gap-3 mt-1">
-                    <span className="text-sm text-clay dark:text-white/40">{review.userName}</span>
+                    <span className="text-sm text-clay dark:text-white/65">{review.userName}</span>
                     <span className="flex items-center gap-1 text-sm text-amber-500">
                       <Star size={13} className="fill-current" />
                       {review.rating}/5
@@ -436,7 +436,7 @@ const AdminProductsPage = () => {
                   <option value="rejected">Rejected</option>
                 </select>
               </div>
-              <p className="text-sm leading-relaxed text-clay dark:text-white/50 bg-sand/50 rounded-xl p-3 dark:bg-white/5">{review.comment}</p>
+              <p className="text-sm leading-relaxed text-clay dark:text-white/65 bg-sand/50 rounded-xl p-3 dark:bg-white/5">{review.comment}</p>
             </div>
           ))}
         </div>

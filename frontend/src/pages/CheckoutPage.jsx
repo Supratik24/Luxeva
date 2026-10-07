@@ -357,7 +357,7 @@ const CheckoutPage = () => {
                 <img src={item.image} alt={item.name} className="h-14 w-14 rounded-2xl object-cover" />
                 <div className="flex-1">
                   <p className="text-sm font-semibold">{item.name}</p>
-                  <p className="text-xs text-ink/45 dark:text-white/45">Qty {item.quantity}</p>
+                  <p className="text-xs text-ink/45 dark:text-white/65">Qty {item.quantity}</p>
                 </div>
                 <p className="text-sm font-semibold">{currency(item.price * item.quantity)}</p>
               </div>

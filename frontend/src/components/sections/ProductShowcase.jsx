@@ -14,7 +14,7 @@ const ProductShowcase = ({ title, eyebrow, products = [], loading = false }) => 
       </div>
       <Link
         to="/shop"
-        className="hidden items-center gap-1.5 text-sm font-medium text-clay transition hover:text-ink dark:text-white/40 dark:hover:text-white sm:flex shrink-0"
+        className="hidden items-center gap-1.5 text-sm font-medium text-clay transition hover:text-ink dark:text-white/60 dark:hover:text-white sm:flex shrink-0"
       >
         View all
         <ArrowUpRight size={15} />
