@@ -96,7 +96,7 @@ const AdminLoginPage = () => {
       <Meta title="Admin login" description="Private admin sign in." />
       
       <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-[#1E2028] dark:shadow-none border border-ink/5 dark:border-white/10">
-        <div className="bg-ink p-8 text-white dark:bg-[#5C6BC0]">
+        <div className="bg-ink p-8 text-white dark:bg-white dark:text-ink">
           <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
             <ShieldCheck size={28} className="text-white" />
           </div>
@@ -145,7 +145,7 @@ const AdminLoginPage = () => {
               <button
                 type="submit"
                 disabled={loading || !isLoaded}
-                className="group mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-4 font-semibold text-white transition hover:bg-ink/90 disabled:opacity-70 dark:bg-[#5C6BC0] dark:hover:bg-[#4a59b0]"
+                className="group mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-4 font-semibold text-white dark:text-ink transition hover:bg-ink/90 disabled:opacity-70 dark:bg-white dark:hover:bg-white/90"
               >
                 {loading ? 'Authenticating...' : 'Sign In'}
                 {!loading && <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />}
@@ -173,7 +173,7 @@ const AdminLoginPage = () => {
               <button
                 type="submit"
                 disabled={loading || !isLoaded}
-                className="group mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-4 font-semibold text-white transition hover:bg-ink/90 disabled:opacity-70 dark:bg-[#5C6BC0] dark:hover:bg-[#4a59b0]"
+                className="group mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-4 font-semibold text-white dark:text-ink transition hover:bg-ink/90 disabled:opacity-70 dark:bg-white dark:hover:bg-white/90"
               >
                 {loading ? 'Verifying...' : 'Verify OTP'}
                 {!loading && <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />}

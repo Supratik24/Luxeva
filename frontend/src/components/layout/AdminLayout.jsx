@@ -43,7 +43,7 @@ const AdminLayout = () => (
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-ink text-white dark:bg-[#5C6BC0] dark:text-white shadow-sm"
+                      ? "bg-ink text-white dark:bg-white dark:text-ink shadow-sm"
                       : "text-clay hover:bg-ink/5 hover:text-ink dark:text-white/65 dark:hover:bg-white/8 dark:hover:text-white"
                   }`
                 }

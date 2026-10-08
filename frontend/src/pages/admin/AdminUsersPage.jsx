@@ -37,7 +37,7 @@ const AdminUsersPage = () => {
                     await api.patch(`${endpoints.auth.users}/${user._id}`, { role: user.role, isActive: !user.isActive, name: user.name, phone: user.phone });
                     await load();
                   }}
-                  className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:opacity-80 dark:bg-[#5C6BC0] dark:hover:bg-[#4a59b0]"
+                  className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white dark:text-ink transition hover:opacity-80 dark:bg-white dark:hover:bg-white/90"
                 >
                   {user.isActive ? "Disable" : "Enable"}
                 </button>

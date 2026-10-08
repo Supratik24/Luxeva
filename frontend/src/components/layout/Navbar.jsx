@@ -200,7 +200,7 @@ const Navbar = () => {
                 <Link
                   to="/login"
                   onClick={() => setOpen(false)}
-                  className="block rounded-xl bg-ink px-4 py-3 text-center text-sm font-semibold text-white dark:bg-[#5C6BC0] dark:text-white"
+                  className="block rounded-xl bg-ink px-4 py-3 text-center text-sm font-semibold text-white dark:bg-white dark:text-ink"
                 >
                   Sign in
                 </Link>

@@ -22,7 +22,7 @@ body {
 }
 
 .dark body {
-  @apply bg-[#0D0F14] text-white;
+  @apply bg-[#151515] text-white;
 }
 
 * {
@@ -102,7 +102,7 @@ body {
 
 /* ✦ Btn primary */
 .btn-primary {
-  @apply inline-flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-3.5 text-sm font-semibold text-white transition-all duration-200 hover:opacity-80 active:scale-95 dark:bg-[#5C6BC0] dark:text-white dark:hover:bg-[#4a59b0];
+  @apply inline-flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-3.5 text-sm font-semibold text-white transition-all duration-200 hover:opacity-80 active:scale-95 dark:bg-white dark:text-ink dark:hover:bg-white/90;
 }
 
 /* ✦ Btn ghost */
@@ -117,5 +117,5 @@ body {
 
 /* ✦ Admin card surface */
 .admin-card {
-  @apply rounded-2xl border border-ink/10 bg-white p-5 shadow-card dark:border-white/10 dark:bg-[#1E2028];
+  @apply rounded-2xl border border-ink/10 bg-white p-5 shadow-card dark:border-white/10 dark:bg-[#222222];
 }

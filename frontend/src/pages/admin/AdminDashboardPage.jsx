@@ -44,14 +44,14 @@ const AdminDashboardPage = () => {
               <AreaChart data={analytics.monthlySales || []}>
                 <defs>
                   <linearGradient id="sales" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="5%" stopColor="#5C6BC0" stopOpacity={0.6} />
-                    <stop offset="95%" stopColor="#5C6BC0" stopOpacity={0.05} />
+                    <stop offset="5%" stopColor="#ffffff" stopOpacity={0.6} />
+                    <stop offset="95%" stopColor="#ffffff" stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.12} />
                 <XAxis dataKey="month" tick={{ fill: "currentColor", opacity: 0.6 }} />
                 <Tooltip />
-                <Area dataKey="sales" stroke="#5C6BC0" fill="url(#sales)" />
+                <Area dataKey="sales" stroke="#ffffff" fill="url(#sales)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
