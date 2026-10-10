@@ -92,10 +92,10 @@ const AdminLoginPage = () => {
   };
 
   return (
-    <section className="flex min-h-screen items-center justify-center bg-[#f6efe6] p-4 dark:bg-[#0D0F14]">
+    <section className="flex min-h-screen items-center justify-center bg-[#f6efe6] p-4 dark:bg-[#151515]">
       <Meta title="Admin login" description="Private admin sign in." />
       
-      <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-[#1E2028] dark:shadow-none border border-ink/5 dark:border-white/10">
+      <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-[#222222] dark:shadow-none border border-ink/5 dark:border-white/10">
         <div className="bg-ink p-8 text-white dark:bg-white dark:text-ink">
           <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
             <ShieldCheck size={28} className="text-white" />

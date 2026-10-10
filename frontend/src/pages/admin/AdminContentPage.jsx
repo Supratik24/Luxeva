@@ -128,7 +128,7 @@ const AdminContentPage = () => {
       {tab === "Banners" && (
         <div className="grid gap-8 xl:grid-cols-[420px_1fr]">
           {/* Banner form */}
-          <form onSubmit={handleBannerSubmit} className="space-y-5 rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/5 dark:bg-[#1E2028]">
+          <form onSubmit={handleBannerSubmit} className="space-y-5 rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/5 dark:bg-[#222222]">
             <div className="flex items-center justify-between">
               <p className="font-semibold">{editingBannerId ? "Edit banner" : "New banner"}</p>
               {editingBannerId && (
@@ -206,7 +206,7 @@ const AdminContentPage = () => {
           <div className="space-y-4">
             <p className="text-sm text-clay dark:text-white/65">{banners.length} banner{banners.length !== 1 ? "s" : ""}</p>
             {banners.map((banner) => (
-              <div key={banner._id} className="overflow-hidden rounded-2xl border border-ink/5 bg-white shadow-card dark:border-white/5 dark:bg-[#1E2028]">
+              <div key={banner._id} className="overflow-hidden rounded-2xl border border-ink/5 bg-white shadow-card dark:border-white/5 dark:bg-[#222222]">
                 {banner.image && (
                   <div className="h-36 w-full overflow-hidden bg-sand dark:bg-white/8">
                     <img src={banner.image} alt={banner.title} className="h-full w-full object-cover" />
@@ -246,7 +246,7 @@ const AdminContentPage = () => {
       {/* ── Content Blocks ── */}
       {tab === "Content Blocks" && (
         <div className="grid gap-8 xl:grid-cols-[420px_1fr]">
-          <div className="space-y-5 rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/5 dark:bg-[#1E2028]">
+          <div className="space-y-5 rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/5 dark:bg-[#222222]">
             <p className="font-semibold">Edit content block</p>
             <Field label="Block key">
               <select value={blockForm.key} onChange={(e) => setBlockForm((s) => ({ ...s, key: e.target.value }))} className="input">

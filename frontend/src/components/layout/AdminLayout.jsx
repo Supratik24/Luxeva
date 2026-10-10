@@ -12,10 +12,10 @@ const items = [
 ];
 
 const AdminLayout = () => (
-  <div className="min-h-screen bg-[#F5F5F0] dark:bg-[#0D0F14]">
+  <div className="min-h-screen bg-[#F5F5F0] dark:bg-[#151515]">
     <div className="mx-auto grid min-h-screen max-w-[1600px] gap-0 lg:grid-cols-[260px_1fr]">
       {/* Sidebar */}
-      <aside className="hidden border-r border-ink/8 bg-white px-4 py-8 dark:border-white/10 dark:bg-[#111318] lg:flex lg:flex-col">
+      <aside className="hidden border-r border-ink/8 bg-white px-4 py-8 dark:border-white/10 dark:bg-[#151515] lg:flex lg:flex-col">
         <div className="px-2 mb-8">
           <p className="eyebrow mb-1">Private Portal</p>
           <h1 className="font-display text-2xl font-semibold dark:text-white">Luxeva Admin</h1>
@@ -61,7 +61,7 @@ const AdminLayout = () => (
       </aside>
 
       {/* Main content */}
-      <main className="min-h-screen bg-[#F5F5F0] p-6 dark:bg-[#0D0F14] lg:p-10">
+      <main className="min-h-screen bg-[#F5F5F0] p-6 dark:bg-[#151515] lg:p-10">
         <Outlet />
       </main>
     </div>

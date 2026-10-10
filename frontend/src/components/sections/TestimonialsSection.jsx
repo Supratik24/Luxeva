@@ -16,7 +16,7 @@ const TestimonialsSection = ({ testimonials = [] }) => (
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: index * 0.1 }}
-          className="flex flex-col gap-5 rounded-2xl border border-black/5 bg-white p-6 shadow-card dark:border-white/10 dark:bg-[#1E2028]"
+          className="flex flex-col gap-5 rounded-2xl border border-black/5 bg-white p-6 shadow-card dark:border-white/10 dark:bg-[#222222]"
         >
           <div className="flex items-center gap-1">
             {Array.from({ length: 5 }).map((_, i) => (

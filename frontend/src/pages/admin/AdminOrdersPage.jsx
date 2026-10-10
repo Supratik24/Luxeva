@@ -14,7 +14,7 @@ const AdminOrdersPage = () => {
       <h1 className="font-display text-4xl dark:text-white">Orders</h1>
       <div className="mt-6 space-y-4">
         {orders.map((order) => (
-          <div key={order._id} className="rounded-[1.8rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+          <div key={order._id} className="rounded-[1.8rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#222222]">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="font-semibold dark:text-white">{order.orderNumber}</p>

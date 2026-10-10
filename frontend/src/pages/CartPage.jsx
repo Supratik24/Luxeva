@@ -108,7 +108,7 @@ const CartPage = () => {
               <div className="flex justify-between text-olive"><span>Discount</span><span>-{currency(coupon?.discountAmount || 0)}</span></div>
             </div>
 
-            <div className="mt-6 rounded-[1.7rem] border border-ink/10 bg-white/40 p-4 dark:border-white/10 dark:bg-[#1E2028]">
+            <div className="mt-6 rounded-[1.7rem] border border-ink/10 bg-white/40 p-4 dark:border-white/10 dark:bg-[#222222]">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <span className="rounded-full bg-olive/10 p-2 text-olive">
@@ -160,8 +160,8 @@ const CartPage = () => {
                             applied
                               ? "border-olive bg-olive/10"
                               : offer.eligible
-                                ? "border-ink/10 bg-white/50 dark:border-white/10 dark:bg-[#1E2028]"
-                                : "border-dashed border-ink/15 bg-white/30 opacity-85 dark:border-white/15 dark:bg-[#1E2028]"
+                                ? "border-ink/10 bg-white/50 dark:border-white/10 dark:bg-[#222222]"
+                                : "border-dashed border-ink/15 bg-white/30 opacity-85 dark:border-white/15 dark:bg-[#222222]"
                           }`}
                         >
                           <div className="flex items-center gap-3">

@@ -32,7 +32,7 @@ const CategoryStrip = ({ categories = [] }) => (
         >
           <Link
             to={`/shop?category=${category._id}`}
-            className="group flex flex-col gap-4 rounded-2xl border border-black/5 bg-white p-6 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-float dark:border-white/10 dark:bg-[#1E2028]"
+            className="group flex flex-col gap-4 rounded-2xl border border-black/5 bg-white p-6 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-float dark:border-white/10 dark:bg-[#222222]"
           >
             <div className="flex items-center justify-between">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sand text-xl dark:bg-white/10">

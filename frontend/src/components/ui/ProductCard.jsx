@@ -11,6 +11,11 @@ import {
   hasVariantImageOptions
 } from "../../utils/productOptions";
 
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }
+};
+
 const ProductCard = ({ product, compact = false }) => {
   const { addToCart, toggleWishlist, wishlist, setQuickView } = useShop();
   const isWishlisted = wishlist?.some((item) => item?._id === product?._id) || false;
@@ -38,7 +43,7 @@ const ProductCard = ({ product, compact = false }) => {
       transition={{ duration: 0.4 }}
     >
       {/* Image container */}
-      <div className="relative overflow-hidden rounded-2xl bg-sand dark:bg-[#1E2028] aspect-[3/4]">
+      <div className="relative overflow-hidden rounded-2xl bg-sand dark:bg-[#222222] aspect-[3/4]">
         <Link to={`/product/${product.slug}`} className="block h-full w-full">
           <img
             src={

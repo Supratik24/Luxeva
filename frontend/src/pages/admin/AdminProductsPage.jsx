@@ -156,7 +156,7 @@ const AdminProductsPage = () => {
       {activeSection === "Products" && (
         <div className="grid gap-8 xl:grid-cols-[400px_1fr]">
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+          <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/12 dark:bg-[#222222]">
             <div className="flex items-center justify-between">
               <p className="font-semibold">{editingId ? "Edit product" : "New product"}</p>
               {editingId && (
@@ -271,7 +271,7 @@ const AdminProductsPage = () => {
           <div className="space-y-3">
             <p className="text-sm text-clay dark:text-white/65">{products.length} products total</p>
             {products.map((product) => (
-              <div key={product._id} className="flex items-center gap-4 rounded-2xl border border-ink/5 bg-white p-4 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+              <div key={product._id} className="flex items-center gap-4 rounded-2xl border border-ink/5 bg-white p-4 shadow-card dark:border-white/12 dark:bg-[#222222]">
                 {/* Thumbnail */}
                 <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-sand dark:bg-white/5">
                   {product.images?.[0]?.url ? (
@@ -317,7 +317,7 @@ const AdminProductsPage = () => {
       {/* ── Categories & Brands Section ── */}
       {activeSection === "Categories & Brands" && (
         <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+          <div className="rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/12 dark:bg-[#222222]">
             <p className="font-semibold mb-4">Categories</p>
             <div className="flex gap-2 mb-5">
               <input value={categoryName} onChange={(e) => setCategoryName(e.target.value)} placeholder="New category name" className="input" />
@@ -337,7 +337,7 @@ const AdminProductsPage = () => {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+          <div className="rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/12 dark:bg-[#222222]">
             <p className="font-semibold mb-4">Brands</p>
             <div className="flex gap-2 mb-5">
               <input value={brandName} onChange={(e) => setBrandName(e.target.value)} placeholder="New brand name" className="input" />
@@ -362,7 +362,7 @@ const AdminProductsPage = () => {
       {/* ── Coupons Section ── */}
       {activeSection === "Coupons" && (
         <div className="space-y-6">
-          <div className="rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+          <div className="rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/12 dark:bg-[#222222]">
             <p className="font-semibold mb-5">Create coupon</p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Field label="Code">
@@ -389,7 +389,7 @@ const AdminProductsPage = () => {
 
           <div className="space-y-3">
             {coupons.map((coupon) => (
-              <div key={coupon._id} className="flex items-center justify-between rounded-2xl border border-ink/5 bg-white px-5 py-4 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+              <div key={coupon._id} className="flex items-center justify-between rounded-2xl border border-ink/5 bg-white px-5 py-4 shadow-card dark:border-white/12 dark:bg-[#222222]">
                 <div className="flex items-center gap-4">
                   <span className="rounded-lg bg-sand px-3 py-1.5 font-mono text-sm font-bold dark:bg-white/10">{coupon.code}</span>
                   <div>
@@ -410,7 +410,7 @@ const AdminProductsPage = () => {
       {activeSection === "Reviews" && (
         <div className="space-y-4">
           {reviews.map((review) => (
-            <div key={review._id} className="rounded-2xl border border-ink/5 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+            <div key={review._id} className="rounded-2xl border border-ink/5 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#222222]">
               <div className="flex flex-wrap items-start justify-between gap-4 mb-3">
                 <div>
                   <p className="font-semibold">{review.product?.name}</p>

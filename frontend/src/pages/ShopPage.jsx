@@ -1,4 +1,5 @@
 import { Grid2x2, List, SlidersHorizontal, Star } from "lucide-react";
+import { motion } from "framer-motion";
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ui/ProductCard";
@@ -7,6 +8,19 @@ import Meta from "../components/ui/Meta";
 import { getMockMeta, getMockProducts, useLocalPreviewData } from "../data/mockStorefront";
 import api, { endpoints } from "../services/api";
 import { currency } from "../utils/format";
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05 }
+  }
+};
+
+const item = {
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }
+};
 
 const ShopPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -152,14 +166,14 @@ const ShopPage = () => {
               Price range: {currency(Number(filters.minPrice || 0))} - {currency(Number(filters.maxPrice || 100000))}
             </p>
           </div>
-          <div className={layout === "grid" ? "grid gap-5 sm:grid-cols-2 xl:grid-cols-3" : "space-y-5"}>
+          <motion.div variants={container} initial="hidden" animate="show" className={layout === "grid" ? "grid gap-5 sm:grid-cols-2 xl:grid-cols-3" : "space-y-5"}>
             {loading
               ? Array.from({ length: 6 }).map((_, index) => <SkeletonCard key={index} />)
               : products.map((product) =>
                   layout === "grid" ? (
-                    <ProductCard key={product._id} product={product} compact />
+                    <motion.div key={product._id} variants={item}><ProductCard product={product} compact /></motion.div>
                   ) : (
-                    <div key={product._id} className="glass grid gap-4 rounded-[2rem] p-4 shadow-soft md:grid-cols-[220px_1fr]">
+                    <motion.div key={product._id} variants={item} className="glass grid gap-4 rounded-[2rem] p-4 shadow-soft md:grid-cols-[220px_1fr]">
                       <img
                         src={product.images?.[0]?.url || "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80"}
                         alt={product.name}
@@ -175,10 +189,10 @@ const ShopPage = () => {
                         </div>
                         <p className="text-xl font-semibold">{currency(product.price)}</p>
                       </div>
-                    </div>
+                    </motion.div>
                   )
                 )}
-          </div>
+          </motion.div>
           <div className="mt-8 flex flex-wrap gap-3">
             {Array.from({ length: pagination.pages || 1 }).map((_, index) => (
               <button

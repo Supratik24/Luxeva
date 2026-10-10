@@ -30,14 +30,14 @@ const AdminDashboardPage = () => {
           { label: "Orders", value: analytics.orders || 0 },
           { label: "AOV", value: currency(analytics.averageOrderValue) }
         ].map((card) => (
-          <div key={card.label} className="rounded-[1.8rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+          <div key={card.label} className="rounded-[1.8rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#222222]">
             <p className="text-sm text-ink/55 dark:text-white/65">{card.label}</p>
             <p className="mt-4 text-3xl font-semibold dark:text-white">{card.value}</p>
           </div>
         ))}
       </div>
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-[2rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+        <div className="rounded-[2rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#222222]">
           <p className="text-sm font-semibold dark:text-white">Sales chart</p>
           <div className="mt-4 h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -56,7 +56,7 @@ const AdminDashboardPage = () => {
             </ResponsiveContainer>
           </div>
         </div>
-        <div className="rounded-[2rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+        <div className="rounded-[2rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#222222]">
           <p className="text-sm font-semibold dark:text-white">Low-stock alerts</p>
           <div className="mt-4 space-y-3">
             {lowStock.map((product) => (
@@ -68,7 +68,7 @@ const AdminDashboardPage = () => {
           </div>
         </div>
       </div>
-      <div className="mt-8 rounded-[2rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#1E2028]">
+      <div className="mt-8 rounded-[2rem] border border-ink/10 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#222222]">
         <p className="text-sm font-semibold dark:text-white">Admin notifications</p>
         <div className="mt-4 space-y-3">
           {notifications.map((notification) => (
