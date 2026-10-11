@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { ImageIcon, Plus, Trash2, Pencil, X } from "lucide-react";
+import { ImageIcon, Plus, Trash2, Pencil, X, Star } from "lucide-react";
 import api, { endpoints } from "../../services/api";
 import ImagePicker from "../../components/admin/ImagePicker";
 
@@ -11,7 +11,9 @@ const initialBanner = {
   image: "",
   ctaLabel: "",
   ctaLink: "",
-  theme: "sand"
+  theme: "sand",
+  order: 1,
+  active: true
 };
 
 const initialBlock = { key: "faq", title: "", subtitle: "", items: "[]" };
@@ -40,7 +42,11 @@ const AdminContentPage = () => {
       api.get(endpoints.content.adminBanners),
       api.get(endpoints.content.adminBlocks)
     ]).then(([bannerRes, blockRes]) => {
-      setBanners(bannerRes.data.banners || []);
+      // Sort banners by order
+      const fetchedBanners = (bannerRes.data.banners || []).sort(
+        (a, b) => (a.order || 0) - (b.order || 0)
+      );
+      setBanners(fetchedBanners);
       setBlocks(blockRes.data.blocks || []);
     });
 
@@ -52,11 +58,17 @@ const AdminContentPage = () => {
     e.preventDefault();
     setSaving(true);
     try {
+      const payload = {
+        ...bannerForm,
+        order: Number(bannerForm.order) || 1,
+        active: bannerForm.active !== false
+      };
+
       if (editingBannerId) {
-        await api.put(`${endpoints.content.adminBanners}/${editingBannerId}`, bannerForm);
+        await api.put(`${endpoints.content.adminBanners}/${editingBannerId}`, payload);
         toast.success("Banner updated");
       } else {
-        await api.post(endpoints.content.adminBanners, bannerForm);
+        await api.post(endpoints.content.adminBanners, payload);
         toast.success("Banner created");
       }
       setBannerForm(initialBanner);
@@ -66,6 +78,30 @@ const AdminContentPage = () => {
       toast.error("Failed to save banner");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleMakePrimary = async (targetBanner) => {
+    try {
+      // Set this banner to order 1, and shift all other banners up by 1
+      await api.put(`${endpoints.content.adminBanners}/${targetBanner._id}`, {
+        ...targetBanner,
+        order: 1,
+        active: true
+      });
+
+      const others = banners.filter((b) => b._id !== targetBanner._id);
+      for (let i = 0; i < others.length; i++) {
+        await api.put(`${endpoints.content.adminBanners}/${others[i]._id}`, {
+          ...others[i],
+          order: i + 2
+        });
+      }
+
+      toast.success(`"${targetBanner.title}" is now the primary banner!`);
+      await load();
+    } catch {
+      toast.error("Failed to update banner order");
     }
   };
 
@@ -94,7 +130,11 @@ const AdminContentPage = () => {
 
   const startEditBanner = (banner) => {
     setEditingBannerId(banner._id);
-    setBannerForm({ ...banner });
+    setBannerForm({
+      ...banner,
+      order: banner.order ?? 1,
+      active: banner.active ?? true
+    });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -153,6 +193,29 @@ const AdminContentPage = () => {
             <Field label="CTA link">
               <input value={bannerForm.ctaLink} onChange={(e) => setBf("ctaLink", e.target.value)} placeholder="/shop" className="input" />
             </Field>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Display order (1 = first)">
+                <input
+                  type="number"
+                  min="1"
+                  value={bannerForm.order ?? 1}
+                  onChange={(e) => setBf("order", Number(e.target.value))}
+                  className="input"
+                />
+              </Field>
+              <Field label="Visibility">
+                <select
+                  value={bannerForm.active !== false ? "active" : "hidden"}
+                  onChange={(e) => setBf("active", e.target.value === "active")}
+                  className="input"
+                >
+                  <option value="active">Active (Visible)</option>
+                  <option value="hidden">Hidden / Draft</option>
+                </select>
+              </Field>
+            </div>
+
             <Field label="Theme">
               <select value={bannerForm.theme} onChange={(e) => setBf("theme", e.target.value)} className="input">
                 <option value="sand">Sand</option>
@@ -205,11 +268,25 @@ const AdminContentPage = () => {
           {/* Banner list */}
           <div className="space-y-4">
             <p className="text-sm text-clay dark:text-white/65">{banners.length} banner{banners.length !== 1 ? "s" : ""}</p>
-            {banners.map((banner) => (
+            {banners.map((banner, index) => (
               <div key={banner._id} className="overflow-hidden rounded-2xl border border-ink/5 bg-white shadow-card dark:border-white/5 dark:bg-[#222222]">
                 {banner.image && (
-                  <div className="h-36 w-full overflow-hidden bg-sand dark:bg-white/8">
+                  <div className="h-36 w-full overflow-hidden bg-sand dark:bg-white/8 relative">
                     <img src={banner.image} alt={banner.title} className="h-full w-full object-cover" />
+                    <div className="absolute top-3 left-3 flex gap-2">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm ${
+                        index === 0
+                          ? "bg-amber-400 text-black font-semibold"
+                          : "bg-black/60 text-white backdrop-blur-sm"
+                      }`}>
+                        {index === 0 ? "★ Primary Slide" : `Slide #${index + 1} (Order: ${banner.order ?? index + 1})`}
+                      </span>
+                      {banner.active === false && (
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-500 text-white shadow-sm">
+                          Hidden
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
                 <div className="flex items-center justify-between gap-4 p-4">
@@ -220,7 +297,18 @@ const AdminContentPage = () => {
                       <p className="text-xs text-clay dark:text-white/30 mt-0.5 font-mono">{banner.ctaLink}</p>
                     )}
                   </div>
-                  <div className="flex gap-2 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
+                    {index !== 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleMakePrimary(banner)}
+                        title="Make this the first slide on the website"
+                        className="flex h-9 items-center gap-1.5 px-3 text-xs font-semibold rounded-full border border-amber-400/50 text-amber-600 dark:text-amber-400 hover:bg-amber-400/10 transition"
+                      >
+                        <Star size={12} className="fill-current" />
+                        Set Primary
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => startEditBanner(banner)}
