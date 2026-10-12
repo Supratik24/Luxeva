@@ -167,7 +167,7 @@ const AdminProductsPage = () => {
             </div>
 
             <Field label="Product name *">
-              <input required value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Premium Cotton Tee" className={inputClass} required />
+              <input required value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Premium Cotton Tee" className={inputClass} />
             </Field>
             <Field label="Short description">
               <input value={form.shortDescription} onChange={(e) => set("shortDescription", e.target.value)} placeholder="One-liner shown on cards" className={inputClass} />

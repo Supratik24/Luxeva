@@ -21,6 +21,7 @@ const HeroSection = ({ banners = [] }) => {
   // Ensure index stays valid if banners array changes
   const activeIndex = banners.length > 0 ? currentIndex % banners.length : 0;
   const banner = banners?.[activeIndex];
+  const targetLink = banner?.ctaLink || "/shop";
 
   const handlePrev = () => {
     setCurrentIndex((prev) => (prev - 1 + banners.length) % banners.length);
@@ -42,10 +43,10 @@ const HeroSection = ({ banners = [] }) => {
           <AnimatePresence mode="wait">
             <motion.div
               key={banner?._id || activeIndex}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
               <span className="eyebrow">
                 {banner?.eyebrow || `Featured collection · 0${activeIndex + 1}`}
@@ -66,7 +67,7 @@ const HeroSection = ({ banners = [] }) => {
               </p>
 
               <div className="mt-10 flex flex-wrap items-center gap-3">
-                <Link to={banner?.ctaLink || "/shop"} className="btn-primary">
+                <Link to={targetLink} className="btn-primary">
                   {banner?.ctaLabel || "Shop the collection"}
                   <ArrowRight size={16} />
                 </Link>
@@ -135,9 +136,13 @@ const HeroSection = ({ banners = [] }) => {
           </div>
         </div>
 
-        {/* Right: Hero image with AnimatePresence */}
+        {/* Right: Hero image clickable to shop */}
         <div className="relative">
-          <div className="relative overflow-hidden rounded-3xl bg-sand dark:bg-white/5 aspect-[4/5]">
+          <Link
+            to={targetLink}
+            className="group block relative overflow-hidden rounded-3xl bg-sand dark:bg-white/5 aspect-[4/5] cursor-pointer"
+            aria-label={banner?.title || "Shop collection"}
+          >
             <AnimatePresence mode="wait">
               <motion.img
                 key={banner?.image || activeIndex}
@@ -149,27 +154,27 @@ const HeroSection = ({ banners = [] }) => {
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 1.02 }}
-                transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="h-full w-full object-cover"
+                transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
             </AnimatePresence>
 
             {/* Floating card */}
-            <div className="absolute bottom-6 left-6 right-6 glass rounded-2xl p-4 z-10">
+            <div className="absolute bottom-6 left-6 right-6 glass rounded-2xl p-4 z-10 transition-transform duration-300 group-hover:-translate-y-1">
               <p className="eyebrow mb-2">{banner?.subtitle || "Editor's pick"}</p>
               <div className="flex items-center justify-between gap-4">
                 <p className="font-display text-xl font-semibold leading-snug">
                   {banner?.cardTitle || banner?.subtitle || "Limited seasonal edit"}
                 </p>
-                <span className="badge bg-ink text-white dark:bg-white dark:text-ink shrink-0">
-                  30% off
+                <span className="badge bg-ink text-white dark:bg-white dark:text-ink shrink-0 group-hover:scale-105 transition-transform">
+                  Shop now
                 </span>
               </div>
             </div>
-          </div>
+          </Link>
 
           {/* Floating accent pill */}
-          <div className="absolute -right-3 top-10 hidden lg:block z-10">
+          <div className="absolute -right-3 top-10 hidden lg:block z-10 pointer-events-none">
             <div className="glass rounded-2xl px-4 py-3 shadow-float">
               <p className="text-xs font-semibold text-ink dark:text-white">✦ Free shipping over ₹999</p>
             </div>

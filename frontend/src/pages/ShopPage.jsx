@@ -1,5 +1,4 @@
 import { Grid2x2, List, SlidersHorizontal, Star } from "lucide-react";
-import { motion } from "framer-motion";
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ui/ProductCard";
@@ -8,19 +7,6 @@ import Meta from "../components/ui/Meta";
 import { getMockMeta, getMockProducts, useLocalPreviewData } from "../data/mockStorefront";
 import api, { endpoints } from "../services/api";
 import { currency } from "../utils/format";
-
-const container = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.05 }
-  }
-};
-
-const item = {
-  hidden: { opacity: 0, y: 15 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }
-};
 
 const ShopPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -122,34 +108,34 @@ const ShopPage = () => {
               onChange={(event) => setSearchText(event.target.value)}
               onBlur={() => updateParam("search", searchText)}
               placeholder="Search products"
-              className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#1E2028] dark:text-white"
+              className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#222222] dark:text-white"
             />
-            <select value={filters.category} onChange={(e) => updateParam("category", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#1E2028] dark:text-white">
+            <select value={filters.category} onChange={(e) => updateParam("category", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#222222] dark:text-white">
               <option value="">All categories</option>
               {catalog.categories.map((item) => (
                 <option key={item._id} value={item._id}>{item.name}</option>
               ))}
             </select>
-            <select value={filters.brand} onChange={(e) => updateParam("brand", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#1E2028] dark:text-white">
+            <select value={filters.brand} onChange={(e) => updateParam("brand", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#222222] dark:text-white">
               <option value="">All brands</option>
               {catalog.brands.map((item) => (
                 <option key={item._id} value={item._id}>{item.name}</option>
               ))}
             </select>
             <div className="grid grid-cols-2 gap-3">
-              <input type="number" placeholder="Min" value={filters.minPrice} onChange={(e) => updateParam("minPrice", e.target.value)} className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#1E2028] dark:text-white" />
-              <input type="number" placeholder="Max" value={filters.maxPrice} onChange={(e) => updateParam("maxPrice", e.target.value)} className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#1E2028] dark:text-white" />
+              <input type="number" placeholder="Min" value={filters.minPrice} onChange={(e) => updateParam("minPrice", e.target.value)} className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#222222] dark:text-white" />
+              <input type="number" placeholder="Max" value={filters.maxPrice} onChange={(e) => updateParam("maxPrice", e.target.value)} className="rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#222222] dark:text-white" />
             </div>
-            <select value={filters.rating} onChange={(e) => updateParam("rating", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#1E2028] dark:text-white">
+            <select value={filters.rating} onChange={(e) => updateParam("rating", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#222222] dark:text-white">
               <option value="">Any rating</option>
               <option value="4">4 stars & up</option>
               <option value="3">3 stars & up</option>
             </select>
-            <select value={filters.availability} onChange={(e) => updateParam("availability", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#1E2028] dark:text-white">
+            <select value={filters.availability} onChange={(e) => updateParam("availability", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#222222] dark:text-white">
               <option value="">Any stock</option>
               <option value="in-stock">In stock</option>
             </select>
-            <select value={filters.sort} onChange={(e) => updateParam("sort", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#1E2028] dark:text-white">
+            <select value={filters.sort} onChange={(e) => updateParam("sort", e.target.value)} className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/15 dark:bg-[#222222] dark:text-white">
               <option value="newest">Newest</option>
               <option value="price-asc">Price low to high</option>
               <option value="price-desc">Price high to low</option>
@@ -166,33 +152,51 @@ const ShopPage = () => {
               Price range: {currency(Number(filters.minPrice || 0))} - {currency(Number(filters.maxPrice || 100000))}
             </p>
           </div>
-          <motion.div variants={container} initial="hidden" animate="show" className={layout === "grid" ? "grid gap-5 sm:grid-cols-2 xl:grid-cols-3" : "space-y-5"}>
-            {loading
-              ? Array.from({ length: 6 }).map((_, index) => <SkeletonCard key={index} />)
-              : products.map((product) =>
-                  layout === "grid" ? (
-                    <motion.div key={product._id} variants={item}><ProductCard product={product} compact /></motion.div>
-                  ) : (
-                    <motion.div key={product._id} variants={item} className="glass grid gap-4 rounded-[2rem] p-4 shadow-soft md:grid-cols-[220px_1fr]">
-                      <img
-                        src={product.images?.[0]?.url || "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80"}
-                        alt={product.name}
-                        className="h-56 w-full rounded-[1.5rem] object-cover"
-                      />
-                      <div className="flex flex-col justify-between">
-                        <div>
-                          <div className="mb-3 flex items-center gap-2 text-sm text-amber-500">
-                            <Star size={14} className="fill-current" /> {product.averageRating || 4.8}
-                          </div>
-                          <h3 className="font-display text-3xl">{product.name}</h3>
-                          <p className="mt-3 max-w-2xl text-muted">{product.shortDescription || product.description}</p>
+
+          <div className={layout === "grid" ? "grid gap-5 sm:grid-cols-2 xl:grid-cols-3" : "space-y-5"}>
+            {loading ? (
+              Array.from({ length: 6 }).map((_, index) => <SkeletonCard key={index} />)
+            ) : products.length > 0 ? (
+              products.map((product) =>
+                layout === "grid" ? (
+                  <ProductCard key={product._id} product={product} compact />
+                ) : (
+                  <div key={product._id} className="glass grid gap-4 rounded-[2rem] p-4 shadow-soft md:grid-cols-[220px_1fr]">
+                    <img
+                      src={product.images?.[0]?.url || "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80"}
+                      alt={product.name}
+                      className="h-56 w-full rounded-[1.5rem] object-cover"
+                    />
+                    <div className="flex flex-col justify-between">
+                      <div>
+                        <div className="mb-3 flex items-center gap-2 text-sm text-amber-500">
+                          <Star size={14} className="fill-current" /> {product.averageRating || 4.8}
                         </div>
-                        <p className="text-xl font-semibold">{currency(product.price)}</p>
+                        <h3 className="font-display text-3xl">{product.name}</h3>
+                        <p className="mt-3 max-w-2xl text-muted">{product.shortDescription || product.description}</p>
                       </div>
-                    </motion.div>
-                  )
-                )}
-          </motion.div>
+                      <p className="text-xl font-semibold">{currency(product.price)}</p>
+                    </div>
+                  </div>
+                )
+              )
+            ) : (
+              <div className="py-24 text-center col-span-full">
+                <p className="font-display text-2xl font-semibold">No products found</p>
+                <p className="mt-2 text-sm text-clay dark:text-white/60">
+                  Try adjusting or clearing your filters to see more results.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSearchParams({})}
+                  className="btn-primary mt-6 text-xs px-5 py-2.5"
+                >
+                  Clear all filters
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="mt-8 flex flex-wrap gap-3">
             {Array.from({ length: pagination.pages || 1 }).map((_, index) => (
               <button
