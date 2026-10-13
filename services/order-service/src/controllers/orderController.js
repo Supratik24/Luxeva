@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import axios from "axios";
+import mongoose from "mongoose";
 import {
   ApiError,
   asyncHandler,
@@ -267,6 +268,63 @@ const dispatchMilestoneNotification = async (order, milestoneNotification) => {
   } catch {}
 };
 
+const resolveCustomerInfo = async (req) => {
+  const bodyCustomer = req.body?.customer || {};
+  const shippingAddress = req.body?.shippingAddress || {};
+  const billingAddress = req.body?.billingAddress || {};
+  const reqUser = req.user || {};
+
+  const isValidName = (val) => {
+    if (!val || typeof val !== "string") return false;
+    const trimmed = val.trim();
+    if (!trimmed) return false;
+    const lower = trimmed.toLowerCase();
+    return lower !== "user" && lower !== "guest" && lower !== "customer" && lower !== "admin";
+  };
+
+  let name = "";
+  let email = bodyCustomer.email || reqUser.email || "";
+
+  if (isValidName(bodyCustomer.name)) {
+    name = bodyCustomer.name.trim();
+  } else if (isValidName(shippingAddress.fullName)) {
+    name = shippingAddress.fullName.trim();
+  } else if (isValidName(billingAddress.fullName)) {
+    name = billingAddress.fullName.trim();
+  } else if (isValidName(reqUser.name)) {
+    name = reqUser.name.trim();
+  }
+
+  if (!name && mongoose?.connection?.readyState === 1 && reqUser.id) {
+    try {
+      const authDb = mongoose.connection.useDb("auth_db", { useCache: true });
+      const dbUser = await authDb.collection("users").findOne({
+        $or: [{ clerkUserId: reqUser.id }, { _id: reqUser.id }]
+      });
+      if (dbUser && isValidName(dbUser.name)) {
+        name = dbUser.name.trim();
+      }
+      if (!email && dbUser?.email) {
+        email = dbUser.email;
+      }
+    } catch {}
+  }
+
+  if (!name && email && email.includes("@")) {
+    const raw = email.split("@")[0].replace(/[._-]/g, " ");
+    name = raw
+      .split(" ")
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+  }
+
+  return {
+    name: name || shippingAddress.fullName?.trim() || reqUser.name || "Customer",
+    email
+  };
+};
+
 export const createOrder = asyncHandler(async (req, res) => {
   const items = (req.body.items || []).map(normalizeOrderItem);
   if (!items.length) {
@@ -280,14 +338,16 @@ export const createOrder = asyncHandler(async (req, res) => {
     verifyRazorpaySignature(req.body.razorpay || {});
   }
 
+  const customer = await resolveCustomerInfo(req);
+
   if (isOrderFallbackMode()) {
     const order = {
       _id: `order-${Date.now()}`,
       orderNumber: createOrderNumber(),
       userId: req.user.id,
       customer: {
-        name: req.user.name,
-        email: req.user.email
+        name: customer.name,
+        email: customer.email
       },
       items,
       shippingAddress: req.body.shippingAddress,
@@ -337,8 +397,8 @@ export const createOrder = asyncHandler(async (req, res) => {
     orderNumber: createOrderNumber(),
     userId: req.user.id,
     customer: {
-      name: req.user.name,
-      email: req.user.email
+      name: customer.name,
+      email: customer.email
     },
     items,
     shippingAddress: req.body.shippingAddress,
@@ -420,12 +480,77 @@ export const getMyOrderById = asyncHandler(async (req, res) => {
 });
 
 export const getAllOrders = asyncHandler(async (req, res) => {
+  const enrichOrderCustomer = (order, dbUser = null) => {
+    let customerName = order.customer?.name?.trim();
+    const isGeneric = !customerName || ["user", "guest", "customer", "admin"].includes(customerName.toLowerCase());
+
+    if (isGeneric) {
+      if (order.shippingAddress?.fullName?.trim() && !["user", "guest", "customer"].includes(order.shippingAddress.fullName.trim().toLowerCase())) {
+        customerName = order.shippingAddress.fullName.trim();
+      } else if (dbUser?.name?.trim() && !["user", "guest", "customer"].includes(dbUser.name.trim().toLowerCase())) {
+        customerName = dbUser.name.trim();
+      } else if (order.billingAddress?.fullName?.trim() && !["user", "guest", "customer"].includes(order.billingAddress.fullName.trim().toLowerCase())) {
+        customerName = order.billingAddress.fullName.trim();
+      } else if (order.customer?.email || dbUser?.email) {
+        const email = order.customer?.email || dbUser?.email;
+        const prefix = email.split("@")[0].replace(/[._-]/g, " ");
+        customerName = prefix
+          .split(" ")
+          .filter(Boolean)
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ");
+      } else {
+        customerName = "Customer";
+      }
+    }
+
+    const customerEmail = order.customer?.email || dbUser?.email || "";
+
+    return {
+      ...order,
+      customer: {
+        ...order.customer,
+        name: customerName,
+        email: customerEmail
+      }
+    };
+  };
+
   if (isOrderFallbackMode()) {
-    sendSuccess(res, 200, "Admin orders fetched successfully", { orders: fallbackOrders });
+    const orders = fallbackOrders.map((o) => enrichOrderCustomer(o));
+    sendSuccess(res, 200, "Admin orders fetched successfully", { orders });
     return;
   }
 
-  const orders = await Order.find().sort({ createdAt: -1 });
+  const rawOrders = await Order.find().sort({ createdAt: -1 }).lean();
+
+  const userMap = new Map();
+  if (mongoose.connection?.readyState === 1) {
+    try {
+      const authDb = mongoose.connection.useDb("auth_db", { useCache: true });
+      const userIds = [...new Set(rawOrders.map((o) => o.userId).filter(Boolean))];
+      if (userIds.length) {
+        const users = await authDb
+          .collection("users")
+          .find({
+            $or: [{ clerkUserId: { $in: userIds } }, { _id: { $in: userIds } }]
+          })
+          .toArray();
+        users.forEach((u) => {
+          if (u.clerkUserId) userMap.set(String(u.clerkUserId), u);
+          if (u._id) userMap.set(String(u._id), u);
+        });
+      }
+    } catch (err) {
+      console.warn("Could not query auth_db users for admin orders enrichment:", err.message);
+    }
+  }
+
+  const orders = rawOrders.map((order) => {
+    const dbUser = order.userId ? userMap.get(String(order.userId)) : null;
+    return enrichOrderCustomer(order, dbUser);
+  });
+
   sendSuccess(res, 200, "Admin orders fetched successfully", { orders });
 });
 

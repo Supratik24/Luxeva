@@ -108,8 +108,15 @@ const CheckoutPage = () => {
   const tax = subtotal * 0.12;
   const total = subtotal + shippingFee + tax - (coupon?.discountAmount || 0);
   const normalizedContact = String(address.phone || user?.phone || "").replace(/\D/g, "").slice(-10);
+  const customerName = (address.fullName || user?.name || "").trim();
+  const customerEmail = (user?.email || "").trim();
   const orderPayload = {
     items: cart,
+    customer: {
+      name: customerName && customerName.toLowerCase() !== "user" ? customerName : (address.fullName || user?.name || "Customer"),
+      email: customerEmail,
+      phone: normalizedContact
+    },
     shippingAddress: address,
     billingAddress: address,
     paymentMethod,

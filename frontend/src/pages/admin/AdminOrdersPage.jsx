@@ -36,6 +36,49 @@ const CARRIER_PRESETS = [
   { name: "Shadowfax", trackUrl: "https://tracker.shadowfax.in/" }
 ];
 
+const AVATAR_COLORS = [
+  "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:bg-emerald-500/25 dark:text-emerald-300 dark:border-emerald-500/40",
+  "bg-blue-500/15 text-blue-700 border-blue-500/30 dark:bg-blue-500/25 dark:text-blue-300 dark:border-blue-500/40",
+  "bg-purple-500/15 text-purple-700 border-purple-500/30 dark:bg-purple-500/25 dark:text-purple-300 dark:border-purple-500/40",
+  "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:bg-amber-500/25 dark:text-amber-300 dark:border-amber-500/40",
+  "bg-rose-500/15 text-rose-700 border-rose-500/30 dark:bg-rose-500/25 dark:text-rose-300 dark:border-rose-500/40",
+  "bg-indigo-500/15 text-indigo-700 border-indigo-500/30 dark:bg-indigo-500/25 dark:text-indigo-300 dark:border-indigo-500/40",
+  "bg-teal-500/15 text-teal-700 border-teal-500/30 dark:bg-teal-500/25 dark:text-teal-300 dark:border-teal-500/40"
+];
+
+const getAvatarStyle = (str = "") => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[index];
+};
+
+const getCustomerDisplayName = (order) => {
+  const raw = order?.customer?.name?.trim();
+  if (raw && !["user", "guest", "customer", "admin"].includes(raw.toLowerCase())) {
+    return raw;
+  }
+  const shippingName = order?.shippingAddress?.fullName?.trim();
+  if (shippingName && !["user", "guest", "customer"].includes(shippingName.toLowerCase())) {
+    return shippingName;
+  }
+  const billingName = order?.billingAddress?.fullName?.trim();
+  if (billingName && !["user", "guest", "customer"].includes(billingName.toLowerCase())) {
+    return billingName;
+  }
+  if (order?.customer?.email) {
+    const emailPrefix = order.customer.email.split("@")[0].replace(/[._-]/g, " ");
+    return emailPrefix
+      .split(" ")
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+  }
+  return raw || "Customer";
+};
+
 const AdminOrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -163,11 +206,14 @@ const AdminOrdersPage = () => {
     if (statusFilter !== "all" && order.status !== statusFilter) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
+      const customerName = getCustomerDisplayName(order).toLowerCase();
+      const recipientName = (order.shippingAddress?.fullName || "").toLowerCase();
       const matchNumber = order.orderNumber?.toLowerCase().includes(q);
-      const matchCustomer = order.customer?.name?.toLowerCase().includes(q);
+      const matchCustomer = customerName.includes(q) || recipientName.includes(q);
       const matchEmail = order.customer?.email?.toLowerCase().includes(q);
+      const matchPhone = order.shippingAddress?.phone?.includes(q);
       const matchTracking = order.shipping?.trackingNumber?.toLowerCase().includes(q);
-      if (!matchNumber && !matchCustomer && !matchEmail && !matchTracking) return false;
+      if (!matchNumber && !matchCustomer && !matchEmail && !matchPhone && !matchTracking) return false;
     }
     return true;
   });
@@ -224,7 +270,7 @@ const AdminOrdersPage = () => {
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/40 dark:text-white/40" />
           <input
             type="text"
-            placeholder="Search order #, customer, AWB..."
+            placeholder="Search order #, customer, phone, AWB..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-full border border-ink/10 bg-white py-2 pl-9 pr-4 text-xs outline-none focus:border-ink dark:border-white/10 dark:bg-[#1a1a1a] dark:text-white"
@@ -246,6 +292,10 @@ const AdminOrdersPage = () => {
             const isShippingOpen = !!editingShipping[order._id];
             const shippingForm = editingShipping[order._id] || {};
             const isTrackingExpanded = expandedOrder === order._id;
+            const customerName = getCustomerDisplayName(order);
+            const recipientName = order.shippingAddress?.fullName?.trim() || "";
+            const avatarStyle = getAvatarStyle(customerName || order.orderNumber);
+            const initial = customerName.charAt(0).toUpperCase() || "C";
 
             return (
               <div
@@ -274,9 +324,44 @@ const AdminOrdersPage = () => {
                       </span>
                     </div>
 
-                    <p className="mt-1 text-xs text-ink/55 dark:text-white/60">
-                      Customer: <strong className="text-ink dark:text-white">{order.customer?.name || "Guest"}</strong> ({order.customer?.email}) | Placed: {shortDate(order.createdAt)}
-                    </p>
+                    {/* Customer Discriminator Badge & Details */}
+                    <div className="mt-2.5 flex items-center gap-3">
+                      <div
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-sm font-bold shadow-xs ${avatarStyle}`}
+                        title={`Customer: ${customerName}`}
+                      >
+                        {initial}
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs text-ink/50 dark:text-white/50">Customer:</span>
+                          <strong className="text-sm font-bold text-ink dark:text-white truncate">
+                            {customerName}
+                          </strong>
+                          {order.customer?.email && (
+                            <span className="text-xs text-ink/55 dark:text-white/60">
+                              ({order.customer.email})
+                            </span>
+                          )}
+                          {order.shippingAddress?.phone && (
+                            <span className="rounded-md bg-ink/5 px-2 py-0.5 text-[11px] font-mono text-ink/70 dark:bg-white/10 dark:text-white/70">
+                              📞 {order.shippingAddress.phone}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[11px] text-ink/50 dark:text-white/50">
+                          <span>Placed: {shortDate(order.createdAt)}</span>
+                          {recipientName && recipientName.toLowerCase() !== customerName.toLowerCase() && (
+                            <>
+                              <span>•</span>
+                              <span>Ship to: <strong className="text-ink/80 dark:text-white/80">{recipientName}</strong></span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Actions & Status Dropdown */}
@@ -325,7 +410,7 @@ const AdminOrdersPage = () => {
                 {/* Items & Shipping Snapshot Row */}
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-ink/5 pt-3 text-xs text-ink/60 dark:border-white/5 dark:text-white/60">
                   <p>
-                    {order.items?.length || 0} item{order.items?.length !== 1 ? "s" : ""} | Delivery to: {order.shippingAddress?.city || "India"}, {order.shippingAddress?.state} ({order.shippingAddress?.postalCode})
+                    {order.items?.length || 0} item{order.items?.length !== 1 ? "s" : ""} | Delivery to: {recipientName ? `${recipientName}, ` : ""}{order.shippingAddress?.city || "India"}, {order.shippingAddress?.state} ({order.shippingAddress?.postalCode})
                   </p>
 
                   {order.shipping?.trackingNumber && (
