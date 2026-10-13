@@ -11,7 +11,9 @@ import {
   Clock,
   AlertCircle,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Zap,
+  AlertTriangle
 } from "lucide-react";
 import { shortDate } from "../../utils/format";
 
@@ -29,6 +31,114 @@ const getStageIndex = (status) => {
   return idx >= 0 ? idx : 0;
 };
 
+export const cleanCustomerNote = (note = "", status = "") => {
+  if (!note) return "";
+  
+  if (/by admin/i.test(note) || /marked as/i.test(note) || /status updated to/i.test(note)) {
+    const key = String(status || "").toLowerCase().replace("-", "_");
+    const defaults = {
+      placed: "Order confirmed and being prepared",
+      packed: "Package packed and ready for dispatch",
+      shipped: "Package handed over to courier and in transit",
+      out_for_delivery: "Package is out for delivery to your address",
+      delivered: "Package delivered successfully",
+      cancelled: "Order cancelled"
+    };
+    return defaults[key] || `Package is ${key.replace(/_/g, " ")}`;
+  }
+  
+  return note.replace(/\s*(?:by|via)?\s*admin/gi, "").trim();
+};
+
+export const computeDeliveryTiming = (order) => {
+  const shipping = order.shipping || {};
+  const isDelivered = order.status === "delivered";
+  const timeline = order.timeline || [];
+
+  const deliveredEvent = [...timeline]
+    .reverse()
+    .find((t) => t.status?.toLowerCase()?.replace("-", "_") === "delivered");
+  const actualDeliveryDate = deliveredEvent?.at || order.updatedAt;
+
+  if (!shipping.estimatedDelivery) {
+    return {
+      isDelivered,
+      actualDeliveryDate: isDelivered ? actualDeliveryDate : null,
+      speedBadge: null
+    };
+  }
+
+  const estDate = new Date(shipping.estimatedDelivery);
+  const estDay = new Date(estDate.getFullYear(), estDate.getMonth(), estDate.getDate()).getTime();
+
+  if (isDelivered) {
+    const actDate = new Date(actualDeliveryDate);
+    const actDay = new Date(actDate.getFullYear(), actDate.getMonth(), actDate.getDate()).getTime();
+
+    if (actDay < estDay) {
+      return {
+        isDelivered: true,
+        actualDeliveryDate,
+        speedBadge: {
+          label: "Fastest Delivery",
+          icon: Zap,
+          tag: "⚡ Fastest Delivery",
+          description: "Delivered ahead of estimated schedule!",
+          colorClass: "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+        }
+      };
+    } else if (actDay > estDay) {
+      return {
+        isDelivered: true,
+        actualDeliveryDate,
+        speedBadge: {
+          label: "Slightly Delayed",
+          icon: AlertTriangle,
+          tag: "⚠️ Slightly Delayed",
+          description: "Delivered with a slight delay",
+          colorClass: "bg-amber-500/10 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300"
+        }
+      };
+    } else {
+      return {
+        isDelivered: true,
+        actualDeliveryDate,
+        speedBadge: {
+          label: "Delivered On Time",
+          icon: CheckCircle2,
+          tag: "✅ Delivered On Time",
+          description: "Delivered right on schedule",
+          colorClass: "bg-green-500/10 text-green-700 dark:bg-green-500/20 dark:text-green-300"
+        }
+      };
+    }
+  }
+
+  // Not delivered yet
+  const today = new Date();
+  const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+
+  if (todayDay > estDay) {
+    return {
+      isDelivered: false,
+      actualDeliveryDate: null,
+      speedBadge: {
+        label: "Slightly Delayed",
+        icon: AlertTriangle,
+        tag: "⚠️ Slightly Delayed",
+        description: "Delivery is running slightly behind schedule",
+        colorClass: "bg-amber-500/10 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300"
+      }
+    };
+  }
+
+  return {
+    isDelivered: false,
+    actualDeliveryDate: null,
+    speedBadge: null
+  };
+};
+
 export const OrderTrackingTimeline = ({ order }) => {
   const [copied, setCopied] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
@@ -39,6 +149,7 @@ export const OrderTrackingTimeline = ({ order }) => {
   const currentStageIndex = getStageIndex(order.status);
   const timeline = order.timeline || [];
   const shipping = order.shipping || {};
+  const { isDelivered, actualDeliveryDate, speedBadge } = computeDeliveryTiming(order);
 
   const handleCopy = (text) => {
     if (!text) return;
@@ -47,7 +158,6 @@ export const OrderTrackingTimeline = ({ order }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Find latest timeline event for each stage to show exact timestamps
   const getStageDate = (stageKey) => {
     const item = [...timeline]
       .reverse()
@@ -70,7 +180,16 @@ export const OrderTrackingTimeline = ({ order }) => {
           </h3>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Speed Badge (Fastest Delivery or Slightly Delayed) */}
+          {speedBadge && (
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${speedBadge.colorClass}`}
+            >
+              {speedBadge.tag}
+            </span>
+          )}
+
           {isCancelled ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-3.5 py-1.5 text-xs font-semibold text-red-600 dark:text-red-400">
               <AlertCircle size={14} /> Cancelled
@@ -212,7 +331,7 @@ export const OrderTrackingTimeline = ({ order }) => {
               )}
             </div>
             <p className="mt-1 text-sm font-semibold text-ink dark:text-white">
-              {latestNote.note}
+              {cleanCustomerNote(latestNote.note, latestNote.status || order.status)}
             </p>
             {latestNote.location && (
               <p className="mt-1 flex items-center gap-1 text-xs font-medium text-ink/70 dark:text-white/70">
@@ -224,7 +343,7 @@ export const OrderTrackingTimeline = ({ order }) => {
       )}
 
       {/* Shipping Details Card */}
-      {(shipping.carrier || shipping.trackingNumber || shipping.estimatedDelivery) ? (
+      {(shipping.carrier || shipping.trackingNumber || shipping.estimatedDelivery || isDelivered) ? (
         <div className="mt-6 grid gap-4 rounded-2xl border border-ink/10 bg-white/60 p-5 dark:border-white/10 dark:bg-white/5 sm:grid-cols-3">
           {shipping.carrier && (
             <div>
@@ -258,15 +377,40 @@ export const OrderTrackingTimeline = ({ order }) => {
             </div>
           )}
 
-          {shipping.estimatedDelivery && (
+          {/* Delivery Date block:
+              When DELIVERED -> show "Delivered On: [date]" + Speed Badge. (Estimated date is REMOVED!)
+              When NOT DELIVERED -> show "Estimated Delivery: [date]" + delay warning if late.
+          */}
+          {isDelivered ? (
             <div>
               <p className="text-xs text-ink/50 dark:text-white/40 font-semibold uppercase tracking-wider">
-                Estimated Delivery
+                Delivered On
               </p>
-              <p className="mt-1 text-base font-bold text-ink dark:text-white">
-                🗓️ {shortDate(shipping.estimatedDelivery)}
+              <p className="mt-1 text-base font-bold text-emerald-600 dark:text-emerald-400">
+                ✅ {shortDate(actualDeliveryDate)}
               </p>
+              {speedBadge && (
+                <p className="mt-1 text-xs font-semibold text-ink/60 dark:text-white/60">
+                  {speedBadge.description}
+                </p>
+              )}
             </div>
+          ) : (
+            shipping.estimatedDelivery && (
+              <div>
+                <p className="text-xs text-ink/50 dark:text-white/40 font-semibold uppercase tracking-wider">
+                  Estimated Delivery
+                </p>
+                <p className="mt-1 text-base font-bold text-ink dark:text-white">
+                  🗓️ {shortDate(shipping.estimatedDelivery)}
+                </p>
+                {speedBadge && (
+                  <p className="mt-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                    {speedBadge.description}
+                  </p>
+                )}
+              </div>
+            )
           )}
 
           {shipping.trackingUrl && (
@@ -327,7 +471,7 @@ export const OrderTrackingTimeline = ({ order }) => {
                       </span>
                     </div>
                     <p className="text-xs font-medium text-ink/80 dark:text-white/80 mt-0.5">
-                      {event.note}
+                      {cleanCustomerNote(event.note, event.status)}
                     </p>
                     {event.location && (
                       <p className="text-[11px] text-ink/60 dark:text-white/60 mt-0.5">

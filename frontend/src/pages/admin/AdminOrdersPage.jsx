@@ -77,12 +77,21 @@ const AdminOrdersPage = () => {
   });
 
   const handleQuickStatusChange = async (order, newStatus) => {
+    const defaultMessages = {
+      placed: "Order placed and confirmed",
+      packed: "Package packed and ready for dispatch",
+      shipped: "Package handed over to courier and in transit",
+      out_for_delivery: "Package is out for delivery to your address",
+      delivered: "Package delivered successfully",
+      cancelled: "Order cancelled"
+    };
+
     try {
       await api.patch(endpoints.orders.updateStatus(order._id), {
         status: newStatus,
-        note: `Status updated to ${newStatus.replace("_", " ")} by admin`
+        note: defaultMessages[newStatus] || `Package status updated to ${newStatus.replace(/_/g, " ")}`
       });
-      toast.success(`Order #${order.orderNumber} marked as ${newStatus.replace("_", " ")}`);
+      toast.success(`Order #${order.orderNumber} marked as ${newStatus.replace(/_/g, " ")}`);
       await load();
     } catch {
       toast.error("Failed to update status");
@@ -136,7 +145,7 @@ const AdminOrdersPage = () => {
         trackingNumber: formData.trackingNumber,
         trackingUrl: formData.trackingUrl,
         location: formData.location,
-        note: formData.note || `Order update: ${formData.status.replace("_", " ")}`,
+        note: formData.note || `Package status: ${formData.status.replace(/_/g, " ")}`,
         estimatedDelivery: formData.estimatedDelivery ? new Date(formData.estimatedDelivery) : undefined
       });
 

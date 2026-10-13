@@ -347,7 +347,19 @@ export const getAllOrders = asyncHandler(async (req, res) => {
 });
 
 export const updateOrderStatus = asyncHandler(async (req, res) => {
-  const { status, note, location, carrier, trackingNumber, trackingUrl, estimatedDelivery } = req.body;
+  const defaultStatusNotes = {
+    placed: "Order placed successfully",
+    packed: "Order packed and prepared for shipment",
+    shipped: "Package handed over to courier and in transit",
+    out_for_delivery: "Package is out for delivery",
+    delivered: "Package delivered successfully",
+    cancelled: "Order cancelled"
+  };
+
+  const statusKey = String(status || "").toLowerCase().replace("-", "_");
+  const cleanNote = note && !note.toLowerCase().includes("by admin")
+    ? note
+    : (defaultStatusNotes[statusKey] || `Package is currently ${statusKey.replace(/_/g, " ")}`);
 
   if (isOrderFallbackMode()) {
     const order = fallbackOrders.find((entry) => entry._id === req.params.id);
@@ -360,7 +372,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     if (!order.timeline) order.timeline = [];
     order.timeline.push({
       status: status || order.status,
-      note: note || `Order marked as ${status || order.status}`,
+      note: cleanNote,
       location: location || "",
       at: new Date()
     });
@@ -388,7 +400,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
   if (status) order.status = status;
   order.timeline.push({
     status: status || order.status,
-    note: note || `Order marked as ${status || order.status}`,
+    note: cleanNote,
     location: location || "",
     at: new Date()
   });

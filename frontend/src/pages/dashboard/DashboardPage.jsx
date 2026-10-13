@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import Meta from "../../components/ui/Meta";
 import ProductCard from "../../components/ui/ProductCard";
-import OrderTrackingTimeline from "../../components/orders/OrderTrackingTimeline";
+import OrderTrackingTimeline, { computeDeliveryTiming, cleanCustomerNote } from "../../components/orders/OrderTrackingTimeline";
 import useOrderSocket from "../../hooks/useOrderSocket";
 import { mockProducts, useLocalPreviewData } from "../../data/mockStorefront";
 import { useAuth } from "../../contexts/AuthContext";
@@ -310,26 +310,63 @@ const DashboardPage = () => {
                   </div>
                 </div>
 
-                {/* Courier, AWB & Latest Location Banner */}
-                {(order.shipping?.carrier || order.shipping?.trackingNumber || (order.timeline && order.timeline.length > 1)) && (
-                  <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-ink/5 px-3.5 py-2 text-xs font-medium dark:bg-white/5">
-                    {order.shipping?.carrier && (
-                      <span className="font-semibold text-ink dark:text-white">
-                        🚚 {order.shipping.carrier} {order.shipping.trackingNumber ? `(${order.shipping.trackingNumber})` : ""}
-                      </span>
-                    )}
-                    {order.shipping?.estimatedDelivery && (
-                      <span className="text-ink/60 dark:text-white/60">
-                        • Est. Delivery: {shortDate(order.shipping.estimatedDelivery)}
-                      </span>
-                    )}
-                    {order.timeline?.[order.timeline.length - 1]?.location && (
-                      <span className="text-ink/60 dark:text-white/60">
-                        • 📍 {order.timeline[order.timeline.length - 1].location}
-                      </span>
-                    )}
-                  </div>
-                )}
+                {/* Courier, Delivery Speed & Latest Location Banner */}
+                {(() => {
+                  const { isDelivered, actualDeliveryDate, speedBadge } = computeDeliveryTiming(order);
+                  const latestCheckpoint = order.timeline?.[order.timeline.length - 1];
+                  const hasSummary =
+                    order.shipping?.carrier ||
+                    order.shipping?.trackingNumber ||
+                    order.shipping?.estimatedDelivery ||
+                    isDelivered ||
+                    (order.timeline && order.timeline.length > 1);
+
+                  if (!hasSummary) return null;
+
+                  return (
+                    <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-ink/5 px-3.5 py-2 text-xs font-medium dark:bg-white/5">
+                      {order.shipping?.carrier && (
+                        <span className="font-semibold text-ink dark:text-white">
+                          🚚 {order.shipping.carrier} {order.shipping.trackingNumber ? `(${order.shipping.trackingNumber})` : ""}
+                        </span>
+                      )}
+
+                      {/* If delivered -> show Delivered On (NEVER show estimated date after delivery!) */}
+                      {isDelivered ? (
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                          • Delivered on {shortDate(actualDeliveryDate)}
+                        </span>
+                      ) : (
+                        order.shipping?.estimatedDelivery && (
+                          <span className="text-ink/60 dark:text-white/60">
+                            • Est. Delivery: {shortDate(order.shipping.estimatedDelivery)}
+                          </span>
+                        )
+                      )}
+
+                      {/* Speed Badge: Fastest Delivery or Slightly Delayed */}
+                      {speedBadge && (
+                        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${speedBadge.colorClass}`}>
+                          {speedBadge.tag}
+                        </span>
+                      )}
+
+                      {/* Location checkpoint */}
+                      {latestCheckpoint?.location && (
+                        <span className="text-ink/60 dark:text-white/60">
+                          • 📍 {latestCheckpoint.location}
+                        </span>
+                      )}
+
+                      {/* Customer-friendly status note (never says 'by admin') */}
+                      {latestCheckpoint?.note && (
+                        <span className="text-ink/50 dark:text-white/50">
+                          • {cleanCustomerNote(latestCheckpoint.note, latestCheckpoint.status)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div className="mt-5 rounded-[1.4rem] bg-ink/5 p-3 dark:bg-white/5">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
