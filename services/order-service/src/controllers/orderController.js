@@ -554,6 +554,82 @@ export const getAllOrders = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, "Admin orders fetched successfully", { orders });
 });
 
+const PROGRESSION = ["placed", "packed", "shipped", "out_for_delivery", "delivered"];
+
+const adjustTimelineForStatus = (existingTimeline = [], newStatus, cleanNote, location = "") => {
+  const targetKey = String(newStatus || "").toLowerCase().replace(/-/g, "_");
+  const targetIdx = PROGRESSION.indexOf(targetKey);
+
+  // If newStatus is cancelled:
+  if (targetKey === "cancelled") {
+    // Remove any premature delivered entries
+    const filtered = (existingTimeline || []).filter((t) => {
+      const s = String(t.status || "").toLowerCase().replace(/-/g, "_");
+      return s !== "delivered" && s !== "cancelled";
+    });
+    filtered.push({
+      status: "cancelled",
+      note: cleanNote,
+      location: location || "",
+      at: new Date()
+    });
+    return filtered;
+  }
+
+  // If newStatus is a standard progression milestone:
+  if (targetIdx >= 0) {
+    // 1. Remove all timeline events whose milestone stage is strictly AFTER targetIdx
+    // e.g. If targetIdx is 'shipped' (2), remove 'out_for_delivery' (3) and 'delivered' (4)
+    // Also remove 'cancelled' since order is actively in progress
+    let filtered = (existingTimeline || []).filter((t) => {
+      const s = String(t.status || "").toLowerCase().replace(/-/g, "_");
+      if (s === "cancelled") return false;
+      const idx = PROGRESSION.indexOf(s);
+      if (idx > targetIdx) {
+        return false; // Remove future milestones (e.g. accidental delivered)
+      }
+      return true;
+    });
+
+    // 2. Check if target milestone already exists in the filtered timeline
+    const existingTargetIdx = filtered.findIndex((t) => {
+      return String(t.status || "").toLowerCase().replace(/-/g, "_") === targetKey;
+    });
+
+    if (existingTargetIdx >= 0) {
+      // It already reached this stage earlier. Update note/location and truncate any trailing items.
+      filtered[existingTargetIdx] = {
+        ...filtered[existingTargetIdx],
+        note: cleanNote || filtered[existingTargetIdx].note,
+        location: location || filtered[existingTargetIdx].location || "",
+        at: new Date()
+      };
+      filtered = filtered.slice(0, existingTargetIdx + 1);
+    } else {
+      // It's a new milestone reached moving forward
+      filtered.push({
+        status: targetKey,
+        note: cleanNote,
+        location: location || "",
+        at: new Date()
+      });
+    }
+
+    return filtered;
+  }
+
+  // Fallback
+  return [
+    ...(existingTimeline || []),
+    {
+      status: targetKey,
+      note: cleanNote,
+      location: location || "",
+      at: new Date()
+    }
+  ];
+};
+
 export const updateOrderStatus = asyncHandler(async (req, res) => {
   const { status, note, location, carrier, trackingNumber, trackingUrl, estimatedDelivery } = req.body || {};
 
@@ -570,23 +646,22 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 
     if (status) order.status = status;
     order.updatedAt = new Date().toISOString();
-    if (!order.timeline) order.timeline = [];
-    order.timeline.push({
-      status: status || order.status,
-      note: cleanNote,
-      location: location || "",
-      at: new Date()
-    });
+    order.timeline = adjustTimelineForStatus(order.timeline || [], status || order.status, cleanNote, location || "");
 
-    if (carrier || trackingNumber || trackingUrl || estimatedDelivery) {
-      order.shipping = {
-        ...order.shipping,
-        ...(carrier !== undefined ? { carrier } : {}),
-        ...(trackingNumber !== undefined ? { trackingNumber } : {}),
-        ...(trackingUrl !== undefined ? { trackingUrl } : {}),
-        ...(estimatedDelivery !== undefined ? { estimatedDelivery } : {})
-      };
-    }
+    const newStatusKey = String(status || order.status).toLowerCase().replace(/-/g, "_");
+    const nextEstimatedDelivery = newStatusKey === "delivered"
+      ? null
+      : estimatedDelivery !== undefined
+      ? estimatedDelivery
+      : order.shipping?.estimatedDelivery;
+
+    order.shipping = {
+      ...order.shipping,
+      ...(carrier !== undefined ? { carrier } : {}),
+      ...(trackingNumber !== undefined ? { trackingNumber } : {}),
+      ...(trackingUrl !== undefined ? { trackingUrl } : {}),
+      estimatedDelivery: nextEstimatedDelivery
+    };
 
     const milestoneNotification = getMilestoneNotification(order, status || order.status, cleanNote);
     await dispatchMilestoneNotification(order, milestoneNotification);
@@ -601,21 +676,21 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
   }
 
   if (status) order.status = status;
-  order.timeline.push({
-    status: status || order.status,
-    note: cleanNote,
-    location: location || "",
-    at: new Date()
-  });
+  order.timeline = adjustTimelineForStatus(order.timeline || [], status || order.status, cleanNote, location || "");
 
-  if (carrier || trackingNumber || trackingUrl || estimatedDelivery) {
-    order.shipping = {
-      carrier: carrier !== undefined ? carrier : order.shipping?.carrier,
-      trackingNumber: trackingNumber !== undefined ? trackingNumber : order.shipping?.trackingNumber,
-      trackingUrl: trackingUrl !== undefined ? trackingUrl : order.shipping?.trackingUrl,
-      estimatedDelivery: estimatedDelivery !== undefined ? estimatedDelivery : order.shipping?.estimatedDelivery
-    };
-  }
+  const newStatusKey = String(status || order.status).toLowerCase().replace(/-/g, "_");
+  const nextEstimatedDelivery = newStatusKey === "delivered"
+    ? null
+    : estimatedDelivery !== undefined
+    ? estimatedDelivery
+    : order.shipping?.estimatedDelivery;
+
+  order.shipping = {
+    carrier: carrier !== undefined ? carrier : order.shipping?.carrier,
+    trackingNumber: trackingNumber !== undefined ? trackingNumber : order.shipping?.trackingNumber,
+    trackingUrl: trackingUrl !== undefined ? trackingUrl : order.shipping?.trackingUrl,
+    estimatedDelivery: nextEstimatedDelivery
+  };
 
   await order.save();
 

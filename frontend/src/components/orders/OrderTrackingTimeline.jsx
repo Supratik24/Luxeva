@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle2,
@@ -157,7 +157,42 @@ export const OrderTrackingTimeline = ({ order }) => {
 
   const isCancelled = order.status === "cancelled";
   const currentStageIndex = getStageIndex(order.status);
-  const timeline = order.timeline || [];
+  const timeline = useMemo(() => {
+    const raw = order.timeline || [];
+    if (!Array.isArray(raw)) return [];
+
+    if (isCancelled) {
+      return raw.filter((t) => String(t.status || "").toLowerCase().replace(/-/g, "_") !== "delivered");
+    }
+
+    const currentKey = String(order.status || "").toLowerCase().replace(/-/g, "_");
+    const maxIdx = STAGES.findIndex((s) => s.key === currentKey);
+
+    // 1. Filter out any milestone ahead of current stage (e.g. accidental delivered)
+    const valid = raw.filter((item) => {
+      const s = String(item.status || "").toLowerCase().replace(/-/g, "_");
+      if (s === "cancelled") return false;
+      const idx = STAGES.findIndex((st) => st.key === s);
+      if (maxIdx >= 0 && idx > maxIdx) {
+        return false;
+      }
+      return true;
+    });
+
+    // 2. Deduplicate milestones, keeping the latest check-in for each milestone
+    const result = [];
+    const seen = new Set();
+    for (let i = valid.length - 1; i >= 0; i--) {
+      const item = valid[i];
+      const s = String(item.status || "").toLowerCase().replace(/-/g, "_");
+      if (!seen.has(s)) {
+        seen.add(s);
+        result.unshift(item);
+      }
+    }
+
+    return result;
+  }, [order.timeline, order.status, isCancelled]);
   const shipping = order.shipping || {};
   const { isDelivered, actualDeliveryDate, speedBadge } = computeDeliveryTiming(order);
 
