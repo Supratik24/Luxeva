@@ -266,7 +266,7 @@ const DashboardPage = () => {
     }
   };
 
-  const content = useMemo(() => {
+  const renderContent = () => {
     if (currentTab === "orders") {
       return (
         <div className="space-y-4">
@@ -303,10 +303,33 @@ const DashboardPage = () => {
                     ) : null}
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold capitalize">{order.status}</p>
+                    <p className="font-semibold capitalize text-ink dark:text-white">
+                      {order.status?.replace(/_/g, " ")}
+                    </p>
                     <p className="text-sm text-ink/50 dark:text-white/50">{currency(order.total)}</p>
                   </div>
                 </div>
+
+                {/* Courier, AWB & Latest Location Banner */}
+                {(order.shipping?.carrier || order.shipping?.trackingNumber || (order.timeline && order.timeline.length > 1)) && (
+                  <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-ink/5 px-3.5 py-2 text-xs font-medium dark:bg-white/5">
+                    {order.shipping?.carrier && (
+                      <span className="font-semibold text-ink dark:text-white">
+                        🚚 {order.shipping.carrier} {order.shipping.trackingNumber ? `(${order.shipping.trackingNumber})` : ""}
+                      </span>
+                    )}
+                    {order.shipping?.estimatedDelivery && (
+                      <span className="text-ink/60 dark:text-white/60">
+                        • Est. Delivery: {shortDate(order.shipping.estimatedDelivery)}
+                      </span>
+                    )}
+                    {order.timeline?.[order.timeline.length - 1]?.location && (
+                      <span className="text-ink/60 dark:text-white/60">
+                        • 📍 {order.timeline[order.timeline.length - 1].location}
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 <div className="mt-5 rounded-[1.4rem] bg-ink/5 p-3 dark:bg-white/5">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -361,34 +384,41 @@ const DashboardPage = () => {
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-ink/5 pt-4 dark:border-white/5">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setExpandedTracking((prev) => ({
-                        ...prev,
-                        [order._id]: !prev[order._id]
-                      }))
-                    }
-                    className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
-                      expandedTracking[order._id]
-                        ? "bg-ink text-white dark:bg-white dark:text-ink"
-                        : "border border-ink/10 hover:border-ink/30 dark:border-white/10 dark:hover:border-white/30"
-                    }`}
-                  >
-                    <Truck size={14} />
-                    {expandedTracking[order._id] ? "Hide Live Tracking" : "Track Order (Live)"}
-                  </button>
+                {(() => {
+                  const isExpanded = expandedTracking[order._id] !== undefined ? expandedTracking[order._id] : true;
+                  return (
+                    <>
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-ink/5 pt-4 dark:border-white/5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedTracking((prev) => ({
+                              ...prev,
+                              [order._id]: !isExpanded
+                            }))
+                          }
+                          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
+                            isExpanded
+                              ? "bg-ink text-white dark:bg-white dark:text-ink"
+                              : "border border-ink/10 hover:border-ink/30 dark:border-white/10 dark:hover:border-white/30"
+                          }`}
+                        >
+                          <Truck size={14} />
+                          {isExpanded ? "Hide Tracking Stepper ▲" : "View Live Tracking Stepper ▼"}
+                        </button>
 
-                  <span className="flex items-center gap-1.5 text-xs text-ink/50 dark:text-white/40">
-                    <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                    Live tracking active
-                  </span>
-                </div>
+                        <span className="flex items-center gap-1.5 text-xs text-ink/50 dark:text-white/40">
+                          <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                          Live tracking active
+                        </span>
+                      </div>
 
-                {expandedTracking[order._id] && (
-                  <OrderTrackingTimeline order={order} />
-                )}
+                      {isExpanded && (
+                        <OrderTrackingTimeline order={order} />
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             );
           })}
@@ -546,7 +576,7 @@ const DashboardPage = () => {
         </div>
       </div>
     );
-  }, [addressError, addressForm, addressFormOpen, addressSuccess, addresses, currentTab, deleteAddress, editingAddressId, highlightedOrder, notifications, orders, profile, profileError, profileSaving, profileSuccess, recentlyViewed, saveProfile, savingAddress, updateAddress, wishlist]);
+  };
 
   return (
     <section className="section-shell py-12">
@@ -574,7 +604,7 @@ const DashboardPage = () => {
             );
           })}
         </aside>
-        <div className="glass rounded-[2rem] p-6 shadow-soft">{content}</div>
+        <div className="glass rounded-[2rem] p-6 shadow-soft">{renderContent()}</div>
       </div>
     </section>
   );

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   CheckCircle2,
-  Circle,
   Truck,
   Package,
   Box,
@@ -10,13 +9,15 @@ import {
   Copy,
   Check,
   Clock,
-  AlertCircle
+  AlertCircle,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { shortDate } from "../../utils/format";
 
 const STAGES = [
   { key: "placed", label: "Order Placed", icon: Box },
-  { key: "packed", label: "Processing & Packed", icon: Package },
+  { key: "packed", label: "Packed & Ready", icon: Package },
   { key: "shipped", label: "Shipped", icon: Truck },
   { key: "out_for_delivery", label: "Out for Delivery", icon: MapPin },
   { key: "delivered", label: "Delivered", icon: CheckCircle2 }
@@ -30,7 +31,7 @@ const getStageIndex = (status) => {
 
 export const OrderTrackingTimeline = ({ order }) => {
   const [copied, setCopied] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(true);
 
   if (!order) return null;
 
@@ -57,12 +58,12 @@ export const OrderTrackingTimeline = ({ order }) => {
   const latestNote = timeline.length > 0 ? timeline[timeline.length - 1] : null;
 
   return (
-    <div className="mt-4 rounded-3xl border border-ink/10 bg-white/70 p-6 shadow-soft backdrop-blur-md dark:border-white/10 dark:bg-[#1a1a1a]">
+    <div className="mt-4 rounded-3xl border border-ink/10 bg-white/90 p-6 shadow-soft backdrop-blur-md dark:border-white/10 dark:bg-[#1e1e1e]">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-ink/10 pb-4 dark:border-white/10">
         <div>
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-ink/50 dark:text-white/50">
-            Live Order Tracking
+          <span className="text-[11px] font-bold uppercase tracking-wider text-ink/50 dark:text-white/50">
+            Real-Time Delivery Tracking
           </span>
           <h3 className="font-display text-xl font-semibold text-ink dark:text-white">
             Order #{order.orderNumber}
@@ -75,12 +76,12 @@ export const OrderTrackingTimeline = ({ order }) => {
               <AlertCircle size={14} /> Cancelled
             </span>
           ) : (
-            <span className="inline-flex items-center gap-2 rounded-full bg-olive/10 px-3.5 py-1.5 text-xs font-semibold text-olive dark:bg-white/10 dark:text-white">
+            <span className="inline-flex items-center gap-2 rounded-full bg-ink px-3.5 py-1.5 text-xs font-semibold text-white dark:bg-white dark:text-ink">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-olive opacity-75 dark:bg-white" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-olive dark:bg-white" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75 dark:bg-ink" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-white dark:bg-ink" />
               </span>
-              {STAGES[currentStageIndex]?.label || order.status}
+              {STAGES[currentStageIndex]?.label || order.status?.replace("_", " ")}
             </span>
           )}
         </div>
@@ -89,7 +90,7 @@ export const OrderTrackingTimeline = ({ order }) => {
       {/* Cancelled Alert */}
       {isCancelled ? (
         <div className="mt-6 rounded-2xl bg-red-500/10 p-4 text-center text-sm font-medium text-red-600 dark:text-red-400">
-          This order was cancelled. If you were charged, your refund will be processed within 5-7 business days.
+          This order was cancelled. If payment was deducted, it will be refunded to your original payment method.
         </div>
       ) : (
         /* Progress Stepper */
@@ -101,7 +102,6 @@ export const OrderTrackingTimeline = ({ order }) => {
                 const Icon = stage.icon;
                 const isCompleted = idx < currentStageIndex;
                 const isCurrent = idx === currentStageIndex;
-                const isFuture = idx > currentStageIndex;
                 const stageDate = getStageDate(stage.key);
 
                 return (
@@ -134,7 +134,7 @@ export const OrderTrackingTimeline = ({ order }) => {
                     <p
                       className={`mt-3 text-xs font-semibold ${
                         isCurrent
-                          ? "text-ink dark:text-white"
+                          ? "text-ink font-bold dark:text-white"
                           : isCompleted
                           ? "text-ink/80 dark:text-white/80"
                           : "text-ink/40 dark:text-white/40"
@@ -143,9 +143,13 @@ export const OrderTrackingTimeline = ({ order }) => {
                       {stage.label}
                     </p>
 
-                    {stageDate && (
-                      <span className="mt-0.5 text-[10px] text-ink/50 dark:text-white/40">
+                    {stageDate ? (
+                      <span className="mt-0.5 text-[10px] font-medium text-ink/60 dark:text-white/50">
                         {stageDate}
+                      </span>
+                    ) : (
+                      <span className="mt-0.5 text-[10px] text-ink/25 dark:text-white/25">
+                        {idx <= currentStageIndex ? "Completed" : "Pending"}
                       </span>
                     )}
                   </div>
@@ -175,14 +179,14 @@ export const OrderTrackingTimeline = ({ order }) => {
                     <div className="min-w-0 flex-1">
                       <p
                         className={`text-sm font-semibold ${
-                          isCurrent ? "text-ink dark:text-white" : "text-ink/70 dark:text-white/60"
+                          isCurrent ? "text-ink font-bold dark:text-white" : "text-ink/70 dark:text-white/60"
                         }`}
                       >
                         {stage.label}
                       </p>
-                      {stageDate && (
-                        <p className="text-xs text-ink/40 dark:text-white/40">{stageDate}</p>
-                      )}
+                      <p className="text-xs text-ink/50 dark:text-white/40">
+                        {stageDate || (idx <= currentStageIndex ? "Completed" : "Pending")}
+                      </p>
                     </div>
                   </div>
                 );
@@ -195,15 +199,24 @@ export const OrderTrackingTimeline = ({ order }) => {
       {/* Latest Status Note Banner */}
       {latestNote?.note && !isCancelled && (
         <div className="mt-6 flex items-start gap-3 rounded-2xl bg-ink/5 p-4 dark:bg-white/5">
-          <Clock size={16} className="mt-0.5 shrink-0 text-ink/60 dark:text-white/60" />
+          <Clock size={18} className="mt-0.5 shrink-0 text-ink/70 dark:text-white/70" />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-wider text-ink/50 dark:text-white/40">
-              Latest Update
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-ink/60 dark:text-white/50">
+                Latest Checkpoint Update
+              </p>
+              {latestNote.at && (
+                <span className="text-xs text-ink/50 dark:text-white/40">
+                  {shortDate(latestNote.at)}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-sm font-semibold text-ink dark:text-white">
+              {latestNote.note}
             </p>
-            <p className="text-sm font-medium text-ink dark:text-white">{latestNote.note}</p>
             {latestNote.location && (
-              <p className="mt-1 flex items-center gap-1 text-xs text-ink/60 dark:text-white/60">
-                <MapPin size={12} /> {latestNote.location}
+              <p className="mt-1 flex items-center gap-1 text-xs font-medium text-ink/70 dark:text-white/70">
+                <MapPin size={13} className="text-red-500" /> Current Location: {latestNote.location}
               </p>
             )}
           </div>
@@ -211,31 +224,35 @@ export const OrderTrackingTimeline = ({ order }) => {
       )}
 
       {/* Shipping Details Card */}
-      {(shipping.carrier || shipping.trackingNumber || shipping.estimatedDelivery) && (
-        <div className="mt-6 grid gap-4 rounded-2xl border border-ink/10 bg-white/50 p-4 dark:border-white/10 dark:bg-white/5 sm:grid-cols-3">
+      {(shipping.carrier || shipping.trackingNumber || shipping.estimatedDelivery) ? (
+        <div className="mt-6 grid gap-4 rounded-2xl border border-ink/10 bg-white/60 p-5 dark:border-white/10 dark:bg-white/5 sm:grid-cols-3">
           {shipping.carrier && (
             <div>
-              <p className="text-xs text-ink/50 dark:text-white/40 font-semibold">Courier / Carrier</p>
-              <p className="mt-0.5 text-sm font-semibold text-ink dark:text-white">
-                {shipping.carrier}
+              <p className="text-xs text-ink/50 dark:text-white/40 font-semibold uppercase tracking-wider">
+                Courier / Carrier
+              </p>
+              <p className="mt-1 text-base font-bold text-ink dark:text-white">
+                🚚 {shipping.carrier}
               </p>
             </div>
           )}
 
           {shipping.trackingNumber && (
             <div>
-              <p className="text-xs text-ink/50 dark:text-white/40 font-semibold">Tracking Number (AWB)</p>
-              <div className="mt-0.5 flex items-center gap-2">
-                <span className="font-mono text-sm font-semibold text-ink dark:text-white">
+              <p className="text-xs text-ink/50 dark:text-white/40 font-semibold uppercase tracking-wider">
+                AWB / Tracking Number
+              </p>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="font-mono text-base font-bold text-ink dark:text-white">
                   {shipping.trackingNumber}
                 </span>
                 <button
                   type="button"
                   onClick={() => handleCopy(shipping.trackingNumber)}
                   title="Copy tracking number"
-                  className="rounded p-1 text-ink/50 transition hover:bg-ink/10 hover:text-ink dark:text-white/50 dark:hover:text-white"
+                  className="rounded-lg p-1.5 text-ink/60 transition hover:bg-ink/10 hover:text-ink dark:text-white/60 dark:hover:text-white"
                 >
-                  {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                  {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
                 </button>
               </div>
             </div>
@@ -243,27 +260,35 @@ export const OrderTrackingTimeline = ({ order }) => {
 
           {shipping.estimatedDelivery && (
             <div>
-              <p className="text-xs text-ink/50 dark:text-white/40 font-semibold">Estimated Delivery</p>
-              <p className="mt-0.5 text-sm font-semibold text-ink dark:text-white">
-                {shortDate(shipping.estimatedDelivery)}
+              <p className="text-xs text-ink/50 dark:text-white/40 font-semibold uppercase tracking-wider">
+                Estimated Delivery
+              </p>
+              <p className="mt-1 text-base font-bold text-ink dark:text-white">
+                🗓️ {shortDate(shipping.estimatedDelivery)}
               </p>
             </div>
           )}
 
           {shipping.trackingUrl && (
-            <div className="sm:col-span-3">
+            <div className="sm:col-span-3 pt-2">
               <a
                 href={shipping.trackingUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="btn-primary inline-flex items-center gap-2 text-xs py-2 px-4"
+                className="btn-primary inline-flex items-center gap-2 text-xs py-2 px-5"
               >
-                Track on {shipping.carrier || "Courier"} Website
-                <ExternalLink size={13} />
+                Track Live on {shipping.carrier || "Courier"} Official Website
+                <ExternalLink size={14} />
               </a>
             </div>
           )}
         </div>
+      ) : (
+        (order.status === "shipped" || order.status === "out_for_delivery") && (
+          <div className="mt-6 rounded-2xl border border-dashed border-ink/10 p-4 text-xs text-ink/60 dark:border-white/10 dark:text-white/60">
+            🚚 Package is with courier logistics. Tracking number will be synced shortly.
+          </div>
+        )
       )}
 
       {/* Expandable Activity Log / Audit Trail */}
@@ -272,31 +297,44 @@ export const OrderTrackingTimeline = ({ order }) => {
           <button
             type="button"
             onClick={() => setShowHistory(!showHistory)}
-            className="flex w-full items-center justify-between text-xs font-semibold text-ink/60 transition hover:text-ink dark:text-white/60 dark:hover:text-white"
+            className="flex w-full items-center justify-between text-xs font-bold uppercase tracking-wider text-ink/70 transition hover:text-ink dark:text-white/70 dark:hover:text-white"
           >
-            <span>Activity Log ({timeline.length} updates)</span>
-            <span>{showHistory ? "Hide ▲" : "View Details ▼"}</span>
+            <span>Checkpoint History & Tracking Log ({timeline.length} updates)</span>
+            <span className="flex items-center gap-1 font-semibold text-xs lowercase">
+              {showHistory ? (
+                <>Collapse <ChevronUp size={14} /></>
+              ) : (
+                <>View all <ChevronDown size={14} /></>
+              )}
+            </span>
           </button>
 
           {showHistory && (
             <div className="mt-4 space-y-3 pl-2">
               {[...timeline].reverse().map((event, idx) => (
-                <div key={idx} className="relative flex items-start gap-3 border-l-2 border-ink/20 pl-4 pb-2 dark:border-white/20">
+                <div
+                  key={idx}
+                  className="relative flex items-start gap-3 border-l-2 border-ink/20 pl-4 pb-2 dark:border-white/20"
+                >
                   <div className="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-ink dark:bg-white" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold capitalize text-ink dark:text-white">
-                      {event.status?.replace("_", " ")}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs font-bold capitalize text-ink dark:text-white">
+                        {event.status?.replace("_", " ")}
+                      </p>
+                      <span className="text-[11px] font-medium text-ink/50 dark:text-white/40 shrink-0">
+                        {shortDate(event.at)}
+                      </span>
+                    </div>
+                    <p className="text-xs font-medium text-ink/80 dark:text-white/80 mt-0.5">
+                      {event.note}
                     </p>
-                    <p className="text-xs text-ink/70 dark:text-white/70">{event.note}</p>
                     {event.location && (
-                      <p className="text-[11px] text-ink/50 dark:text-white/50">
+                      <p className="text-[11px] text-ink/60 dark:text-white/60 mt-0.5">
                         📍 {event.location}
                       </p>
                     )}
                   </div>
-                  <span className="text-[10px] text-ink/40 dark:text-white/40 shrink-0">
-                    {shortDate(event.at)}
-                  </span>
                 </div>
               ))}
             </div>
