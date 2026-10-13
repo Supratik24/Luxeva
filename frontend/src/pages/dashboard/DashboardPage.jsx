@@ -1,4 +1,5 @@
 import { Bell, Heart, MapPinHouse, PackageCheck, UserRoundCog, Truck, AlertCircle, CheckCircle2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -447,7 +448,9 @@ const DashboardPage = () => {
                   return (
                     <>
                       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-ink/5 pt-4 dark:border-white/5">
-                        <button
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
                           type="button"
                           onClick={() =>
                             setExpandedTracking((prev) => ({
@@ -457,7 +460,7 @@ const DashboardPage = () => {
                           }
                           className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
                             isExpanded
-                              ? "bg-ink text-white dark:bg-white dark:text-ink"
+                              ? "bg-ink text-white dark:bg-white dark:text-ink shadow-sm"
                               : "border border-ink/10 hover:border-ink/30 dark:border-white/10 dark:hover:border-white/30"
                           }`}
                         >
@@ -471,7 +474,7 @@ const DashboardPage = () => {
                           {isExpanded
                             ? (isCancelled ? "Hide Cancellation Details ▲" : isDelivered ? "Hide Delivery Summary ▲" : "Hide Tracking Stepper ▲")
                             : (isCancelled ? "View Cancellation Details ▼" : isDelivered ? "View Delivery Summary ▼" : "View Live Tracking Stepper ▼")}
-                        </button>
+                        </motion.button>
 
                         {isCancelled ? (
                           <span className="flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400">
@@ -485,15 +488,29 @@ const DashboardPage = () => {
                           </span>
                         ) : (
                           <span className="flex items-center gap-1.5 text-xs text-ink/50 dark:text-white/40">
-                            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                            <span className="relative flex h-2 w-2">
+                              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 animate-ping opacity-75" />
+                              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                            </span>
                             Live tracking active
                           </span>
                         )}
                       </div>
 
-                      {isExpanded && (
-                        <OrderTrackingTimeline order={order} />
-                      )}
+                      <AnimatePresence initial={false}>
+                        {isExpanded && (
+                          <motion.div
+                            key={`tracking-${order._id}`}
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.35, ease: [0.04, 0.62, 0.23, 0.98] }}
+                            className="overflow-hidden"
+                          >
+                            <OrderTrackingTimeline order={order} />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </>
                   );
                 })()}

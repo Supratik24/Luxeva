@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle2,
   Truck,
@@ -177,11 +178,26 @@ export const OrderTrackingTimeline = ({ order }) => {
   const latestNote = timeline.length > 0 ? timeline[timeline.length - 1] : null;
 
   return (
-    <div className="mt-4 rounded-3xl border border-ink/10 bg-white/90 p-6 shadow-soft backdrop-blur-md dark:border-white/10 dark:bg-[#1e1e1e]">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="mt-4 rounded-3xl border border-ink/10 bg-white/90 p-6 shadow-soft backdrop-blur-md dark:border-white/10 dark:bg-[#1e1e1e]"
+    >
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-ink/10 pb-4 dark:border-white/10">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-ink/50 dark:text-white/50">
+          <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/50 dark:text-white/50">
+            {!isCancelled && !isDelivered && (
+              <span className="relative flex h-2 w-2">
+                <motion.span
+                  className="absolute inline-flex h-full w-full rounded-full bg-emerald-400"
+                  animate={{ scale: [1, 2.2], opacity: [0.8, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.6, ease: "easeOut" }}
+                />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+            )}
             {isDelivered ? "Delivery Completed" : isCancelled ? "Order Cancelled" : "Live Delivery Tracking"}
           </span>
           <h3 className="font-display text-xl font-semibold text-ink dark:text-white">
@@ -192,11 +208,14 @@ export const OrderTrackingTimeline = ({ order }) => {
         <div className="flex flex-wrap items-center gap-2">
           {/* Speed Badge (Fastest Delivery or Slightly Delayed) - Never show on cancelled orders */}
           {!isCancelled && speedBadge && (
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${speedBadge.colorClass}`}
+            <motion.span
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 20 }}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${speedBadge.colorClass} shadow-sm`}
             >
               {speedBadge.tag}
-            </span>
+            </motion.span>
           )}
 
           {isCancelled ? (
@@ -204,13 +223,22 @@ export const OrderTrackingTimeline = ({ order }) => {
               <AlertCircle size={14} /> Cancelled
             </span>
           ) : isDelivered ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white dark:bg-emerald-500 dark:text-ink">
+            <motion.span
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 350, damping: 20 }}
+              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white dark:bg-emerald-500 dark:text-ink shadow-sm"
+            >
               <CheckCircle2 size={14} /> Delivered
-            </span>
+            </motion.span>
           ) : (
-            <span className="inline-flex items-center gap-2 rounded-full bg-ink px-3.5 py-1.5 text-xs font-semibold text-white dark:bg-white dark:text-ink">
+            <span className="inline-flex items-center gap-2 rounded-full bg-ink px-3.5 py-1.5 text-xs font-semibold text-white dark:bg-white dark:text-ink shadow-sm">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75 dark:bg-ink" />
+                <motion.span
+                  className="absolute inline-flex h-full w-full rounded-full bg-white opacity-75 dark:bg-ink"
+                  animate={{ scale: [1, 2], opacity: [0.8, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.5, ease: "easeOut" }}
+                />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-white dark:bg-ink" />
               </span>
               {STAGES[currentStageIndex]?.label || order.status?.replace("_", " ")}
@@ -250,28 +278,77 @@ export const OrderTrackingTimeline = ({ order }) => {
                   <div key={stage.key} className="relative flex flex-col items-center text-center">
                     {/* Horizontal Connector Line */}
                     {idx > 0 && (
-                      <div
-                        className={`absolute right-1/2 top-5 -z-0 h-1 w-full -translate-y-1/2 transition-all duration-500 ${
-                          idx <= currentStageIndex
-                            ? "bg-ink dark:bg-white"
-                            : "bg-ink/10 dark:bg-white/10"
-                        }`}
-                      />
+                      <div className="absolute right-1/2 top-5 -z-0 h-1 w-full -translate-y-1/2 bg-ink/10 dark:bg-white/10 overflow-hidden rounded-full">
+                        <motion.div
+                          className="h-full bg-ink dark:bg-white rounded-full"
+                          initial={{ scaleX: 0 }}
+                          animate={{ scaleX: idx <= currentStageIndex ? 1 : 0 }}
+                          style={{ originX: 0 }}
+                          transition={{ duration: 0.5, delay: (idx - 1) * 0.1, ease: "easeOut" }}
+                        />
+                        {/* Animated traveling light particle on active in-transit segment */}
+                        {idx === currentStageIndex && !isDelivered && (
+                          <motion.div
+                            className="absolute top-0 bottom-0 w-8 bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-ink/80"
+                            animate={{ left: ["-20%", "120%"] }}
+                            transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
+                          />
+                        )}
+                      </div>
                     )}
 
                     {/* Step Icon Node */}
-                    <div
-                      className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ${
-                        isCompleted
-                          ? "bg-ink text-white shadow-md dark:bg-white dark:text-ink"
-                          : isCurrent
-                          ? (isDelivered
-                              ? "bg-emerald-600 text-white ring-4 ring-emerald-500/20 shadow-lg dark:bg-emerald-500 dark:text-ink"
-                              : "bg-ink text-white ring-4 ring-ink/20 shadow-lg dark:bg-white dark:text-ink dark:ring-white/30")
-                          : "border-2 border-ink/20 bg-white text-ink/30 dark:border-white/20 dark:bg-[#1a1a1a] dark:text-white/30"
-                      }`}
-                    >
-                      <Icon size={18} />
+                    <div className="relative">
+                      {/* Live Radar Ripple Ring for Current Active Stage */}
+                      {isCurrent && !isDelivered && (
+                        <motion.span
+                          className="absolute -inset-2 rounded-full border-2 border-ink dark:border-white opacity-40 pointer-events-none"
+                          animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
+                          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                        />
+                      )}
+
+                      {/* Delivered celebration soft glow */}
+                      {isCurrent && isDelivered && (
+                        <motion.span
+                          className="absolute -inset-1.5 rounded-full bg-emerald-500/25 blur-sm pointer-events-none"
+                          animate={{ scale: [1, 1.25, 1], opacity: [0.3, 0.7, 0.3] }}
+                          transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+                        />
+                      )}
+
+                      <motion.div
+                        className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-300 ${
+                          isCompleted
+                            ? "bg-ink text-white shadow-md dark:bg-white dark:text-ink"
+                            : isCurrent
+                            ? (isDelivered
+                                ? "bg-emerald-600 text-white ring-4 ring-emerald-500/20 shadow-lg dark:bg-emerald-500 dark:text-ink"
+                                : "bg-ink text-white ring-4 ring-ink/20 shadow-lg dark:bg-white dark:text-ink dark:ring-white/30")
+                            : "border-2 border-ink/20 bg-white text-ink/30 dark:border-white/20 dark:bg-[#1a1a1a] dark:text-white/30"
+                        }`}
+                        initial={{ scale: 0.85, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.35, delay: idx * 0.08 }}
+                        whileHover={{ scale: 1.12 }}
+                      >
+                        <motion.div
+                          animate={
+                            isCurrent && !isDelivered
+                              ? { y: [0, -2, 0] }
+                              : isCurrent && isDelivered
+                              ? { scale: [1, 1.15, 1] }
+                              : {}
+                          }
+                          transition={
+                            isCurrent && !isDelivered
+                              ? { repeat: Infinity, duration: 2, ease: "easeInOut" }
+                              : { duration: 0.6 }
+                          }
+                        >
+                          <Icon size={18} />
+                        </motion.div>
+                      </motion.div>
                     </div>
 
                     {/* Stage Label & Date */}
@@ -311,16 +388,28 @@ export const OrderTrackingTimeline = ({ order }) => {
 
                 return (
                   <div key={stage.key} className="flex items-start gap-3">
-                    <div
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                        isCompleted || isCurrent
-                          ? (isDelivered && isCurrent
-                              ? "bg-emerald-600 text-white dark:bg-emerald-500 dark:text-ink"
-                              : "bg-ink text-white dark:bg-white dark:text-ink")
-                          : "border border-ink/20 text-ink/30 dark:border-white/20 dark:text-white/30"
-                      }`}
-                    >
-                      <Icon size={15} />
+                    <div className="relative">
+                      {isCurrent && !isDelivered && (
+                        <motion.span
+                          className="absolute -inset-1.5 rounded-full border-2 border-ink dark:border-white opacity-40 pointer-events-none"
+                          animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
+                          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                        />
+                      )}
+                      <motion.div
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                          isCompleted || isCurrent
+                            ? (isDelivered && isCurrent
+                                ? "bg-emerald-600 text-white dark:bg-emerald-500 dark:text-ink"
+                                : "bg-ink text-white dark:bg-white dark:text-ink")
+                            : "border border-ink/20 text-ink/30 dark:border-white/20 dark:text-white/30"
+                        }`}
+                        initial={{ scale: 0.8 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: idx * 0.05 }}
+                      >
+                        <Icon size={15} />
+                      </motion.div>
                     </div>
                     <div className="min-w-0 flex-1">
                       <p
@@ -344,11 +433,22 @@ export const OrderTrackingTimeline = ({ order }) => {
 
       {/* Latest Status Note Banner */}
       {latestNote?.note && !isCancelled && (
-        <div className="mt-6 flex items-start gap-3 rounded-2xl bg-ink/5 p-4 dark:bg-white/5">
-          <Clock size={18} className="mt-0.5 shrink-0 text-ink/70 dark:text-white/70" />
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="mt-6 flex items-start gap-3 rounded-2xl bg-ink/5 p-4 dark:bg-white/5 border border-ink/5 dark:border-white/5"
+        >
+          <motion.div
+            animate={{ rotate: [0, 8, -8, 0] }}
+            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+          >
+            <Clock size={18} className="mt-0.5 shrink-0 text-ink/70 dark:text-white/70" />
+          </motion.div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-ink/60 dark:text-white/50">
+              <p className="text-xs font-bold uppercase tracking-wider text-ink/60 dark:text-white/50 flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Latest Checkpoint Update
               </p>
               {latestNote.at && (
@@ -361,12 +461,18 @@ export const OrderTrackingTimeline = ({ order }) => {
               {cleanCustomerNote(latestNote.note, latestNote.status || order.status)}
             </p>
             {latestNote.location && (
-              <p className="mt-1 flex items-center gap-1 text-xs font-medium text-ink/70 dark:text-white/70">
-                <MapPin size={13} className="text-red-500" /> Current Location: {latestNote.location}
+              <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-ink/70 dark:text-white/70">
+                <motion.span
+                  animate={{ y: [0, -2, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                >
+                  <MapPin size={13} className="text-red-500" />
+                </motion.span>
+                Current Location: <span className="font-semibold text-ink dark:text-white">{latestNote.location}</span>
               </p>
             )}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Shipping Details Card */}
@@ -480,39 +586,50 @@ export const OrderTrackingTimeline = ({ order }) => {
             </span>
           </button>
 
-          {showHistory && (
-            <div className="mt-4 space-y-3 pl-2">
-              {[...timeline].reverse().map((event, idx) => (
-                <div
-                  key={idx}
-                  className="relative flex items-start gap-3 border-l-2 border-ink/20 pl-4 pb-2 dark:border-white/20"
-                >
-                  <div className="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-ink dark:bg-white" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-xs font-bold capitalize text-ink dark:text-white">
-                        {event.status?.replace("_", " ")}
+          <AnimatePresence>
+            {showHistory && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="mt-4 space-y-3 pl-2 overflow-hidden"
+              >
+                {[...timeline].reverse().map((event, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.04 }}
+                    className="relative flex items-start gap-3 border-l-2 border-ink/20 pl-4 pb-2 dark:border-white/20"
+                  >
+                    <div className="absolute -left-[5px] top-1.5 h-2 w-2 rounded-full bg-ink dark:bg-white" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs font-bold capitalize text-ink dark:text-white">
+                          {event.status?.replace("_", " ")}
+                        </p>
+                        <span className="text-[11px] font-medium text-ink/50 dark:text-white/40 shrink-0">
+                          {shortDate(event.at)}
+                        </span>
+                      </div>
+                      <p className="text-xs font-medium text-ink/80 dark:text-white/80 mt-0.5">
+                        {cleanCustomerNote(event.note, event.status)}
                       </p>
-                      <span className="text-[11px] font-medium text-ink/50 dark:text-white/40 shrink-0">
-                        {shortDate(event.at)}
-                      </span>
+                      {event.location && (
+                        <p className="text-[11px] text-ink/60 dark:text-white/60 mt-0.5">
+                          📍 {event.location}
+                        </p>
+                      )}
                     </div>
-                    <p className="text-xs font-medium text-ink/80 dark:text-white/80 mt-0.5">
-                      {cleanCustomerNote(event.note, event.status)}
-                    </p>
-                    {event.location && (
-                      <p className="text-[11px] text-ink/60 dark:text-white/60 mt-0.5">
-                        📍 {event.location}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };
 
