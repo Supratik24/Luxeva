@@ -32,6 +32,7 @@ const timelineSchema = new mongoose.Schema(
   {
     status: String,
     note: String,
+    location: String,
     at: { type: Date, default: Date.now }
   },
   { _id: false }
@@ -55,8 +56,14 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["placed", "packed", "shipped", "delivered", "cancelled"],
+      enum: ["placed", "packed", "shipped", "out_for_delivery", "delivered", "cancelled"],
       default: "placed"
+    },
+    shipping: {
+      carrier: { type: String, default: "" },
+      trackingNumber: { type: String, default: "" },
+      trackingUrl: { type: String, default: "" },
+      estimatedDelivery: { type: Date }
     },
     timeline: [timelineSchema],
     subtotal: Number,

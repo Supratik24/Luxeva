@@ -20,6 +20,7 @@
     "react-hot-toast": "^2.5.1",
     "react-router-dom": "^6.28.1",
     "recharts": "^2.15.0",
+    "socket.io-client": "^4.8.4",
     "swiper": "^12.1.4"
   },
   "devDependencies": {

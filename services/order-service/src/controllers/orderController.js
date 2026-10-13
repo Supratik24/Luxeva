@@ -8,6 +8,7 @@ import {
 } from "@luxeva/shared";
 import Cart from "../models/Cart.js";
 import Order from "../models/Order.js";
+import { emitOrderUpdate } from "../socket.js";
 
 const fallbackCarts = new Map();
 const fallbackOrders = [];
@@ -346,19 +347,35 @@ export const getAllOrders = asyncHandler(async (req, res) => {
 });
 
 export const updateOrderStatus = asyncHandler(async (req, res) => {
+  const { status, note, location, carrier, trackingNumber, trackingUrl, estimatedDelivery } = req.body;
+
   if (isOrderFallbackMode()) {
     const order = fallbackOrders.find((entry) => entry._id === req.params.id);
     if (!order) {
       throw new ApiError(404, "Order not found");
     }
 
-    order.status = req.body.status;
+    if (status) order.status = status;
     order.updatedAt = new Date().toISOString();
+    if (!order.timeline) order.timeline = [];
     order.timeline.push({
-      status: req.body.status,
-      note: req.body.note || `Order marked as ${req.body.status}`
+      status: status || order.status,
+      note: note || `Order marked as ${status || order.status}`,
+      location: location || "",
+      at: new Date()
     });
 
+    if (carrier || trackingNumber || trackingUrl || estimatedDelivery) {
+      order.shipping = {
+        ...order.shipping,
+        ...(carrier !== undefined ? { carrier } : {}),
+        ...(trackingNumber !== undefined ? { trackingNumber } : {}),
+        ...(trackingUrl !== undefined ? { trackingUrl } : {}),
+        ...(estimatedDelivery !== undefined ? { estimatedDelivery } : {})
+      };
+    }
+
+    emitOrderUpdate(order);
     sendSuccess(res, 200, "Order status updated successfully", { order });
     return;
   }
@@ -368,12 +385,26 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Order not found");
   }
 
-  order.status = req.body.status;
+  if (status) order.status = status;
   order.timeline.push({
-    status: req.body.status,
-    note: req.body.note || `Order marked as ${req.body.status}`
+    status: status || order.status,
+    note: note || `Order marked as ${status || order.status}`,
+    location: location || "",
+    at: new Date()
   });
+
+  if (carrier || trackingNumber || trackingUrl || estimatedDelivery) {
+    order.shipping = {
+      carrier: carrier !== undefined ? carrier : order.shipping?.carrier,
+      trackingNumber: trackingNumber !== undefined ? trackingNumber : order.shipping?.trackingNumber,
+      trackingUrl: trackingUrl !== undefined ? trackingUrl : order.shipping?.trackingUrl,
+      estimatedDelivery: estimatedDelivery !== undefined ? estimatedDelivery : order.shipping?.estimatedDelivery
+    };
+  }
+
   await order.save();
+
+  emitOrderUpdate(order);
 
   await publishEvent("orders.events", {
     type: "order.updated",
@@ -382,6 +413,17 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     userId: String(order.userId),
     status: order.status
   });
+
+  try {
+    const notifBase = process.env.NOTIFICATION_SERVICE_URL || "http://localhost:4005";
+    await axios.post(`${notifBase}/api/notifications`, {
+      userId: order.userId,
+      type: "order_update",
+      title: `Order ${order.orderNumber} ${order.status}`,
+      message: note || `Your order status has been updated to "${order.status}".`,
+      metadata: { orderId: order._id, orderNumber: order.orderNumber, status: order.status }
+    });
+  } catch {}
 
   sendSuccess(res, 200, "Order status updated successfully", { order });
 });

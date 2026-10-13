@@ -1,8 +1,11 @@
-import { Bell, Heart, MapPinHouse, PackageCheck, UserRoundCog } from "lucide-react";
+import { Bell, Heart, MapPinHouse, PackageCheck, UserRoundCog, Truck } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import Meta from "../../components/ui/Meta";
 import ProductCard from "../../components/ui/ProductCard";
+import OrderTrackingTimeline from "../../components/orders/OrderTrackingTimeline";
+import useOrderSocket from "../../hooks/useOrderSocket";
 import { mockProducts, useLocalPreviewData } from "../../data/mockStorefront";
 import { useAuth } from "../../contexts/AuthContext";
 import { useShop } from "../../contexts/ShopContext";
@@ -80,6 +83,29 @@ const DashboardPage = () => {
 
   const currentTab = searchParams.get("tab") || "profile";
   const highlightedOrder = searchParams.get("highlight") || "";
+  const [expandedTracking, setExpandedTracking] = useState({});
+
+  useOrderSocket({
+    onUpdate: (data) => {
+      if (!data?.orderId) return;
+      setOrders((prev) =>
+        prev.map((order) =>
+          order._id === data.orderId
+            ? {
+                ...order,
+                status: data.status,
+                timeline: data.timeline || order.timeline,
+                shipping: data.shipping || order.shipping
+              }
+            : order
+        )
+      );
+      toast.success(`Order #${data.orderNumber} is now "${data.status?.replace("_", " ")}"`, {
+        icon: "🚚",
+        duration: 4500
+      });
+    }
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -334,6 +360,35 @@ const DashboardPage = () => {
                     <p className="font-semibold">{currency(order.total)}</p>
                   </div>
                 </div>
+
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-ink/5 pt-4 dark:border-white/5">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedTracking((prev) => ({
+                        ...prev,
+                        [order._id]: !prev[order._id]
+                      }))
+                    }
+                    className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
+                      expandedTracking[order._id]
+                        ? "bg-ink text-white dark:bg-white dark:text-ink"
+                        : "border border-ink/10 hover:border-ink/30 dark:border-white/10 dark:hover:border-white/30"
+                    }`}
+                  >
+                    <Truck size={14} />
+                    {expandedTracking[order._id] ? "Hide Live Tracking" : "Track Order (Live)"}
+                  </button>
+
+                  <span className="flex items-center gap-1.5 text-xs text-ink/50 dark:text-white/40">
+                    <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                    Live tracking active
+                  </span>
+                </div>
+
+                {expandedTracking[order._id] && (
+                  <OrderTrackingTimeline order={order} />
+                )}
               </div>
             );
           })}
