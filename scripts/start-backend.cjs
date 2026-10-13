@@ -7,7 +7,7 @@ const internalServiceUrls = {
   CATALOG_SERVICE_URL: "http://127.0.0.1:4002",
   ORDER_SERVICE_URL: "http://127.0.0.1:4003",
   CONTENT_SERVICE_URL: "http://127.0.0.1:4004",
-  NOTIFICATION_SERVICE_URL: "http://127.0.0.1:4005"
+  NOTIFICATION_SERVICE_URL: "http://127.0.0.1:4006"
 };
 
 const services = [
@@ -34,7 +34,7 @@ const services = [
   {
     name: "notification-service",
     workspace: "services/notification-service",
-    port: "4005"
+    port: "4006"
   },
   {
     name: "api-gateway",

@@ -59,7 +59,7 @@ app.use(
 app.use(
   "/api/notifications",
   createProxyMiddleware(
-    proxyConfig(normalizeServiceUrl(process.env.NOTIFICATION_SERVICE_URL, "localhost:4005"), "/api/notifications")
+    proxyConfig(normalizeServiceUrl(process.env.NOTIFICATION_SERVICE_URL, "localhost:4006"), "/api/notifications")
   )
 );
 

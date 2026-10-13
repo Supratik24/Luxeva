@@ -488,12 +488,22 @@ export const uploadProductImages = asyncHandler(async (req, res) => {
 });
 
 export const getLowStockProducts = asyncHandler(async (req, res) => {
-  const products = await Product.find({ stock: { $lte: 10 } })
-    .select("name slug stock sku")
-    .sort({ stock: 1 })
-    .limit(12);
+  const threshold = Number(req.query.threshold) || 10;
+  const [products, totalProducts, lowStockCount] = await Promise.all([
+    Product.find({ stock: { $lte: threshold } })
+      .select("name slug stock sku price images")
+      .sort({ stock: 1 })
+      .limit(12),
+    Product.countDocuments(),
+    Product.countDocuments({ stock: { $lte: threshold } })
+  ]);
 
-  sendSuccess(res, 200, "Low stock products fetched successfully", { products });
+  sendSuccess(res, 200, "Low stock products fetched successfully", {
+    products,
+    totalProducts,
+    lowStockCount,
+    threshold
+  });
 });
 
 // ─── Cloudinary Media Library ─────────────────────────────────────────────────

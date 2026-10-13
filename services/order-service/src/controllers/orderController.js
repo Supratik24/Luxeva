@@ -708,29 +708,57 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, "Order status updated successfully", { order });
 });
 
+const buildMonthlySalesSeries = (orderList = []) => {
+  const result = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    result.push({
+      month: d.toLocaleString("en-US", { month: "short" }),
+      year: d.getFullYear(),
+      sales: 0,
+      orders: 0
+    });
+  }
+
+  (orderList || []).forEach((order) => {
+    if (order.status === "cancelled") return;
+    const d = new Date(order.createdAt || Date.now());
+    const m = d.toLocaleString("en-US", { month: "short" });
+    const y = d.getFullYear();
+    const entry = result.find((item) => item.month === m && item.year === y);
+    if (entry) {
+      entry.sales = Number((entry.sales + (order.total || 0)).toFixed(2));
+      entry.orders += 1;
+    }
+  });
+
+  return result.map(({ month, sales, orders }) => ({ month, sales, orders }));
+};
+
 export const getAnalytics = asyncHandler(async (req, res) => {
   if (isOrderFallbackMode()) {
-    const revenue = fallbackOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+    const validOrders = fallbackOrders.filter((o) => o.status !== "cancelled");
+    const revenue = Number(validOrders.reduce((sum, order) => sum + (order.total || 0), 0).toFixed(2));
     const statusBreakdown = fallbackOrders.reduce((acc, order) => {
       acc[order.status] = (acc[order.status] || 0) + 1;
       return acc;
     }, {});
-    const monthlySales = fallbackOrders.reduce((acc, order) => {
-      const key = new Date(order.createdAt).toLocaleString("en-US", { month: "short" });
-      const existing = acc.find((entry) => entry.month === key);
-      if (existing) {
-        existing.sales += order.total;
-      } else {
-        acc.push({ month: key, sales: order.total });
-      }
-      return acc;
-    }, []);
+    const activeOrders = fallbackOrders.filter((o) =>
+      ["placed", "packed", "shipped", "out_for_delivery"].includes(o.status)
+    ).length;
+    const deliveredOrders = fallbackOrders.filter((o) => o.status === "delivered").length;
+    const cancelledOrders = fallbackOrders.filter((o) => o.status === "cancelled").length;
+    const monthlySales = buildMonthlySalesSeries(fallbackOrders);
 
     sendSuccess(res, 200, "Analytics fetched successfully", {
       analytics: {
         revenue,
         orders: fallbackOrders.length,
-        averageOrderValue: fallbackOrders.length ? Number((revenue / fallbackOrders.length).toFixed(2)) : 0,
+        activeOrders,
+        deliveredOrders,
+        cancelledOrders,
+        averageOrderValue: validOrders.length ? Number((revenue / validOrders.length).toFixed(2)) : 0,
         statusBreakdown,
         monthlySales
       }
@@ -742,6 +770,9 @@ export const getAnalytics = asyncHandler(async (req, res) => {
     Order.find().sort({ createdAt: -1 }),
     Order.aggregate([
       {
+        $match: { status: { $ne: "cancelled" } }
+      },
+      {
         $group: {
           _id: null,
           revenue: { $sum: "$total" },
@@ -752,29 +783,29 @@ export const getAnalytics = asyncHandler(async (req, res) => {
   ]);
 
   const current = revenueAgg[0] || { revenue: 0, orders: 0 };
+  const validOrdersCount = current.orders || 0;
+  const totalRevenue = Number((current.revenue || 0).toFixed(2));
+
   const statusBreakdown = orders.reduce((acc, order) => {
     acc[order.status] = (acc[order.status] || 0) + 1;
     return acc;
   }, {});
 
-  const monthlySales = orders.reduce((acc, order) => {
-    const key = new Date(order.createdAt).toLocaleString("en-US", {
-      month: "short"
-    });
-    const existing = acc.find((entry) => entry.month === key);
-    if (existing) {
-      existing.sales += order.total;
-    } else {
-      acc.push({ month: key, sales: order.total });
-    }
-    return acc;
-  }, []);
+  const activeOrders = orders.filter((o) =>
+    ["placed", "packed", "shipped", "out_for_delivery"].includes(o.status)
+  ).length;
+  const deliveredOrders = orders.filter((o) => o.status === "delivered").length;
+  const cancelledOrders = orders.filter((o) => o.status === "cancelled").length;
+  const monthlySales = buildMonthlySalesSeries(orders);
 
   sendSuccess(res, 200, "Analytics fetched successfully", {
     analytics: {
-      revenue: current.revenue,
-      orders: current.orders,
-      averageOrderValue: current.orders ? Number((current.revenue / current.orders).toFixed(2)) : 0,
+      revenue: totalRevenue,
+      orders: orders.length,
+      activeOrders,
+      deliveredOrders,
+      cancelledOrders,
+      averageOrderValue: validOrdersCount ? Number((totalRevenue / validOrdersCount).toFixed(2)) : 0,
       statusBreakdown,
       monthlySales
     }
