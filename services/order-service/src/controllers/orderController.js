@@ -190,6 +190,83 @@ export const verifyRazorpayPayment = asyncHandler(async (req, res) => {
   });
 });
 
+const defaultStatusNotes = {
+  placed: "Order placed successfully",
+  packed: "Order packed and prepared for shipment",
+  shipped: "Package handed over to courier and in transit",
+  out_for_delivery: "Package is out for delivery",
+  delivered: "Package delivered successfully",
+  cancelled: "Order cancelled — any deducted amount will be refunded to your original payment method"
+};
+
+const getMilestoneNotification = (order, status, customNote) => {
+  const statusKey = String(status || order.status || "").toLowerCase().replace(/-/g, "_");
+  const templates = {
+    placed: {
+      title: `Order Placed: #${order.orderNumber}`,
+      message: `Your order #${order.orderNumber} has been placed successfully and is being prepared.`
+    },
+    packed: {
+      title: `Order Packed: #${order.orderNumber}`,
+      message: `Your package for order #${order.orderNumber} is packed and ready for dispatch.`
+    },
+    shipped: {
+      title: `Order Shipped: #${order.orderNumber}`,
+      message: `Your package for order #${order.orderNumber} is on the way.`
+    },
+    out_for_delivery: {
+      title: `Out for Delivery: #${order.orderNumber}`,
+      message: `Your order #${order.orderNumber} is out for delivery and will reach you shortly.`
+    },
+    delivered: {
+      title: `Order Delivered: #${order.orderNumber}`,
+      message: `Your package for order #${order.orderNumber} has been delivered successfully. Thank you for shopping with Luxeva!`
+    },
+    cancelled: {
+      title: `Order Cancelled: #${order.orderNumber}`,
+      message: `Order #${order.orderNumber} was cancelled. Any deducted amount will be refunded to your original payment method.`
+    }
+  };
+
+  const template = templates[statusKey] || {
+    title: `Order Update: #${order.orderNumber}`,
+    message: customNote || `Your order status has been updated to "${statusKey.replace(/_/g, " ")}".`
+  };
+
+  return {
+    _id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    userId: String(order.userId),
+    type: "order_milestone",
+    milestone: statusKey,
+    title: template.title,
+    message: template.message,
+    link: `/dashboard?tab=orders&highlight=${order._id}`,
+    metadata: {
+      orderId: String(order._id),
+      orderNumber: order.orderNumber,
+      status: statusKey
+    },
+    read: false,
+    createdAt: new Date().toISOString()
+  };
+};
+
+const dispatchMilestoneNotification = async (order, milestoneNotification) => {
+  emitOrderUpdate(order, milestoneNotification);
+
+  try {
+    const notifBase = process.env.NOTIFICATION_SERVICE_URL || "http://localhost:4005";
+    await axios.post(`${notifBase}/api/notifications`, {
+      userId: order.userId,
+      type: milestoneNotification.type,
+      title: milestoneNotification.title,
+      message: milestoneNotification.message,
+      link: milestoneNotification.link,
+      metadata: milestoneNotification.metadata
+    });
+  } catch {}
+};
+
 export const createOrder = asyncHandler(async (req, res) => {
   const items = (req.body.items || []).map(normalizeOrderItem);
   if (!items.length) {
@@ -249,6 +326,9 @@ export const createOrder = asyncHandler(async (req, res) => {
       coupon: null
     });
 
+    const milestoneNotification = getMilestoneNotification(order, "placed");
+    await dispatchMilestoneNotification(order, milestoneNotification);
+
     sendSuccess(res, 201, "Order placed successfully", { order });
     return;
   }
@@ -287,6 +367,9 @@ export const createOrder = asyncHandler(async (req, res) => {
     { userId: req.user.id },
     { items: [], subtotal: 0, tax: 0, shippingFee: 0, total: 0, coupon: null }
   );
+
+  const milestoneNotification = getMilestoneNotification(order, "placed");
+  await dispatchMilestoneNotification(order, milestoneNotification);
 
   await publishEvent("orders.events", {
     type: "order.created",
@@ -349,15 +432,6 @@ export const getAllOrders = asyncHandler(async (req, res) => {
 export const updateOrderStatus = asyncHandler(async (req, res) => {
   const { status, note, location, carrier, trackingNumber, trackingUrl, estimatedDelivery } = req.body || {};
 
-  const defaultStatusNotes = {
-    placed: "Order placed successfully",
-    packed: "Order packed and prepared for shipment",
-    shipped: "Package handed over to courier and in transit",
-    out_for_delivery: "Package is out for delivery",
-    delivered: "Package delivered successfully",
-    cancelled: "Order cancelled — any deducted amount will be refunded to your original payment method"
-  };
-
   const statusKey = String(status || "").toLowerCase().replace("-", "_");
   const cleanNote = note && !note.toLowerCase().includes("by admin")
     ? note
@@ -389,7 +463,9 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
       };
     }
 
-    emitOrderUpdate(order);
+    const milestoneNotification = getMilestoneNotification(order, status || order.status, cleanNote);
+    await dispatchMilestoneNotification(order, milestoneNotification);
+
     sendSuccess(res, 200, "Order status updated successfully", { order });
     return;
   }
@@ -418,7 +494,8 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 
   await order.save();
 
-  emitOrderUpdate(order);
+  const milestoneNotification = getMilestoneNotification(order, status || order.status, cleanNote);
+  await dispatchMilestoneNotification(order, milestoneNotification);
 
   await publishEvent("orders.events", {
     type: "order.updated",
@@ -427,17 +504,6 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     userId: String(order.userId),
     status: order.status
   });
-
-  try {
-    const notifBase = process.env.NOTIFICATION_SERVICE_URL || "http://localhost:4005";
-    await axios.post(`${notifBase}/api/notifications`, {
-      userId: order.userId,
-      type: "order_update",
-      title: `Order ${order.orderNumber} ${order.status}`,
-      message: note || `Your order status has been updated to "${order.status}".`,
-      metadata: { orderId: order._id, orderNumber: order.orderNumber, status: order.status }
-    });
-  } catch {}
 
   sendSuccess(res, 200, "Order status updated successfully", { order });
 });

@@ -4,11 +4,17 @@ import { useAuth } from "../contexts/AuthContext";
 
 const SOCKET_URL = import.meta.env.VITE_ORDER_SOCKET_URL || "http://localhost:4003";
 
-export const useOrderSocket = ({ orderId = null, onUpdate = null } = {}) => {
+export const useOrderSocket = ({ orderId = null, onUpdate = null, onNotification = null } = {}) => {
   const { user } = useAuth();
   const socketRef = useRef(null);
   const [connected, setConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
+
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+
+  const onNotificationRef = useRef(onNotification);
+  onNotificationRef.current = onNotification;
 
   useEffect(() => {
     const socket = io(SOCKET_URL, {
@@ -36,8 +42,17 @@ export const useOrderSocket = ({ orderId = null, onUpdate = null } = {}) => {
 
     socket.on("order:updated", (data) => {
       setLastUpdate(data);
-      if (typeof onUpdate === "function") {
-        onUpdate(data);
+      if (typeof onUpdateRef.current === "function") {
+        onUpdateRef.current(data);
+      }
+      if (data?.notification && typeof onNotificationRef.current === "function") {
+        onNotificationRef.current(data.notification);
+      }
+    });
+
+    socket.on("notification:new", (notif) => {
+      if (typeof onNotificationRef.current === "function") {
+        onNotificationRef.current(notif);
       }
     });
 
@@ -57,3 +72,4 @@ export const useOrderSocket = ({ orderId = null, onUpdate = null } = {}) => {
 };
 
 export default useOrderSocket;
+

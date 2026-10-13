@@ -7,6 +7,7 @@ const notificationSchema = new mongoose.Schema(
     title: { type: String, required: true },
     message: { type: String, required: true },
     link: String,
+    metadata: { type: mongoose.Schema.Types.Mixed },
     read: { type: Boolean, default: false }
   },
   { timestamps: true }

@@ -43,7 +43,7 @@ export const initSocketServer = (httpServer) => {
   return io;
 };
 
-export const emitOrderUpdate = (order) => {
+export const emitOrderUpdate = (order, notification = null) => {
   if (!io) return;
 
   const payload = {
@@ -54,16 +54,23 @@ export const emitOrderUpdate = (order) => {
     shipping: order.shipping,
     timeline: order.timeline,
     updatedAt: order.updatedAt,
+    notification,
     order
   };
 
   // Emit to the specific user's room
   if (order.userId) {
     io.to(`user:${order.userId}`).emit("order:updated", payload);
+    if (notification) {
+      io.to(`user:${order.userId}`).emit("notification:new", notification);
+    }
   }
 
   // Emit to the specific order's tracking room
   io.to(`order:${order._id}`).emit("order:updated", payload);
+  if (notification) {
+    io.to(`order:${order._id}`).emit("notification:new", notification);
+  }
 
   // Emit to admin orders room
   io.to("admin:orders").emit("order:updated", payload);

@@ -71,6 +71,7 @@ export const endpoints = {
   notifications: {
     mine: "/api/notifications/mine",
     markRead: (id) => `/api/notifications/mine/${id}/read`,
+    markAllRead: "/api/notifications/mine/read-all",
     admin: "/api/notifications/admin/all"
   }
 };

@@ -1,6 +1,6 @@
-import { Bell, Heart, MapPinHouse, PackageCheck, UserRoundCog, Truck, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Bell, Heart, MapPinHouse, PackageCheck, UserRoundCog, Truck, AlertCircle, CheckCircle2, Check, CheckCheck, BellRing, BellOff, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import Meta from "../../components/ui/Meta";
@@ -62,6 +62,24 @@ const getVisibleOrderItems = (order) => {
   ];
 };
 
+const formatTimeAgo = (dateStr) => {
+  if (!dateStr) return "";
+  try {
+    const diff = Math.floor((new Date() - new Date(dateStr)) / 1000);
+    if (diff < 60) return "Just now";
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return new Date(dateStr).toLocaleDateString("en-IN", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  } catch {
+    return "";
+  }
+};
+
 const DashboardPage = () => {
   const { user, updateProfile: saveProfile, addAddress, updateAddress, deleteAddress } = useAuth();
   const { wishlist, recentlyViewed } = useShop();
@@ -86,6 +104,89 @@ const DashboardPage = () => {
   const highlightedOrder = searchParams.get("highlight") || "";
   const [expandedTracking, setExpandedTracking] = useState({});
 
+  const lastPushedNotifRef = useRef(new Set());
+  const [notificationPermission, setNotificationPermission] = useState(
+    typeof window !== "undefined" && "Notification" in window ? Notification.permission : "unsupported"
+  );
+
+  const handleMilestoneNotification = useCallback((notif) => {
+    if (!notif) return;
+    const dedupeKey = notif._id || `${notif.title}_${notif.createdAt}`;
+    if (lastPushedNotifRef.current.has(dedupeKey)) return;
+    lastPushedNotifRef.current.add(dedupeKey);
+
+    setNotifications((prev) => {
+      if (prev.some((n) => n._id === notif._id || (n.createdAt === notif.createdAt && n.title === notif.title))) {
+        return prev;
+      }
+      return [notif, ...prev];
+    });
+
+    const milestone = notif.milestone || notif.metadata?.status;
+    const milestoneIcons = {
+      placed: "🎉",
+      packed: "📦",
+      shipped: "🚚",
+      out_for_delivery: "🛵",
+      delivered: "✨",
+      cancelled: "⚠️"
+    };
+    const icon = milestoneIcons[milestone] || "🔔";
+
+    toast(
+      (t) => (
+        <div
+          onClick={() => {
+            toast.dismiss(t.id);
+            if (notif.link) {
+              const url = new URL(notif.link, window.location.origin);
+              const orderHighlight = url.searchParams.get("highlight");
+              if (orderHighlight) {
+                setExpandedTracking((prev) => ({ ...prev, [orderHighlight]: true }));
+                setSearchParams({ tab: "orders", highlight: orderHighlight });
+              } else {
+                setSearchParams({ tab: "orders" });
+              }
+            } else {
+              setSearchParams({ tab: "orders" });
+            }
+          }}
+          className="cursor-pointer space-y-1.5"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-xl">{icon}</span>
+            <span className="font-semibold text-sm">{notif.title}</span>
+          </div>
+          <p className="text-xs text-ink/70 dark:text-white/70 line-clamp-2">{notif.message}</p>
+          <div className="flex items-center gap-1 text-[11px] font-bold text-olive uppercase tracking-wider pt-0.5">
+            <span>View order tracking</span>
+            <span>→</span>
+          </div>
+        </div>
+      ),
+      {
+        duration: 6500,
+        position: "top-right",
+        style: {
+          borderRadius: "1rem",
+          background: "#121214",
+          color: "#fff",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
+          boxShadow: "0 12px 30px -4px rgba(0, 0, 0, 0.45)"
+        }
+      }
+    );
+
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+      try {
+        new Notification(notif.title, {
+          body: notif.message,
+          icon: "/favicon.ico"
+        });
+      } catch {}
+    }
+  }, [setSearchParams]);
+
   useOrderSocket({
     onUpdate: (data) => {
       if (!data?.orderId) return;
@@ -101,12 +202,70 @@ const DashboardPage = () => {
             : order
         )
       );
-      toast.success(`Order #${data.orderNumber} is now "${data.status?.replace("_", " ")}"`, {
-        icon: "🚚",
-        duration: 4500
-      });
+
+      if (data.notification) {
+        handleMilestoneNotification(data.notification);
+      } else {
+        const milestoneTitles = {
+          placed: `Order Placed: #${data.orderNumber}`,
+          packed: `Order Packed: #${data.orderNumber}`,
+          shipped: `Order Shipped: #${data.orderNumber}`,
+          out_for_delivery: `Out for Delivery: #${data.orderNumber}`,
+          delivered: `Order Delivered: #${data.orderNumber}`,
+          cancelled: `Order Cancelled: #${data.orderNumber}`
+        };
+        handleMilestoneNotification({
+          _id: `live_${Date.now()}`,
+          milestone: data.status,
+          title: milestoneTitles[data.status] || `Order Update: #${data.orderNumber}`,
+          message: data.status === "cancelled"
+            ? "Order was cancelled. Any deducted amount will be refunded to your original payment method."
+            : `Order #${data.orderNumber} is now "${data.status?.replace(/_/g, " ")}"`,
+          link: `/dashboard?tab=orders&highlight=${data.orderId}`,
+          createdAt: new Date().toISOString()
+        });
+      }
+    },
+    onNotification: (notif) => {
+      handleMilestoneNotification(notif);
     }
   });
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      await api.patch(endpoints.notifications.markRead(id));
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === id ? { ...n, read: true } : n))
+      );
+    } catch {
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === id ? { ...n, read: true } : n))
+      );
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await api.patch(endpoints.notifications.markAllRead);
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      toast.success("All notifications marked as read");
+    } catch {
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      toast.success("All notifications marked as read");
+    }
+  };
+
+  const requestNotificationPermission = async () => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      if (permission === "granted") {
+        toast.success("Desktop notifications enabled! You will be alerted for every milestone.");
+      } else {
+        toast.error("Notification permission denied in browser settings.");
+      }
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -126,6 +285,11 @@ const DashboardPage = () => {
       setAddresses(user.addresses || []);
       return;
     }
+
+    api
+      .get(endpoints.notifications.mine)
+      .then(({ data }) => setNotifications(data.notifications || []))
+      .catch(() => {});
 
     if (currentTab === "orders") {
       api
@@ -636,14 +800,131 @@ const DashboardPage = () => {
     }
 
     if (currentTab === "notifications") {
+      const unreadCount = notifications.filter((n) => !n.read).length;
       return (
-        <div className="space-y-4">
-          {notifications.map((notification) => (
-            <div key={notification._id} className="rounded-[1.5rem] border border-ink/10 p-5 dark:border-white/10">
-              <p className="font-semibold">{notification.title}</p>
-              <p className="mt-2 text-muted">{notification.message}</p>
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-ink/10 pb-4 dark:border-white/10">
+            <div>
+              <h2 className="font-display text-2xl font-bold">Notifications</h2>
+              <p className="mt-1 text-xs text-muted">
+                Live milestone tracking updates for your orders and account
+              </p>
             </div>
-          ))}
+            <div className="flex items-center gap-2">
+              {notificationPermission === "default" && (
+                <button
+                  type="button"
+                  onClick={requestNotificationPermission}
+                  className="flex items-center gap-1.5 rounded-full border border-olive/30 bg-olive/10 px-3 py-1.5 text-xs font-semibold text-olive hover:bg-olive/20 transition"
+                >
+                  <BellRing size={13} />
+                  Enable Desktop Alerts
+                </button>
+              )}
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleMarkAllAsRead}
+                  className="flex items-center gap-1.5 rounded-full border border-ink/15 px-3 py-1.5 text-xs font-semibold transition hover:bg-ink hover:text-white dark:border-white/15 dark:hover:bg-white dark:hover:text-ink"
+                >
+                  <CheckCheck size={13} />
+                  Mark all as read
+                </button>
+              )}
+            </div>
+          </div>
+
+          {notifications.length === 0 ? (
+            <div className="rounded-[1.5rem] border border-dashed border-ink/15 p-12 text-center dark:border-white/15">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-ink/5 dark:bg-white/5">
+                <BellOff size={24} className="text-muted" />
+              </div>
+              <p className="mt-4 font-semibold text-base">No notifications yet</p>
+              <p className="mt-1 max-w-sm mx-auto text-xs text-muted leading-relaxed">
+                When your order is confirmed, packed, shipped, out for delivery, or delivered, you will receive instant push notifications here.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {notifications.map((notification) => {
+                const milestone = notification.milestone || notification.metadata?.status;
+                const milestoneIcons = {
+                  placed: "🎉",
+                  packed: "📦",
+                  shipped: "🚚",
+                  out_for_delivery: "🛵",
+                  delivered: "✨",
+                  cancelled: "⚠️"
+                };
+                const icon = milestoneIcons[milestone] || "🔔";
+                const isUnread = !notification.read;
+
+                return (
+                  <div
+                    key={notification._id}
+                    className={`group relative rounded-[1.5rem] border p-5 transition hover:shadow-soft ${
+                      isUnread
+                        ? "border-olive/40 bg-olive/[0.03] dark:border-olive/30 dark:bg-olive/[0.04]"
+                        : "border-ink/10 bg-transparent dark:border-white/10"
+                    }`}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-ink/5 text-xl dark:bg-white/5">
+                        {icon}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-sm">{notification.title}</p>
+                            {isUnread && (
+                              <span className="h-2 w-2 rounded-full bg-olive animate-pulse" />
+                            )}
+                          </div>
+                          <span className="text-[11px] font-medium text-muted shrink-0">
+                            {formatTimeAgo(notification.createdAt)}
+                          </span>
+                        </div>
+                        <p className="mt-1.5 text-xs text-muted leading-relaxed">
+                          {notification.message}
+                        </p>
+                        <div className="mt-3 flex items-center gap-3">
+                          {notification.link && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const url = new URL(notification.link, window.location.origin);
+                                const orderHighlight = url.searchParams.get("highlight");
+                                if (orderHighlight) {
+                                  setExpandedTracking((prev) => ({ ...prev, [orderHighlight]: true }));
+                                  setSearchParams({ tab: "orders", highlight: orderHighlight });
+                                } else {
+                                  setSearchParams({ tab: "orders" });
+                                }
+                              }}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-olive hover:underline"
+                            >
+                              <span>View Order & Tracking</span>
+                              <ArrowRight size={12} />
+                            </button>
+                          )}
+                          {isUnread && (
+                            <button
+                              type="button"
+                              onClick={() => handleMarkAsRead(notification._id)}
+                              className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-ink dark:hover:text-white"
+                            >
+                              <Check size={11} />
+                              Mark read
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       );
     }
@@ -684,17 +965,31 @@ const DashboardPage = () => {
         <aside className="glass h-fit rounded-[2rem] p-4 shadow-soft">
           {tabs.map((tab) => {
             const Icon = tab.icon;
+            const unreadCount = tab.key === "notifications" ? notifications.filter((n) => !n.read).length : 0;
             return (
               <button
                 key={tab.key}
                 type="button"
                 onClick={() => setSearchParams({ tab: tab.key })}
-                className={`mb-2 flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold ${
-                  currentTab === tab.key ? "bg-ink text-white" : ""
+                className={`mb-2 flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${
+                  currentTab === tab.key ? "bg-ink text-white dark:bg-white dark:text-ink" : "hover:bg-ink/5 dark:hover:bg-white/5"
                 }`}
               >
-                <Icon size={16} />
-                {tab.label}
+                <div className="flex items-center gap-3">
+                  <Icon size={16} />
+                  <span>{tab.label}</span>
+                </div>
+                {unreadCount > 0 && (
+                  <span
+                    className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
+                      currentTab === tab.key
+                        ? "bg-olive text-white"
+                        : "bg-olive/15 text-olive dark:bg-olive/20"
+                    }`}
+                  >
+                    {unreadCount}
+                  </span>
+                )}
               </button>
             );
           })}
