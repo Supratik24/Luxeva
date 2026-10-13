@@ -169,11 +169,47 @@ export const OrderTrackingTimeline = ({ order }) => {
   };
 
   const getStageDate = (stageKey) => {
+    if (stageKey === "cancelled") {
+      const item = [...timeline]
+        .reverse()
+        .find((t) => String(t.status || "").toLowerCase() === "cancelled");
+      return item ? shortDate(item.at) : shortDate(order.updatedAt || order.createdAt);
+    }
     const item = [...timeline]
       .reverse()
-      .find((t) => t.status?.toLowerCase()?.replace("-", "_") === stageKey);
-    return item ? shortDate(item.at) : null;
+      .find((t) => String(t.status || "").toLowerCase()?.replace("-", "_") === stageKey);
+    if (item) return shortDate(item.at);
+    if (stageKey === "placed") return shortDate(order.createdAt);
+    return null;
   };
+
+  // If order is cancelled, compute milestones achieved up to cancellation point
+  let stagesToRender = STAGES;
+  if (isCancelled) {
+    const activeKeys = ["placed", "packed", "shipped", "out_for_delivery"];
+    let lastAchievedIdx = 0;
+    timeline.forEach((item) => {
+      const s = String(item.status || "").toLowerCase().replace("-", "_");
+      const idx = activeKeys.indexOf(s);
+      if (idx > lastAchievedIdx) {
+        lastAchievedIdx = idx;
+      }
+    });
+
+    const achieved = activeKeys.slice(0, lastAchievedIdx + 1).map((k) => {
+      return STAGES.find((s) => s.key === k) || { key: k, label: k, icon: Box };
+    });
+
+    stagesToRender = [
+      ...achieved,
+      {
+        key: "cancelled",
+        label: "Cancelled",
+        icon: AlertCircle,
+        isCancelledMilestone: true
+      }
+    ];
+  }
 
   const latestNote = timeline.length > 0 ? timeline[timeline.length - 1] : null;
 
@@ -247,13 +283,257 @@ export const OrderTrackingTimeline = ({ order }) => {
         </div>
       </div>
 
-      {/* Cancelled Alert Banner */}
-      {isCancelled ? (
-        <div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-center dark:bg-red-500/15">
-          <div className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-400 mb-2">
-            <AlertCircle size={22} />
+      {/* Progress Stepper (Renders for ALL orders including Cancelled, Flipkart style) */}
+      <div className="mt-8">
+        <div className="relative">
+          {/* Desktop Stepper */}
+          <div
+            className={`hidden gap-2 sm:grid ${
+              stagesToRender.length === 2
+                ? "grid-cols-2 max-w-md mx-auto"
+                : stagesToRender.length === 3
+                ? "grid-cols-3 max-w-xl mx-auto"
+                : stagesToRender.length === 4
+                ? "grid-cols-4 max-w-2xl mx-auto"
+                : "grid-cols-5"
+            }`}
+          >
+            {stagesToRender.map((stage, idx) => {
+              const Icon = stage.icon;
+              const isLineToCancelled = isCancelled && idx === stagesToRender.length - 1;
+              const isAchievedBeforeCancel = isCancelled && idx < stagesToRender.length - 1;
+              const isCancelledNode = isCancelled && idx === stagesToRender.length - 1;
+              const isCompleted = !isCancelled && idx < currentStageIndex;
+              const isCurrent = !isCancelled && idx === currentStageIndex;
+              const stageDate = getStageDate(stage.key);
+
+              return (
+                <div key={stage.key} className="relative flex flex-col items-center text-center">
+                  {/* Horizontal Connector Line */}
+                  {idx > 0 && (
+                    <div className="absolute right-1/2 top-5 -z-0 h-1 w-full -translate-y-1/2 bg-ink/10 dark:bg-white/10 overflow-hidden rounded-full">
+                      {isLineToCancelled ? (
+                        /* RED LINE from last achieved milestone to Cancelled */
+                        <motion.div
+                          className="h-full bg-red-500 dark:bg-red-500 rounded-full"
+                          initial={{ scaleX: 0 }}
+                          animate={{ scaleX: 1 }}
+                          style={{ originX: 0 }}
+                          transition={{ duration: 0.6, delay: (idx - 1) * 0.12, ease: "easeOut" }}
+                        />
+                      ) : isCancelled ? (
+                        /* GREEN LINE between milestones achieved before cancellation */
+                        <motion.div
+                          className="h-full bg-emerald-500 dark:bg-emerald-400 rounded-full"
+                          initial={{ scaleX: 0 }}
+                          animate={{ scaleX: 1 }}
+                          style={{ originX: 0 }}
+                          transition={{ duration: 0.5, delay: (idx - 1) * 0.1, ease: "easeOut" }}
+                        />
+                      ) : (
+                        /* GREEN LINE for completed/active milestones in normal orders */
+                        <>
+                          <motion.div
+                            className="h-full bg-emerald-500 dark:bg-emerald-400 rounded-full"
+                            initial={{ scaleX: 0 }}
+                            animate={{ scaleX: idx <= currentStageIndex ? 1 : 0 }}
+                            style={{ originX: 0 }}
+                            transition={{ duration: 0.5, delay: (idx - 1) * 0.1, ease: "easeOut" }}
+                          />
+                          {/* Animated traveling light particle on active in-transit segment */}
+                          {idx === currentStageIndex && !isDelivered && (
+                            <motion.div
+                              className="absolute top-0 bottom-0 w-8 bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-emerald-200/80"
+                              animate={{ left: ["-20%", "120%"] }}
+                              transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
+                            />
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Step Icon Node */}
+                  <div className="relative">
+                    {/* Live Radar Ripple Ring for Current Active Stage */}
+                    {isCurrent && !isDelivered && (
+                      <motion.span
+                        className="absolute -inset-2 rounded-full border-2 border-emerald-500 dark:border-emerald-400 opacity-50 pointer-events-none"
+                        animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
+                        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                      />
+                    )}
+
+                    {/* Delivered celebration soft glow */}
+                    {isCurrent && isDelivered && (
+                      <motion.span
+                        className="absolute -inset-1.5 rounded-full bg-emerald-500/25 blur-sm pointer-events-none"
+                        animate={{ scale: [1, 1.25, 1], opacity: [0.3, 0.7, 0.3] }}
+                        transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+                      />
+                    )}
+
+                    <motion.div
+                      className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-300 ${
+                        isCancelledNode
+                          ? "bg-red-600 text-white ring-4 ring-red-500/25 shadow-lg dark:bg-red-500 dark:text-white"
+                          : isAchievedBeforeCancel || isCompleted || (isCurrent && isDelivered)
+                          ? "bg-emerald-600 text-white shadow-md dark:bg-emerald-500 dark:text-ink"
+                          : isCurrent
+                          ? "bg-emerald-600 text-white ring-4 ring-emerald-500/20 shadow-lg dark:bg-emerald-500 dark:text-ink"
+                          : "border-2 border-ink/20 bg-white text-ink/30 dark:border-white/20 dark:bg-[#1a1a1a] dark:text-white/30"
+                      }`}
+                      initial={{ scale: 0.85, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.35, delay: idx * 0.08 }}
+                      whileHover={{ scale: 1.12 }}
+                    >
+                      <motion.div
+                        animate={
+                          isCurrent && !isDelivered
+                            ? { y: [0, -2, 0] }
+                            : isCurrent && isDelivered
+                            ? { scale: [1, 1.15, 1] }
+                            : {}
+                        }
+                        transition={
+                          isCurrent && !isDelivered
+                            ? { repeat: Infinity, duration: 2, ease: "easeInOut" }
+                            : { duration: 0.6 }
+                        }
+                      >
+                        {isCancelledNode ? (
+                          <AlertCircle size={18} />
+                        ) : isAchievedBeforeCancel || isCompleted || (isCurrent && isDelivered) ? (
+                          <Check size={18} className="stroke-[2.5]" />
+                        ) : (
+                          <Icon size={18} />
+                        )}
+                      </motion.div>
+                    </motion.div>
+                  </div>
+
+                  {/* Stage Label & Date */}
+                  <p
+                    className={`mt-3 text-xs font-semibold ${
+                      isCancelledNode
+                        ? "text-red-600 font-bold dark:text-red-400"
+                        : isCurrent
+                        ? "text-emerald-600 font-bold dark:text-emerald-400"
+                        : isAchievedBeforeCancel || isCompleted
+                        ? "text-ink font-semibold dark:text-white"
+                        : "text-ink/40 dark:text-white/40"
+                    }`}
+                  >
+                    {stage.label}
+                  </p>
+
+                  {stageDate ? (
+                    <span className="mt-0.5 text-[10px] font-medium text-ink/60 dark:text-white/50">
+                      {stageDate}
+                    </span>
+                  ) : (
+                    <span className="mt-0.5 text-[10px] text-ink/25 dark:text-white/25">
+                      {idx <= currentStageIndex ? "Completed" : "Pending"}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          <h4 className="font-display text-base font-bold text-red-700 dark:text-red-400">
+
+          {/* Mobile Vertical Stepper */}
+          <div className="space-y-5 sm:hidden pl-2">
+            {stagesToRender.map((stage, idx) => {
+              const Icon = stage.icon;
+              const isAchievedBeforeCancel = isCancelled && idx < stagesToRender.length - 1;
+              const isCancelledNode = isCancelled && idx === stagesToRender.length - 1;
+              const isCompleted = !isCancelled && idx < currentStageIndex;
+              const isCurrent = !isCancelled && idx === currentStageIndex;
+              const stageDate = getStageDate(stage.key);
+
+              return (
+                <div key={stage.key} className="relative flex items-start gap-3.5">
+                  {/* Vertical line to next step */}
+                  {idx < stagesToRender.length - 1 && (
+                    <div
+                      className={`absolute left-[15px] top-8 -bottom-5 w-0.5 ${
+                        isCancelled && idx === stagesToRender.length - 2
+                          ? "bg-red-500 dark:bg-red-400"
+                          : isCancelled || idx < currentStageIndex
+                          ? "bg-emerald-500 dark:bg-emerald-400"
+                          : "bg-ink/10 dark:bg-white/10"
+                      }`}
+                    />
+                  )}
+
+                  <div className="relative z-10 shrink-0">
+                    {isCurrent && !isDelivered && (
+                      <motion.span
+                        className="absolute -inset-1.5 rounded-full border-2 border-emerald-500 dark:border-emerald-400 opacity-50 pointer-events-none"
+                        animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
+                        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                      />
+                    )}
+                    <motion.div
+                      className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
+                        isCancelledNode
+                          ? "bg-red-600 text-white ring-4 ring-red-500/20 shadow-md dark:bg-red-500 dark:text-white"
+                          : isAchievedBeforeCancel || isCompleted || (isCurrent && isDelivered)
+                          ? "bg-emerald-600 text-white shadow-md dark:bg-emerald-500 dark:text-ink"
+                          : isCurrent
+                          ? "bg-emerald-600 text-white dark:bg-emerald-500 dark:text-ink"
+                          : "border-2 border-ink/20 bg-white text-ink/30 dark:border-white/20 dark:bg-[#1a1a1a] dark:text-white/30"
+                      }`}
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: idx * 0.05 }}
+                    >
+                      {isCancelledNode ? (
+                        <AlertCircle size={15} />
+                      ) : isAchievedBeforeCancel || isCompleted || (isCurrent && isDelivered) ? (
+                        <Check size={15} className="stroke-[2.5]" />
+                      ) : (
+                        <Icon size={15} />
+                      )}
+                    </motion.div>
+                  </div>
+                  <div className="min-w-0 flex-1 pt-0.5">
+                    <p
+                      className={`text-sm font-semibold ${
+                        isCancelledNode
+                          ? "text-red-600 font-bold dark:text-red-400"
+                          : isCurrent
+                          ? "text-emerald-600 font-bold dark:text-emerald-400"
+                          : isAchievedBeforeCancel || isCompleted
+                          ? "text-ink font-semibold dark:text-white"
+                          : "text-ink/60 dark:text-white/50"
+                      }`}
+                    >
+                      {stage.label}
+                    </p>
+                    <p className="text-xs text-ink/50 dark:text-white/40">
+                      {stageDate || (idx <= currentStageIndex ? "Completed" : "Pending")}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Cancelled Refund Banner (Always show below stepper on cancelled orders) */}
+      {isCancelled && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-center dark:bg-red-500/15"
+        >
+          <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-400 mb-2">
+            <AlertCircle size={20} />
+          </div>
+          <h4 className="font-display text-sm font-bold text-red-700 dark:text-red-400">
             Order Cancelled
           </h4>
           <p className="mt-1 text-xs font-semibold text-red-600/90 dark:text-red-300/90 max-w-md mx-auto">
@@ -261,174 +541,7 @@ export const OrderTrackingTimeline = ({ order }) => {
               ? "This order was cancelled. Since this was a Cash on Delivery order, no amount was deducted."
               : "This order was cancelled. Any deducted amount will be refunded to your original payment method within 5-7 business days."}
           </p>
-        </div>
-      ) : (
-        /* Progress Stepper */
-        <div className="mt-8">
-          <div className="relative">
-            {/* Desktop Stepper */}
-            <div className="hidden grid-cols-5 gap-2 sm:grid">
-              {STAGES.map((stage, idx) => {
-                const Icon = stage.icon;
-                const isCompleted = idx < currentStageIndex;
-                const isCurrent = idx === currentStageIndex;
-                const stageDate = getStageDate(stage.key);
-
-                return (
-                  <div key={stage.key} className="relative flex flex-col items-center text-center">
-                    {/* Horizontal Connector Line */}
-                    {idx > 0 && (
-                      <div className="absolute right-1/2 top-5 -z-0 h-1 w-full -translate-y-1/2 bg-ink/10 dark:bg-white/10 overflow-hidden rounded-full">
-                        <motion.div
-                          className="h-full bg-ink dark:bg-white rounded-full"
-                          initial={{ scaleX: 0 }}
-                          animate={{ scaleX: idx <= currentStageIndex ? 1 : 0 }}
-                          style={{ originX: 0 }}
-                          transition={{ duration: 0.5, delay: (idx - 1) * 0.1, ease: "easeOut" }}
-                        />
-                        {/* Animated traveling light particle on active in-transit segment */}
-                        {idx === currentStageIndex && !isDelivered && (
-                          <motion.div
-                            className="absolute top-0 bottom-0 w-8 bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-ink/80"
-                            animate={{ left: ["-20%", "120%"] }}
-                            transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
-                          />
-                        )}
-                      </div>
-                    )}
-
-                    {/* Step Icon Node */}
-                    <div className="relative">
-                      {/* Live Radar Ripple Ring for Current Active Stage */}
-                      {isCurrent && !isDelivered && (
-                        <motion.span
-                          className="absolute -inset-2 rounded-full border-2 border-ink dark:border-white opacity-40 pointer-events-none"
-                          animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
-                          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                        />
-                      )}
-
-                      {/* Delivered celebration soft glow */}
-                      {isCurrent && isDelivered && (
-                        <motion.span
-                          className="absolute -inset-1.5 rounded-full bg-emerald-500/25 blur-sm pointer-events-none"
-                          animate={{ scale: [1, 1.25, 1], opacity: [0.3, 0.7, 0.3] }}
-                          transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
-                        />
-                      )}
-
-                      <motion.div
-                        className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-300 ${
-                          isCompleted
-                            ? "bg-ink text-white shadow-md dark:bg-white dark:text-ink"
-                            : isCurrent
-                            ? (isDelivered
-                                ? "bg-emerald-600 text-white ring-4 ring-emerald-500/20 shadow-lg dark:bg-emerald-500 dark:text-ink"
-                                : "bg-ink text-white ring-4 ring-ink/20 shadow-lg dark:bg-white dark:text-ink dark:ring-white/30")
-                            : "border-2 border-ink/20 bg-white text-ink/30 dark:border-white/20 dark:bg-[#1a1a1a] dark:text-white/30"
-                        }`}
-                        initial={{ scale: 0.85, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ duration: 0.35, delay: idx * 0.08 }}
-                        whileHover={{ scale: 1.12 }}
-                      >
-                        <motion.div
-                          animate={
-                            isCurrent && !isDelivered
-                              ? { y: [0, -2, 0] }
-                              : isCurrent && isDelivered
-                              ? { scale: [1, 1.15, 1] }
-                              : {}
-                          }
-                          transition={
-                            isCurrent && !isDelivered
-                              ? { repeat: Infinity, duration: 2, ease: "easeInOut" }
-                              : { duration: 0.6 }
-                          }
-                        >
-                          <Icon size={18} />
-                        </motion.div>
-                      </motion.div>
-                    </div>
-
-                    {/* Stage Label & Date */}
-                    <p
-                      className={`mt-3 text-xs font-semibold ${
-                        isCurrent
-                          ? "text-ink font-bold dark:text-white"
-                          : isCompleted
-                          ? "text-ink/80 dark:text-white/80"
-                          : "text-ink/40 dark:text-white/40"
-                      }`}
-                    >
-                      {stage.label}
-                    </p>
-
-                    {stageDate ? (
-                      <span className="mt-0.5 text-[10px] font-medium text-ink/60 dark:text-white/50">
-                        {stageDate}
-                      </span>
-                    ) : (
-                      <span className="mt-0.5 text-[10px] text-ink/25 dark:text-white/25">
-                        {idx <= currentStageIndex ? "Completed" : "Pending"}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Mobile Vertical Stepper */}
-            <div className="space-y-4 sm:hidden">
-              {STAGES.map((stage, idx) => {
-                const Icon = stage.icon;
-                const isCompleted = idx < currentStageIndex;
-                const isCurrent = idx === currentStageIndex;
-                const stageDate = getStageDate(stage.key);
-
-                return (
-                  <div key={stage.key} className="flex items-start gap-3">
-                    <div className="relative">
-                      {isCurrent && !isDelivered && (
-                        <motion.span
-                          className="absolute -inset-1.5 rounded-full border-2 border-ink dark:border-white opacity-40 pointer-events-none"
-                          animate={{ scale: [1, 1.35, 1], opacity: [0.6, 0, 0.6] }}
-                          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                        />
-                      )}
-                      <motion.div
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                          isCompleted || isCurrent
-                            ? (isDelivered && isCurrent
-                                ? "bg-emerald-600 text-white dark:bg-emerald-500 dark:text-ink"
-                                : "bg-ink text-white dark:bg-white dark:text-ink")
-                            : "border border-ink/20 text-ink/30 dark:border-white/20 dark:text-white/30"
-                        }`}
-                        initial={{ scale: 0.8 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: idx * 0.05 }}
-                      >
-                        <Icon size={15} />
-                      </motion.div>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p
-                        className={`text-sm font-semibold ${
-                          isCurrent ? "text-ink font-bold dark:text-white" : "text-ink/70 dark:text-white/60"
-                        }`}
-                      >
-                        {stage.label}
-                      </p>
-                      <p className="text-xs text-ink/50 dark:text-white/40">
-                        {stageDate || (idx <= currentStageIndex ? "Completed" : "Pending")}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Latest Status Note Banner */}
