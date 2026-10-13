@@ -322,9 +322,11 @@ const DashboardPage = () => {
                 {(() => {
                   if (order.status === "cancelled") {
                     return (
-                      <div className="mt-3 inline-flex items-center gap-2 rounded-xl bg-red-500/10 px-3.5 py-2 text-xs font-bold text-red-600 dark:bg-red-500/15 dark:text-red-300">
-                        <AlertCircle size={14} />
-                        <span>Order Cancelled</span>
+                      <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-red-500/10 px-3.5 py-2 text-xs font-bold text-red-600 dark:bg-red-500/15 dark:text-red-300">
+                        <AlertCircle size={14} className="shrink-0" />
+                        <span>
+                          Order Cancelled — {order.payment?.method === "cod" ? "No amount was deducted (Cash on Delivery)" : "Any deducted amount will be refunded to your original payment method"}
+                        </span>
                       </div>
                     );
                   }

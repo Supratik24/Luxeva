@@ -355,7 +355,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     shipped: "Package handed over to courier and in transit",
     out_for_delivery: "Package is out for delivery",
     delivered: "Package delivered successfully",
-    cancelled: "Order cancelled"
+    cancelled: "Order cancelled — any deducted amount will be refunded to your original payment method"
   };
 
   const statusKey = String(status || "").toLowerCase().replace("-", "_");

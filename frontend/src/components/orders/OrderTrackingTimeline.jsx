@@ -42,7 +42,7 @@ export const cleanCustomerNote = (note = "", status = "") => {
       shipped: "Package handed over to courier and in transit",
       out_for_delivery: "Package is out for delivery to your address",
       delivered: "Package delivered successfully",
-      cancelled: "Order cancelled"
+      cancelled: "Order cancelled — any deducted amount will be refunded to your original payment method"
     };
     return defaults[key] || `Package is ${key.replace(/_/g, " ")}`;
   }
@@ -217,15 +217,17 @@ export const OrderTrackingTimeline = ({ order }) => {
 
       {/* Cancelled Alert Banner */}
       {isCancelled ? (
-        <div className="mt-6 rounded-2xl bg-red-500/10 p-6 text-center dark:bg-red-500/15">
+        <div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-center dark:bg-red-500/15">
           <div className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-400 mb-2">
             <AlertCircle size={22} />
           </div>
           <h4 className="font-display text-base font-bold text-red-700 dark:text-red-400">
             Order Cancelled
           </h4>
-          <p className="mt-1 text-xs font-medium text-red-600/80 dark:text-red-300/80 max-w-md mx-auto">
-            This order was cancelled. Any delivery schedule has been terminated.
+          <p className="mt-1 text-xs font-semibold text-red-600/90 dark:text-red-300/90 max-w-md mx-auto">
+            {order.payment?.method === "cod"
+              ? "This order was cancelled. Since this was a Cash on Delivery order, no amount was deducted."
+              : "This order was cancelled. Any deducted amount will be refunded to your original payment method within 5-7 business days."}
           </p>
         </div>
       ) : (
