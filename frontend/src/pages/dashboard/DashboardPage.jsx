@@ -1,4 +1,4 @@
-import { Bell, Heart, MapPinHouse, PackageCheck, UserRoundCog, Truck, AlertCircle } from "lucide-react";
+import { Bell, Heart, MapPinHouse, PackageCheck, UserRoundCog, Truck, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -442,6 +442,7 @@ const DashboardPage = () => {
 
                 {(() => {
                   const isCancelled = order.status === "cancelled";
+                  const isDelivered = order.status === "delivered";
                   const isExpanded = expandedTracking[order._id] !== undefined ? expandedTracking[order._id] : true;
                   return (
                     <>
@@ -460,16 +461,27 @@ const DashboardPage = () => {
                               : "border border-ink/10 hover:border-ink/30 dark:border-white/10 dark:hover:border-white/30"
                           }`}
                         >
-                          {isCancelled ? <AlertCircle size={14} className="text-red-500" /> : <Truck size={14} />}
+                          {isCancelled ? (
+                            <AlertCircle size={14} className="text-red-500" />
+                          ) : isDelivered ? (
+                            <CheckCircle2 size={14} className="text-emerald-500" />
+                          ) : (
+                            <Truck size={14} />
+                          )}
                           {isExpanded
-                            ? (isCancelled ? "Hide Cancellation Details ▲" : "Hide Tracking Stepper ▲")
-                            : (isCancelled ? "View Cancellation Details ▼" : "View Live Tracking Stepper ▼")}
+                            ? (isCancelled ? "Hide Cancellation Details ▲" : isDelivered ? "Hide Delivery Summary ▲" : "Hide Tracking Stepper ▲")
+                            : (isCancelled ? "View Cancellation Details ▼" : isDelivered ? "View Delivery Summary ▼" : "View Live Tracking Stepper ▼")}
                         </button>
 
                         {isCancelled ? (
                           <span className="flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400">
                             <span className="h-2 w-2 rounded-full bg-red-500" />
                             Order Cancelled
+                          </span>
+                        ) : isDelivered ? (
+                          <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 size={14} className="text-emerald-500" />
+                            Order Delivered
                           </span>
                         ) : (
                           <span className="flex items-center gap-1.5 text-xs text-ink/50 dark:text-white/40">

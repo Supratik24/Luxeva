@@ -315,7 +315,7 @@ const AdminOrdersPage = () => {
                       type="button"
                       onClick={() => setExpandedOrder(isTrackingExpanded ? null : order._id)}
                       className="inline-flex items-center gap-1 rounded-full border border-ink/10 p-2 text-xs text-ink/60 transition hover:bg-ink/5 dark:border-white/10 dark:text-white/60"
-                      title={isTrackingExpanded ? "Hide live tracking timeline" : "View live tracking timeline"}
+                      title={isTrackingExpanded ? "Hide tracking preview" : order.status === "delivered" ? "View delivery summary" : "View live tracking timeline"}
                     >
                       {isTrackingExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                     </button>

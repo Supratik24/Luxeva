@@ -182,7 +182,7 @@ export const OrderTrackingTimeline = ({ order }) => {
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-ink/10 pb-4 dark:border-white/10">
         <div>
           <span className="text-[11px] font-bold uppercase tracking-wider text-ink/50 dark:text-white/50">
-            Real-Time Delivery Tracking
+            {isDelivered ? "Delivery Completed" : isCancelled ? "Order Cancelled" : "Live Delivery Tracking"}
           </span>
           <h3 className="font-display text-xl font-semibold text-ink dark:text-white">
             Order #{order.orderNumber}
@@ -202,6 +202,10 @@ export const OrderTrackingTimeline = ({ order }) => {
           {isCancelled ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-3.5 py-1.5 text-xs font-bold text-red-600 dark:text-red-400">
               <AlertCircle size={14} /> Cancelled
+            </span>
+          ) : isDelivered ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white dark:bg-emerald-500 dark:text-ink">
+              <CheckCircle2 size={14} /> Delivered
             </span>
           ) : (
             <span className="inline-flex items-center gap-2 rounded-full bg-ink px-3.5 py-1.5 text-xs font-semibold text-white dark:bg-white dark:text-ink">
@@ -261,7 +265,9 @@ export const OrderTrackingTimeline = ({ order }) => {
                         isCompleted
                           ? "bg-ink text-white shadow-md dark:bg-white dark:text-ink"
                           : isCurrent
-                          ? "bg-ink text-white ring-4 ring-ink/20 shadow-lg dark:bg-white dark:text-ink dark:ring-white/30"
+                          ? (isDelivered
+                              ? "bg-emerald-600 text-white ring-4 ring-emerald-500/20 shadow-lg dark:bg-emerald-500 dark:text-ink"
+                              : "bg-ink text-white ring-4 ring-ink/20 shadow-lg dark:bg-white dark:text-ink dark:ring-white/30")
                           : "border-2 border-ink/20 bg-white text-ink/30 dark:border-white/20 dark:bg-[#1a1a1a] dark:text-white/30"
                       }`}
                     >
@@ -308,7 +314,9 @@ export const OrderTrackingTimeline = ({ order }) => {
                     <div
                       className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
                         isCompleted || isCurrent
-                          ? "bg-ink text-white dark:bg-white dark:text-ink"
+                          ? (isDelivered && isCurrent
+                              ? "bg-emerald-600 text-white dark:bg-emerald-500 dark:text-ink"
+                              : "bg-ink text-white dark:bg-white dark:text-ink")
                           : "border border-ink/20 text-ink/30 dark:border-white/20 dark:text-white/30"
                       }`}
                     >
@@ -440,7 +448,7 @@ export const OrderTrackingTimeline = ({ order }) => {
                 rel="noreferrer"
                 className="btn-primary inline-flex items-center gap-2 text-xs py-2 px-5"
               >
-                Track Live on {shipping.carrier || "Courier"} Official Website
+                {isDelivered ? "Track on" : "Track Live on"} {shipping.carrier || "Courier"} Official Website
                 <ExternalLink size={14} />
               </a>
             </div>
