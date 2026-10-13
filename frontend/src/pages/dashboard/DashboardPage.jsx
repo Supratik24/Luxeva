@@ -1,4 +1,4 @@
-import { Bell, Heart, MapPinHouse, PackageCheck, UserRoundCog, Truck } from "lucide-react";
+import { Bell, Heart, MapPinHouse, PackageCheck, UserRoundCog, Truck, AlertCircle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -303,8 +303,16 @@ const DashboardPage = () => {
                     ) : null}
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold capitalize text-ink dark:text-white">
-                      {order.status?.replace(/_/g, " ")}
+                    <p
+                      className={`font-bold capitalize ${
+                        order.status === "cancelled"
+                          ? "text-red-600 dark:text-red-400"
+                          : order.status === "delivered"
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-ink dark:text-white"
+                      }`}
+                    >
+                      {order.status === "cancelled" ? "Cancelled" : order.status?.replace(/_/g, " ")}
                     </p>
                     <p className="text-sm text-ink/50 dark:text-white/50">{currency(order.total)}</p>
                   </div>
@@ -312,6 +320,15 @@ const DashboardPage = () => {
 
                 {/* Courier, Delivery Speed & Latest Location Banner */}
                 {(() => {
+                  if (order.status === "cancelled") {
+                    return (
+                      <div className="mt-3 inline-flex items-center gap-2 rounded-xl bg-red-500/10 px-3.5 py-2 text-xs font-bold text-red-600 dark:bg-red-500/15 dark:text-red-300">
+                        <AlertCircle size={14} />
+                        <span>Order Cancelled</span>
+                      </div>
+                    );
+                  }
+
                   const { isDelivered, actualDeliveryDate, speedBadge } = computeDeliveryTiming(order);
                   const latestCheckpoint = order.timeline?.[order.timeline.length - 1];
                   const hasSummary =
@@ -344,7 +361,7 @@ const DashboardPage = () => {
                         )
                       )}
 
-                      {/* Speed Badge: Fastest Delivery or Slightly Delayed */}
+                      {/* Speed Badge: Fastest Delivery or Slightly Delayed (never on cancelled orders) */}
                       {speedBadge && (
                         <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${speedBadge.colorClass}`}>
                           {speedBadge.tag}
@@ -422,6 +439,7 @@ const DashboardPage = () => {
                 </div>
 
                 {(() => {
+                  const isCancelled = order.status === "cancelled";
                   const isExpanded = expandedTracking[order._id] !== undefined ? expandedTracking[order._id] : true;
                   return (
                     <>
@@ -440,14 +458,23 @@ const DashboardPage = () => {
                               : "border border-ink/10 hover:border-ink/30 dark:border-white/10 dark:hover:border-white/30"
                           }`}
                         >
-                          <Truck size={14} />
-                          {isExpanded ? "Hide Tracking Stepper ▲" : "View Live Tracking Stepper ▼"}
+                          {isCancelled ? <AlertCircle size={14} className="text-red-500" /> : <Truck size={14} />}
+                          {isExpanded
+                            ? (isCancelled ? "Hide Cancellation Details ▲" : "Hide Tracking Stepper ▲")
+                            : (isCancelled ? "View Cancellation Details ▼" : "View Live Tracking Stepper ▼")}
                         </button>
 
-                        <span className="flex items-center gap-1.5 text-xs text-ink/50 dark:text-white/40">
-                          <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                          Live tracking active
-                        </span>
+                        {isCancelled ? (
+                          <span className="flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400">
+                            <span className="h-2 w-2 rounded-full bg-red-500" />
+                            Order Cancelled
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1.5 text-xs text-ink/50 dark:text-white/40">
+                            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                            Live tracking active
+                          </span>
+                        )}
                       </div>
 
                       {isExpanded && (

@@ -51,6 +51,15 @@ export const cleanCustomerNote = (note = "", status = "") => {
 };
 
 export const computeDeliveryTiming = (order) => {
+  if (!order || order.status === "cancelled") {
+    return {
+      isCancelled: true,
+      isDelivered: false,
+      actualDeliveryDate: null,
+      speedBadge: null
+    };
+  }
+
   const shipping = order.shipping || {};
   const isDelivered = order.status === "delivered";
   const timeline = order.timeline || [];
@@ -181,8 +190,8 @@ export const OrderTrackingTimeline = ({ order }) => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Speed Badge (Fastest Delivery or Slightly Delayed) */}
-          {speedBadge && (
+          {/* Speed Badge (Fastest Delivery or Slightly Delayed) - Never show on cancelled orders */}
+          {!isCancelled && speedBadge && (
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${speedBadge.colorClass}`}
             >
@@ -191,7 +200,7 @@ export const OrderTrackingTimeline = ({ order }) => {
           )}
 
           {isCancelled ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-3.5 py-1.5 text-xs font-semibold text-red-600 dark:text-red-400">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-3.5 py-1.5 text-xs font-bold text-red-600 dark:text-red-400">
               <AlertCircle size={14} /> Cancelled
             </span>
           ) : (
@@ -206,10 +215,18 @@ export const OrderTrackingTimeline = ({ order }) => {
         </div>
       </div>
 
-      {/* Cancelled Alert */}
+      {/* Cancelled Alert Banner */}
       {isCancelled ? (
-        <div className="mt-6 rounded-2xl bg-red-500/10 p-4 text-center text-sm font-medium text-red-600 dark:text-red-400">
-          This order was cancelled. If payment was deducted, it will be refunded to your original payment method.
+        <div className="mt-6 rounded-2xl bg-red-500/10 p-6 text-center dark:bg-red-500/15">
+          <div className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-400 mb-2">
+            <AlertCircle size={22} />
+          </div>
+          <h4 className="font-display text-base font-bold text-red-700 dark:text-red-400">
+            Order Cancelled
+          </h4>
+          <p className="mt-1 text-xs font-medium text-red-600/80 dark:text-red-300/80 max-w-md mx-auto">
+            This order was cancelled. Any delivery schedule has been terminated.
+          </p>
         </div>
       ) : (
         /* Progress Stepper */
@@ -343,7 +360,7 @@ export const OrderTrackingTimeline = ({ order }) => {
       )}
 
       {/* Shipping Details Card */}
-      {(shipping.carrier || shipping.trackingNumber || shipping.estimatedDelivery || isDelivered) ? (
+      {!isCancelled && (shipping.carrier || shipping.trackingNumber || shipping.estimatedDelivery || isDelivered) ? (
         <div className="mt-6 grid gap-4 rounded-2xl border border-ink/10 bg-white/60 p-5 dark:border-white/10 dark:bg-white/5 sm:grid-cols-3">
           {shipping.carrier && (
             <div>

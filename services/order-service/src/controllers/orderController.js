@@ -347,6 +347,8 @@ export const getAllOrders = asyncHandler(async (req, res) => {
 });
 
 export const updateOrderStatus = asyncHandler(async (req, res) => {
+  const { status, note, location, carrier, trackingNumber, trackingUrl, estimatedDelivery } = req.body || {};
+
   const defaultStatusNotes = {
     placed: "Order placed successfully",
     packed: "Order packed and prepared for shipment",
