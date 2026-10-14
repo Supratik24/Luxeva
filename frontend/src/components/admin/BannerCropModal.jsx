@@ -472,23 +472,23 @@ const BannerCropModal = ({
         </div>
 
         {/* Main Body: 2 Columns (Editor Canvas & Live Storefront Preview) */}
-        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[1fr_380px] xl:grid-cols-[1fr_420px]">
+        <div className="flex-1 overflow-y-auto lg:overflow-hidden grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px] min-w-0">
           {/* Column 1: Interactive Crop Stage */}
-          <div className="flex flex-col border-b lg:border-b-0 lg:border-r border-ink/5 dark:border-white/10 overflow-hidden bg-stone-900/95 relative select-none">
+          <div className="flex flex-col border-b lg:border-b-0 lg:border-r border-ink/5 dark:border-white/10 overflow-hidden bg-stone-900/95 relative select-none min-w-0">
             {/* Viewport Info Header */}
             <div className="px-5 py-2.5 bg-black/40 flex items-center justify-between text-xs text-white/80 backdrop-blur-sm border-b border-white/10">
-              <span className="flex items-center gap-1.5">
-                <Move size={13} className="text-amber-400" />
+              <span className="flex items-center gap-1.5 truncate">
+                <Move size={13} className="text-amber-400 shrink-0" />
                 <span className="font-semibold text-white">Drag to position frame</span> · Drag handles to resize
               </span>
-              <span className="font-mono text-white/60 text-[11px]">
-                Target: {cropPixW} × {cropPixH} px ({selectedAspect.id})
+              <span className="font-mono text-white/60 text-[11px] shrink-0 ml-2">
+                {cropPixW} × {cropPixH} px ({selectedAspect.id})
               </span>
             </div>
 
             {/* Canvas / Image Display Workspace */}
-            <div className="flex-1 flex items-center justify-center p-6 overflow-hidden relative" ref={containerRef}>
-              <div className="relative inline-block max-h-[58vh] max-w-[90%] shadow-2xl">
+            <div className="flex-1 flex items-center justify-center p-4 sm:p-6 overflow-hidden relative min-h-[280px]" ref={containerRef}>
+              <div className="relative inline-block max-h-[48vh] max-w-[92%] shadow-2xl rounded-xl overflow-hidden">
                 {/* Source Image */}
                 <img
                   ref={imgRef}
@@ -496,7 +496,7 @@ const BannerCropModal = ({
                   alt="Banner to crop"
                   onLoad={handleImageLoad}
                   crossOrigin="anonymous"
-                  className="block max-h-[58vh] max-w-full object-contain pointer-events-none rounded-xl"
+                  className="block max-h-[48vh] max-w-full object-contain pointer-events-none rounded-xl"
                   style={{
                     transform: `scale(${zoom})`,
                     transition: "transform 0.15s ease"
@@ -662,7 +662,7 @@ const BannerCropModal = ({
           </div>
 
           {/* Column 2: Live Storefront Mockup Preview */}
-          <div className="flex flex-col bg-sand/30 dark:bg-[#151515] overflow-y-auto p-5 sm:p-6">
+          <div className="flex flex-col bg-sand/30 dark:bg-[#151515] overflow-y-auto p-4 sm:p-5 min-w-0">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-semibold flex items-center gap-1.5 text-ink dark:text-white">
