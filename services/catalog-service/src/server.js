@@ -14,6 +14,15 @@ connectDatabase(mongoUri)
     });
   })
   .catch((error) => {
-    console.error("Catalog service failed to start", error);
-    process.exit(1);
+    if (process.env.NODE_ENV === "production") {
+      console.error("Catalog service failed to start", error);
+      process.exit(1);
+    }
+
+    process.env.CATALOG_FALLBACK_MODE = "memory";
+    console.warn(`Catalog service running without MongoDB for local preview: ${error.message}`);
+    app.listen(port, () => {
+      console.log(`Catalog service listening on port ${port}`);
+    });
   });
+

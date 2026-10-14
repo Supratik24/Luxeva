@@ -18,8 +18,16 @@ const startServer = async () => {
       console.log(`Payment Service running on port ${PORT}`);
     });
   } catch (error) {
-    console.error("Failed to start Payment Service:", error.message);
-    process.exit(1);
+    if (process.env.NODE_ENV === "production") {
+      console.error("Failed to start Payment Service:", error.message);
+      process.exit(1);
+    }
+
+    process.env.PAYMENT_FALLBACK_MODE = "memory";
+    console.warn(`Payment Service running without MongoDB for local preview: ${error.message}`);
+    app.listen(PORT, () => {
+      console.log(`Payment Service running on port ${PORT}`);
+    });
   }
 };
 

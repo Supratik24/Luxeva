@@ -11,6 +11,15 @@ connectDatabase(mongoUri)
     });
   })
   .catch((error) => {
-    console.error("Content service failed to start", error);
-    process.exit(1);
+    if (process.env.NODE_ENV === "production") {
+      console.error("Content service failed to start", error);
+      process.exit(1);
+    }
+
+    process.env.CONTENT_FALLBACK_MODE = "memory";
+    console.warn(`Content service running without MongoDB for local preview: ${error.message}`);
+    app.listen(port, () => {
+      console.log(`Content service listening on port ${port}`);
+    });
   });
+

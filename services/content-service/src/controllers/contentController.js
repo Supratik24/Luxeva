@@ -1,6 +1,7 @@
 import { ApiError, asyncHandler, normalizeImageUrl, sendSuccess } from "@luxeva/shared";
 import Banner from "../models/Banner.js";
 import ContentBlock from "../models/ContentBlock.js";
+import mongoose from "mongoose";
 
 const normalizeBannerPayload = async (payload) => {
   const nextPayload = { ...payload };
@@ -11,6 +12,16 @@ const normalizeBannerPayload = async (payload) => {
 };
 
 export const getHomeContent = asyncHandler(async (req, res) => {
+  if (process.env.CONTENT_FALLBACK_MODE === "memory" || mongoose.connection.readyState !== 1) {
+    sendSuccess(res, 200, "Content fetched successfully", {
+      banners: [],
+      testimonials: [],
+      faq: [],
+      pages: []
+    });
+    return;
+  }
+
   const [banners, testimonials, faq, pages] = await Promise.all([
     Banner.find({ active: true }).sort({ order: 1 }),
     ContentBlock.findOne({ key: "testimonials", active: true }),

@@ -12,10 +12,59 @@ import Order from "../models/Order.js";
 import { emitOrderUpdate } from "../socket.js";
 
 const fallbackCarts = new Map();
-const fallbackOrders = [];
+const fallbackOrders = [
+  {
+    _id: "ord_fb_101",
+    orderNumber: "LX-1001",
+    status: "delivered",
+    items: [{ name: "Handcrafted Silk Kurta", price: 2999, quantity: 1, image: "" }],
+    total: 3450,
+    customer: { name: "Supratik Sangram", email: "supratiksangram9@gmail.com" },
+    shipping: { address: { city: "Kolkata", state: "West Bengal" }, carrier: "BlueDart", trackingNumber: "BD99281726" },
+    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+    timeline: [
+      { status: "placed", note: "Order confirmed", at: new Date(Date.now() - 86400000 * 5) },
+      { status: "packed", note: "Packed at hub", at: new Date(Date.now() - 86400000 * 4) },
+      { status: "shipped", note: "Handed over to BlueDart", at: new Date(Date.now() - 86400000 * 3) },
+      { status: "out_for_delivery", note: "Out for delivery with agent", at: new Date(Date.now() - 86400000 * 2) },
+      { status: "delivered", note: "Delivered to customer", at: new Date(Date.now() - 86400000 * 1) }
+    ]
+  },
+  {
+    _id: "ord_fb_102",
+    orderNumber: "LX-1002",
+    status: "shipped",
+    items: [{ name: "Leather Formal Loafers", price: 3499, quantity: 1, image: "" }],
+    total: 4015,
+    customer: { name: "Ananya Sharma", email: "ananya.sharma@example.com" },
+    shipping: { address: { city: "Bengaluru", state: "Karnataka" }, carrier: "Delhivery", trackingNumber: "DL88291024" },
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+    timeline: [
+      { status: "placed", note: "Order placed successfully", at: new Date(Date.now() - 86400000 * 2) },
+      { status: "packed", note: "Order packed in eco-friendly packaging", at: new Date(Date.now() - 86400000 * 1.5) },
+      { status: "shipped", note: "Shipped via Delhivery Express", at: new Date(Date.now() - 86400000 * 1) }
+    ]
+  },
+  {
+    _id: "ord_fb_103",
+    orderNumber: "LX-1003",
+    status: "out_for_delivery",
+    items: [{ name: "Analog Minimalist Watch", price: 4299, quantity: 1, image: "" }],
+    total: 4899,
+    customer: { name: "Rahul Verma", email: "rahul.verma@example.com" },
+    shipping: { address: { city: "Mumbai", state: "Maharashtra" }, carrier: "BlueDart", trackingNumber: "BD77182910" },
+    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+    timeline: [
+      { status: "placed", note: "Order confirmed", at: new Date(Date.now() - 86400000 * 3) },
+      { status: "packed", note: "Packed at central fulfillment center", at: new Date(Date.now() - 86400000 * 2) },
+      { status: "shipped", note: "In transit to delivery hub", at: new Date(Date.now() - 86400000 * 1) },
+      { status: "out_for_delivery", note: "Out for delivery today", at: new Date() }
+    ]
+  }
+];
 const razorpayManagedMethods = new Set(["razorpay", "netbanking", "wallet", "paylater"]);
 
-const isOrderFallbackMode = () => process.env.ORDER_FALLBACK_MODE === "memory";
+const isOrderFallbackMode = () => process.env.ORDER_FALLBACK_MODE === "memory" || mongoose.connection.readyState !== 1;
 const normalizeOrderItem = (item = {}) => ({
   productId: String(item.productId || ""),
   name: String(item.name || "Product"),
