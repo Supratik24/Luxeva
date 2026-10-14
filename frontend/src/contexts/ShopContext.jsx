@@ -125,10 +125,31 @@ export const ShopProvider = ({ children }) => {
     syncRemoteCart(cart, coupon);
   }, [cart, coupon, syncRemoteCart]);
 
-  const addToCart = (product, selection = {}) => {
-    const selectedColor = selection.color || product.colors?.[0];
-    const selectedSize = selection.size || product.sizes?.[0];
-    let cartMessage = "Added to cart";
+  const addToCart = (product, selection = {}, count = 1) => {
+    if (!product) return;
+    const selectedColor = selection.color || product.colors?.[0] || "";
+    const selectedSize = selection.size || product.sizes?.[0] || "";
+
+    let maxStock = product.stock !== undefined ? Number(product.stock) : 99;
+    if ((selectedColor || selectedSize) && Array.isArray(product.variants) && product.variants.length > 0) {
+      const variant = product.variants.find((v) => {
+        const sizeMatch = !selectedSize || String(v.size || "").toLowerCase() === String(selectedSize).toLowerCase();
+        const colorMatch = !selectedColor || String(v.color || "").toLowerCase() === String(selectedColor).toLowerCase();
+        return sizeMatch && colorMatch;
+      });
+      if (variant && variant.stock !== undefined) {
+        maxStock = Number(variant.stock);
+      }
+    }
+
+    if (maxStock <= 0) {
+      toast.error(`"${product.name}" is out of stock`);
+      return;
+    }
+
+    const requestedAdd = Math.max(Number(count || 1), 1);
+    let cartMessage = requestedAdd > 1 ? `Added ${requestedAdd} to cart` : "Added to cart";
+    let reachedLimit = false;
 
     startTransition(() => {
       setCart((current) => {
@@ -140,14 +161,19 @@ export const ShopProvider = ({ children }) => {
         );
 
         if (match) {
-          const nextQuantity = Math.min(match.quantity + 1, product.stock || 10);
-          cartMessage = nextQuantity === match.quantity ? "Already in cart" : "Already in cart, quantity updated";
+          if (match.quantity >= maxStock) {
+            reachedLimit = true;
+            return current;
+          }
+          const nextQuantity = Math.min(match.quantity + requestedAdd, maxStock);
+          cartMessage = nextQuantity === match.quantity ? "Maximum available stock reached" : "Cart quantity updated";
 
           return current.map((item) =>
-            item === match ? { ...item, quantity: nextQuantity } : item
+            item === match ? { ...item, quantity: nextQuantity, stock: maxStock } : item
           );
         }
 
+        const initialQuantity = Math.min(requestedAdd, maxStock);
         return [
           ...current,
           {
@@ -156,26 +182,36 @@ export const ShopProvider = ({ children }) => {
             slug: product.slug,
             image: product.images?.[0]?.url,
             price: product.price,
-            quantity: 1,
+            quantity: initialQuantity,
             color: selectedColor,
             size: selectedSize,
-            stock: product.stock
+            stock: maxStock
           }
         ];
       });
     });
 
-    toast.success(cartMessage);
+    if (reachedLimit) {
+      toast.error(`Only ${maxStock} item${maxStock === 1 ? "" : "s"} available in stock`);
+    } else {
+      toast.success(cartMessage);
+    }
   };
 
   const updateQuantity = (productId, quantity, selection = {}) => {
     let removed = false;
+    let clampedStock = false;
 
     setCart((current) =>
       current
         .map((item) => {
           if (item.productId === productId && item.color === selection.color && item.size === selection.size) {
-            const nextQuantity = Math.max(quantity, 0);
+            let nextQuantity = Math.max(quantity, 0);
+            const itemMax = item.stock !== undefined ? Number(item.stock) : 99;
+            if (nextQuantity > itemMax) {
+              nextQuantity = itemMax;
+              clampedStock = true;
+            }
             if (nextQuantity === 0) {
               removed = true;
             }
@@ -189,6 +225,8 @@ export const ShopProvider = ({ children }) => {
 
     if (removed) {
       toast.success("Removed from cart");
+    } else if (clampedStock) {
+      toast.error("Reached maximum available stock");
     }
   };
 

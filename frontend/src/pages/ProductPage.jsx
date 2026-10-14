@@ -1,6 +1,6 @@
 import { Minus, Plus, ShieldCheck, Star, Truck } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import ProductCard from "../components/ui/ProductCard";
 import Meta from "../components/ui/Meta";
@@ -17,6 +17,7 @@ import {
 } from "../utils/productOptions";
 
 const ProductPage = () => {
+  const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { addToCart, saveRecentlyViewed } = useShop();
   const { slug } = useParams();
@@ -82,6 +83,25 @@ const ProductPage = () => {
   const showColorOptions = hasRealColorOptions(product?.colors);
   const hasImageVariants = hasVariantImageOptions(product);
   const activeImage = hasImageVariants ? getVariantImage(product, selection.color) : product?.images?.[0];
+
+  const getAvailableStock = () => {
+    if (!product) return 0;
+    if ((selection.color || selection.size) && Array.isArray(product.variants) && product.variants.length > 0) {
+      const match = product.variants.find((v) => {
+        const sizeMatch = !selection.size || String(v.size || "").toLowerCase() === String(selection.size).toLowerCase();
+        const colorMatch = !selection.color || String(v.color || "").toLowerCase() === String(selection.color).toLowerCase();
+        return sizeMatch && colorMatch;
+      });
+      if (match && match.stock !== undefined) {
+        return Number(match.stock);
+      }
+    }
+    return product.stock !== undefined ? Number(product.stock) : 0;
+  };
+
+  const availableStock = getAvailableStock();
+  const isOutOfStock = availableStock <= 0;
+  const isLowStock = !isOutOfStock && availableStock <= 5;
 
   const submitReview = async (event) => {
     event.preventDefault();
@@ -171,7 +191,22 @@ const ProductPage = () => {
               {product.averageRating?.toFixed?.(1) || 4.8}
             </span>
             <span>{product.reviewCount || payload.reviews.length} reviews</span>
-            <span>{product.stock > 0 ? "In stock" : "Out of stock"}</span>
+            {isOutOfStock ? (
+              <span className="inline-flex items-center gap-1.5 font-semibold text-rose-500">
+                <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+                Out of stock
+              </span>
+            ) : isLowStock ? (
+              <span className="inline-flex items-center gap-1.5 font-semibold text-amber-500">
+                <span className="h-2 w-2 rounded-full bg-amber-500" />
+                Only {availableStock} left in stock
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                In stock ({availableStock} available)
+              </span>
+            )}
           </div>
           <p className="mt-6 text-3xl font-semibold">{currency(product.price)}</p>
           <p className="mt-5 max-w-xl text-base leading-7 text-ink/68 dark:text-white/68">{product.description}</p>
@@ -234,24 +269,55 @@ const ProductPage = () => {
             </div>
           </div>
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            <div className="glass inline-flex items-center rounded-full p-2">
-              <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="rounded-full p-2">
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div className={`glass inline-flex items-center rounded-full p-2 ${isOutOfStock ? "opacity-40 cursor-not-allowed" : ""}`}>
+              <button
+                type="button"
+                disabled={isOutOfStock || quantity <= 1}
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                className="rounded-full p-2 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-black/5 dark:hover:bg-white/5 transition"
+              >
                 <Minus size={16} />
               </button>
-              <span className="px-4 text-sm font-semibold">{quantity}</span>
-              <button type="button" onClick={() => setQuantity((q) => q + 1)} className="rounded-full p-2">
+              <span className="px-4 text-sm font-semibold">{isOutOfStock ? 0 : quantity}</span>
+              <button
+                type="button"
+                disabled={isOutOfStock || quantity >= availableStock}
+                onClick={() => setQuantity((q) => Math.min(availableStock, q + 1))}
+                className="rounded-full p-2 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-black/5 dark:hover:bg-white/5 transition"
+              >
                 <Plus size={16} />
               </button>
             </div>
             <button
               type="button"
-              onClick={() => Array.from({ length: quantity }).forEach(() => addToCart(product, selection))}
-              className="rounded-full bg-olive px-6 py-4 text-sm font-semibold text-white"
+              disabled={isOutOfStock}
+              onClick={() => {
+                if (isOutOfStock) return;
+                addToCart(product, selection, quantity);
+              }}
+              className={`rounded-full px-6 py-4 text-sm font-semibold text-white transition ${
+                isOutOfStock
+                  ? "bg-stone-400 dark:bg-stone-700 cursor-not-allowed opacity-60"
+                  : "bg-olive hover:opacity-90 shadow-soft"
+              }`}
             >
-              Add to cart
+              {isOutOfStock ? "Out of stock" : "Add to cart"}
             </button>
-            <button type="button" className="rounded-full border border-ink/10 px-6 py-4 text-sm font-semibold dark:border-white/12">
+            <button
+              type="button"
+              disabled={isOutOfStock}
+              onClick={() => {
+                if (isOutOfStock) return;
+                addToCart(product, selection, quantity);
+                navigate("/checkout");
+              }}
+              className={`rounded-full border px-6 py-4 text-sm font-semibold transition ${
+                isOutOfStock
+                  ? "border-ink/10 text-ink/30 dark:border-white/10 dark:text-white/30 cursor-not-allowed"
+                  : "border-ink/10 dark:border-white/12 hover:bg-ink/5 dark:hover:bg-white/5"
+              }`}
+            >
               Buy now
             </button>
           </div>

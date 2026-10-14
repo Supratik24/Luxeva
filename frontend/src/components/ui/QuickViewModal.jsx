@@ -43,14 +43,35 @@ const QuickViewModal = () => {
                   </button>
                 </div>
                 <p className="text-muted">{quickView.shortDescription || quickView.description}</p>
-                <p className="mt-6 text-2xl font-semibold">{currency(quickView.price)}</p>
+                <div className="mt-4 flex items-center justify-between">
+                  <p className="text-2xl font-semibold">{currency(quickView.price)}</p>
+                  {quickView.stock !== undefined && Number(quickView.stock) <= 0 ? (
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-rose-500 text-xs">
+                      <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+                      Out of stock
+                    </span>
+                  ) : quickView.stock !== undefined && Number(quickView.stock) > 0 && Number(quickView.stock) <= 5 ? (
+                    <span className="inline-flex items-center gap-1.5 font-medium text-amber-500 text-xs">
+                      <span className="h-2 w-2 rounded-full bg-amber-500" />
+                      Only {quickView.stock} left
+                    </span>
+                  ) : null}
+                </div>
                 <div className="mt-8 flex flex-wrap gap-3">
                   <button
                     type="button"
-                    onClick={() => addToCart(quickView)}
-                    className="rounded-full bg-olive px-5 py-3 text-sm font-semibold text-white"
+                    disabled={quickView.stock !== undefined && Number(quickView.stock) <= 0}
+                    onClick={() => {
+                      if (quickView.stock !== undefined && Number(quickView.stock) <= 0) return;
+                      addToCart(quickView);
+                    }}
+                    className={`rounded-full px-5 py-3 text-sm font-semibold text-white transition ${
+                      quickView.stock !== undefined && Number(quickView.stock) <= 0
+                        ? "bg-stone-400 dark:bg-stone-700 cursor-not-allowed opacity-60"
+                        : "bg-olive hover:opacity-90 shadow-soft"
+                    }`}
                   >
-                    Add to cart
+                    {quickView.stock !== undefined && Number(quickView.stock) <= 0 ? "Out of stock" : "Add to cart"}
                   </button>
                   <Link
                     to={`/product/${quickView.slug}`}

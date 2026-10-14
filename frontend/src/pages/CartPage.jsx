@@ -25,6 +25,14 @@ const CartPage = () => {
   const tax = subtotal * 0.12;
   const total = subtotal + shipping + tax - (coupon?.discountAmount || 0);
   const rawOffers = useLocalPreviewData ? mockCoupons : activeCoupons;
+
+  const hasOutOfStockItems = cart.some(
+    (item) => item.stock !== undefined && Number(item.stock) <= 0
+  );
+  const hasOverStockItems = cart.some(
+    (item) => item.stock !== undefined && Number(item.stock) > 0 && item.quantity > Number(item.stock)
+  );
+  const blockCheckout = hasOutOfStockItems || hasOverStockItems;
   
   const couponOffers = rawOffers.map((offer) => {
         const rawSaving =
@@ -74,30 +82,67 @@ const CartPage = () => {
       ) : (
         <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
           <div className="space-y-4">
-            {cart.map((item) => (
-              <article key={`${item.productId}-${item.color}-${item.size}`} className="glass grid gap-4 rounded-[2rem] p-4 shadow-soft md:grid-cols-[150px_1fr_auto]">
-                <img src={item.image || "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=1200&q=80"} alt={item.name} className="h-36 w-full rounded-[1.4rem] object-cover" />
-                <div>
-                  <h3 className="text-lg font-semibold">{item.name}</h3>
-                  <p className="mt-2 text-muted">Color: {item.color || "Default"} | Size: {item.size || "Standard"}</p>
-                  <p className="mt-4 font-semibold">{currency(item.price)}</p>
-                </div>
-                <div className="flex flex-col items-end justify-between">
-                  <button type="button" onClick={() => removeFromCart(item.productId, item)} className="rounded-full border border-ink/10 p-2 dark:border-white/10">
-                    <Trash2 size={16} />
-                  </button>
-                  <div className="glass inline-flex items-center rounded-full p-2">
-                    <button type="button" onClick={() => updateQuantity(item.productId, item.quantity - 1, item)} className="rounded-full px-3 py-2">
-                      -
-                    </button>
-                    <span className="px-3 text-sm font-semibold">{item.quantity}</span>
-                    <button type="button" onClick={() => updateQuantity(item.productId, item.quantity + 1, item)} className="rounded-full px-3 py-2">
-                      +
-                    </button>
+            {cart.map((item) => {
+              const isItemOutOfStock = item.stock !== undefined && Number(item.stock) <= 0;
+              const isItemOverStock = !isItemOutOfStock && item.stock !== undefined && item.quantity > Number(item.stock);
+
+              return (
+                <article
+                  key={`${item.productId}-${item.color}-${item.size}`}
+                  className={`glass grid gap-4 rounded-[2rem] p-4 shadow-soft md:grid-cols-[150px_1fr_auto] transition ${
+                    isItemOutOfStock ? "border border-rose-500/40 bg-rose-500/[0.02]" : ""
+                  }`}
+                >
+                  <div className="relative">
+                    <img
+                      src={item.image || "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=1200&q=80"}
+                      alt={item.name}
+                      className={`h-36 w-full rounded-[1.4rem] object-cover ${isItemOutOfStock ? "grayscale-[40%] opacity-80" : ""}`}
+                    />
+                    {isItemOutOfStock && (
+                      <span className="absolute left-2 top-2 rounded-full bg-rose-600 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm">
+                        Out of stock
+                      </span>
+                    )}
                   </div>
-                </div>
-              </article>
-            ))}
+                  <div>
+                    <h3 className="text-lg font-semibold">{item.name}</h3>
+                    <p className="mt-2 text-muted">Color: {item.color || "Default"} | Size: {item.size || "Standard"}</p>
+                    <p className="mt-4 font-semibold">{currency(item.price)}</p>
+                    {isItemOutOfStock ? (
+                      <p className="mt-2 text-xs font-semibold text-rose-500 flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
+                        Out of stock — remove this item to complete checkout
+                      </p>
+                    ) : isItemOverStock ? (
+                      <p className="mt-2 text-xs font-semibold text-amber-500 flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                        Only {item.stock} left in stock — please reduce quantity
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-col items-end justify-between">
+                    <button type="button" onClick={() => removeFromCart(item.productId, item)} className="rounded-full border border-ink/10 p-2 dark:border-white/10 hover:bg-rose-500/10 hover:text-rose-500 transition">
+                      <Trash2 size={16} />
+                    </button>
+                    <div className="glass inline-flex items-center rounded-full p-2">
+                      <button type="button" onClick={() => updateQuantity(item.productId, item.quantity - 1, item)} className="rounded-full px-3 py-2 hover:bg-black/5 dark:hover:bg-white/5 transition">
+                        -
+                      </button>
+                      <span className="px-3 text-sm font-semibold">{item.quantity}</span>
+                      <button
+                        type="button"
+                        disabled={isItemOutOfStock || (item.stock !== undefined && item.quantity >= Number(item.stock))}
+                        onClick={() => updateQuantity(item.productId, item.quantity + 1, item)}
+                        className="rounded-full px-3 py-2 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-black/5 dark:hover:bg-white/5 transition"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
           <aside className="glass h-fit rounded-[2rem] p-6 shadow-soft">
             <h2 className="font-display text-3xl">Order summary</h2>
@@ -233,10 +278,28 @@ const CartPage = () => {
               <span>Total</span>
               <span>{currency(total)}</span>
             </div>
-            <Link to="/checkout" className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-olive px-5 py-4 text-sm font-semibold text-white">
-              Proceed to checkout
-              <ArrowRight size={16} />
-            </Link>
+
+            {blockCheckout ? (
+              <div className="mt-6 space-y-3">
+                <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs font-medium text-rose-500 dark:bg-rose-500/15">
+                  {hasOutOfStockItems
+                    ? "One or more items in your cart are currently out of stock. Please remove them to proceed."
+                    : "One or more items exceed available stock. Please reduce quantity to proceed."}
+                </div>
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-stone-300 dark:bg-stone-800 px-5 py-4 text-sm font-semibold text-stone-500 dark:text-stone-400 cursor-not-allowed opacity-75"
+                >
+                  Resolve stock issues to checkout
+                </button>
+              </div>
+            ) : (
+              <Link to="/checkout" className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-olive px-5 py-4 text-sm font-semibold text-white hover:opacity-90 transition">
+                Proceed to checkout
+                <ArrowRight size={16} />
+              </Link>
+            )}
           </aside>
         </div>
       )}

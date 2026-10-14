@@ -227,10 +227,30 @@ const CheckoutPage = () => {
     });
   };
 
+  const hasOutOfStockItems = cart.some(
+    (item) => item.stock !== undefined && Number(item.stock) <= 0
+  );
+  const hasOverStockItems = cart.some(
+    (item) => item.stock !== undefined && Number(item.stock) > 0 && item.quantity > Number(item.stock)
+  );
+  const blockCheckout = hasOutOfStockItems || hasOverStockItems;
+
   const placeOrder = async (event) => {
     event.preventDefault();
     if (!cart.length) {
       toast.error("Your cart is empty");
+      return;
+    }
+
+    if (hasOutOfStockItems) {
+      toast.error("Some items in your cart are currently out of stock. Please return to your cart.");
+      navigate("/cart");
+      return;
+    }
+
+    if (hasOverStockItems) {
+      toast.error("Some items exceed available stock. Please adjust quantities in your cart.");
+      navigate("/cart");
       return;
     }
 
@@ -348,12 +368,22 @@ const CheckoutPage = () => {
               ))}
             </div>
           </div>
-          <button type="submit" disabled={submitting} className="mt-8 rounded-full bg-olive px-6 py-4 text-sm font-semibold text-white">
+          <button
+            type="submit"
+            disabled={submitting || blockCheckout}
+            className={`mt-8 rounded-full px-6 py-4 text-sm font-semibold text-white transition ${
+              blockCheckout
+                ? "bg-stone-300 dark:bg-stone-800 text-stone-500 dark:text-stone-400 cursor-not-allowed opacity-75"
+                : "bg-olive hover:opacity-90 shadow-soft"
+            }`}
+          >
             {submitting
               ? "Processing..."
-              : paymentMethod === "cod"
-                ? "Place order"
-                : `Continue with ${paymentMethod === "paylater" ? "Pay Later" : paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1)}`}
+              : blockCheckout
+                ? "Items out of stock in cart"
+                : paymentMethod === "cod"
+                  ? "Place order"
+                  : `Continue with ${paymentMethod === "paylater" ? "Pay Later" : paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1)}`}
           </button>
         </form>
         <aside className="glass h-fit rounded-[2rem] p-6 shadow-soft">
@@ -361,10 +391,17 @@ const CheckoutPage = () => {
           <div className="mt-6 space-y-4">
             {cart.map((item) => (
               <div key={`${item.productId}-${item.color}-${item.size}`} className="flex items-center gap-3">
-                <img src={item.image} alt={item.name} className="h-14 w-14 rounded-2xl object-cover" />
+                <img src={item.image} alt={item.name} className={`h-14 w-14 rounded-2xl object-cover ${item.stock !== undefined && Number(item.stock) <= 0 ? "grayscale-[40%] opacity-70" : ""}`} />
                 <div className="flex-1">
                   <p className="text-sm font-semibold">{item.name}</p>
-                  <p className="text-xs text-ink/45 dark:text-white/65">Qty {item.quantity}</p>
+                  <p className="text-xs text-ink/45 dark:text-white/65">
+                    Qty {item.quantity}
+                    {item.stock !== undefined && Number(item.stock) <= 0 ? (
+                      <span className="ml-2 font-semibold text-rose-500">• Out of stock</span>
+                    ) : item.stock !== undefined && Number(item.stock) > 0 && item.quantity > Number(item.stock) ? (
+                      <span className="ml-2 font-semibold text-amber-500">• Only {item.stock} left</span>
+                    ) : null}
+                  </p>
                 </div>
                 <p className="text-sm font-semibold">{currency(item.price * item.quantity)}</p>
               </div>

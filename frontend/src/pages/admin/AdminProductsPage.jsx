@@ -286,7 +286,17 @@ const AdminProductsPage = () => {
                   <p className="font-semibold truncate">{product.name}</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
                     <span className="text-xs text-clay dark:text-white/65">SKU: {product.sku || "—"}</span>
-                    <span className="text-xs text-clay dark:text-white/65">Stock: {product.stock}</span>
+                    {product.stock <= 0 ? (
+                      <span className="badge bg-rose-500/15 text-rose-600 dark:text-rose-400 font-semibold text-[11px]">
+                        Out of stock (0)
+                      </span>
+                    ) : product.stock <= 5 ? (
+                      <span className="badge bg-amber-500/15 text-amber-600 dark:text-amber-400 font-medium text-[11px]">
+                        Low stock ({product.stock})
+                      </span>
+                    ) : (
+                      <span className="text-xs text-clay dark:text-white/65">Stock: {product.stock}</span>
+                    )}
                     <span className="text-xs text-clay dark:text-white/65">₹{product.price}</span>
                     {product.featured && <span className="badge bg-sand text-ink dark:bg-white/10 dark:text-white">Featured</span>}
                     {product.trending && <span className="badge bg-sand text-ink dark:bg-white/10 dark:text-white">Trending</span>}

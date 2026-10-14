@@ -30,6 +30,9 @@ const ProductCard = ({ product, compact = false }) => {
 
   if (!product) return null;
 
+  const isOutOfStock = product.stock !== undefined && Number(product.stock) <= 0;
+  const isLowStock = !isOutOfStock && product.stock !== undefined && Number(product.stock) > 0 && Number(product.stock) <= 5;
+
   const discount = product.compareAtPrice
     ? Math.round(((product.compareAtPrice - product.price) / product.compareAtPrice) * 100)
     : null;
@@ -51,12 +54,24 @@ const ProductCard = ({ product, compact = false }) => {
               "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80"
             }
             alt={activeImage?.alt || product.name}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+            className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04] ${
+              isOutOfStock ? "grayscale-[35%] opacity-85" : ""
+            }`}
           />
         </Link>
 
         {/* Top badges */}
         <div className="absolute left-3 top-3 flex flex-col gap-1.5">
+          {isOutOfStock && (
+            <span className="badge bg-rose-600 text-white font-semibold shadow-sm backdrop-blur-sm">
+              Out of Stock
+            </span>
+          )}
+          {!isOutOfStock && isLowStock && (
+            <span className="badge bg-amber-500 text-white font-medium shadow-sm backdrop-blur-sm">
+              Only {product.stock} left
+            </span>
+          )}
           {product.featured && (
             <span className="badge bg-ink/85 text-white backdrop-blur-sm">Featured</span>
           )}
@@ -89,8 +104,17 @@ const ProductCard = ({ product, compact = false }) => {
           </button>
           <button
             type="button"
-            onClick={() => addToCart(product, { color: selectedColor, size: product?.sizes?.[0] || "" })}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ink text-white transition hover:opacity-80 dark:bg-white dark:text-ink"
+            disabled={isOutOfStock}
+            onClick={() => {
+              if (isOutOfStock) return;
+              addToCart(product, { color: selectedColor, size: product?.sizes?.[0] || "" });
+            }}
+            title={isOutOfStock ? "Out of stock" : "Add to bag"}
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${
+              isOutOfStock
+                ? "bg-stone-300 text-stone-500 dark:bg-stone-700 dark:text-stone-400 cursor-not-allowed opacity-60"
+                : "bg-ink text-white hover:opacity-80 dark:bg-white dark:text-ink"
+            }`}
           >
             <ShoppingBag size={15} />
           </button>
@@ -128,6 +152,19 @@ const ProductCard = ({ product, compact = false }) => {
             </span>
           )}
         </div>
+
+        {/* Stock status indicator */}
+        {isOutOfStock ? (
+          <p className="mt-1 text-xs font-semibold text-rose-500 flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-rose-500 inline-block animate-pulse" />
+            Out of Stock
+          </p>
+        ) : isLowStock ? (
+          <p className="mt-1 text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 inline-block" />
+            Only {product.stock} left
+          </p>
+        ) : null}
 
         {/* Color swatches */}
         {showColorOptions && (

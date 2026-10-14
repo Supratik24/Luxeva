@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import {
   ApiError,
   asyncHandler,
+  getRedis,
   publishEvent,
   sendSuccess
 } from "@luxeva/shared";
@@ -374,11 +375,173 @@ const resolveCustomerInfo = async (req) => {
   };
 };
 
+const invalidateCatalogCache = async () => {
+  try {
+    const redis = getRedis();
+    const keys = await redis.keys("catalog:*");
+    if (keys.length) {
+      await redis.del(keys);
+    }
+  } catch (err) {
+    console.warn("Could not invalidate catalog cache:", err.message);
+  }
+};
+
+const verifyItemsStock = async (items = []) => {
+  if (mongoose.connection?.readyState !== 1) return;
+
+  const catalogDb = mongoose.connection.useDb("catalog_db", { useCache: true });
+  for (const item of items) {
+    if (!item.productId) continue;
+    const filter = mongoose.Types.ObjectId.isValid(item.productId)
+      ? { _id: new mongoose.Types.ObjectId(item.productId) }
+      : { _id: item.productId };
+
+    const product = await catalogDb.collection("products").findOne(filter);
+    if (!product) continue;
+
+    const availableStock = Number(product.stock !== undefined ? product.stock : 0);
+    if (availableStock <= 0) {
+      throw new ApiError(400, `"${product.name}" is currently out of stock`);
+    }
+
+    if (item.quantity > availableStock) {
+      throw new ApiError(
+        400,
+        `Insufficient stock for "${product.name}". Only ${availableStock} left in stock.`
+      );
+    }
+
+    if ((item.size || item.color) && Array.isArray(product.variants) && product.variants.length > 0) {
+      const variant = product.variants.find((v) => {
+        const sizeMatch = !item.size || String(v.size || "").toLowerCase() === String(item.size).toLowerCase();
+        const colorMatch = !item.color || String(v.color || "").toLowerCase() === String(item.color).toLowerCase();
+        return sizeMatch && colorMatch;
+      });
+
+      if (variant && variant.stock !== undefined) {
+        const variantStock = Number(variant.stock);
+        if (variantStock <= 0) {
+          throw new ApiError(
+            400,
+            `"${product.name}" (${[item.color, item.size].filter(Boolean).join(" / ")}) is currently out of stock`
+          );
+        }
+        if (item.quantity > variantStock) {
+          throw new ApiError(
+            400,
+            `Insufficient stock for "${product.name}" (${[item.color, item.size].filter(Boolean).join(" / ")}). Only ${variantStock} left in stock.`
+          );
+        }
+      }
+    }
+  }
+};
+
+const deductItemsStock = async (items = []) => {
+  if (mongoose.connection?.readyState !== 1) return;
+
+  try {
+    const catalogDb = mongoose.connection.useDb("catalog_db", { useCache: true });
+
+    for (const item of items) {
+      if (!item.productId) continue;
+      const filter = mongoose.Types.ObjectId.isValid(item.productId)
+        ? { _id: new mongoose.Types.ObjectId(item.productId) }
+        : { _id: item.productId };
+
+      await catalogDb.collection("products").updateOne(filter, {
+        $inc: {
+          stock: -item.quantity,
+          soldCount: item.quantity
+        }
+      });
+
+      await catalogDb.collection("products").updateOne(
+        { ...filter, stock: { $lt: 0 } },
+        { $set: { stock: 0 } }
+      );
+
+      if (item.size || item.color) {
+        const variantElemMatch = {};
+        if (item.size) variantElemMatch.size = item.size;
+        if (item.color) variantElemMatch.color = item.color;
+
+        await catalogDb.collection("products").updateOne(
+          { ...filter, variants: { $elemMatch: variantElemMatch } },
+          {
+            $inc: {
+              "variants.$.stock": -item.quantity
+            }
+          }
+        );
+
+        await catalogDb.collection("products").updateOne(
+          { ...filter, "variants.stock": { $lt: 0 } },
+          { $set: { "variants.$.stock": 0 } }
+        );
+      }
+    }
+
+    await invalidateCatalogCache();
+  } catch (err) {
+    console.error("Failed to deduct product stock:", err.message);
+  }
+};
+
+const restoreItemsStock = async (items = []) => {
+  if (mongoose.connection?.readyState !== 1) return;
+
+  try {
+    const catalogDb = mongoose.connection.useDb("catalog_db", { useCache: true });
+
+    for (const item of items) {
+      if (!item.productId) continue;
+      const filter = mongoose.Types.ObjectId.isValid(item.productId)
+        ? { _id: new mongoose.Types.ObjectId(item.productId) }
+        : { _id: item.productId };
+
+      await catalogDb.collection("products").updateOne(filter, {
+        $inc: {
+          stock: item.quantity,
+          soldCount: -item.quantity
+        }
+      });
+
+      await catalogDb.collection("products").updateOne(
+        { ...filter, soldCount: { $lt: 0 } },
+        { $set: { soldCount: 0 } }
+      );
+
+      if (item.size || item.color) {
+        const variantElemMatch = {};
+        if (item.size) variantElemMatch.size = item.size;
+        if (item.color) variantElemMatch.color = item.color;
+
+        await catalogDb.collection("products").updateOne(
+          { ...filter, variants: { $elemMatch: variantElemMatch } },
+          {
+            $inc: {
+              "variants.$.stock": item.quantity
+            }
+          }
+        );
+      }
+    }
+
+    await invalidateCatalogCache();
+  } catch (err) {
+    console.error("Failed to restore product stock:", err.message);
+  }
+};
+
 export const createOrder = asyncHandler(async (req, res) => {
   const items = (req.body.items || []).map(normalizeOrderItem);
   if (!items.length) {
     throw new ApiError(400, "Order must contain at least one item");
   }
+
+  await verifyItemsStock(items);
 
   const totals = computeTotals(items, req.body.coupon);
   const paymentMethod = req.body.paymentMethod || "card";
@@ -435,6 +598,8 @@ export const createOrder = asyncHandler(async (req, res) => {
       coupon: null
     });
 
+    await deductItemsStock(items);
+
     const milestoneNotification = getMilestoneNotification(order, "placed");
     await dispatchMilestoneNotification(order, milestoneNotification);
 
@@ -476,6 +641,8 @@ export const createOrder = asyncHandler(async (req, res) => {
     { userId: req.user.id },
     { items: [], subtotal: 0, tax: 0, shippingFee: 0, total: 0, coupon: null }
   );
+
+  await deductItemsStock(items);
 
   const milestoneNotification = getMilestoneNotification(order, "placed");
   await dispatchMilestoneNotification(order, milestoneNotification);
@@ -693,6 +860,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
       throw new ApiError(404, "Order not found");
     }
 
+    const prevStatus = order.status;
     if (status) order.status = status;
     order.updatedAt = new Date().toISOString();
     order.timeline = adjustTimelineForStatus(order.timeline || [], status || order.status, cleanNote, location || "");
@@ -712,6 +880,12 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
       estimatedDelivery: nextEstimatedDelivery
     };
 
+    if (prevStatus !== "cancelled" && newStatusKey === "cancelled") {
+      await restoreItemsStock(order.items);
+    } else if (prevStatus === "cancelled" && newStatusKey !== "cancelled") {
+      await deductItemsStock(order.items);
+    }
+
     const milestoneNotification = getMilestoneNotification(order, status || order.status, cleanNote);
     await dispatchMilestoneNotification(order, milestoneNotification);
 
@@ -724,6 +898,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Order not found");
   }
 
+  const prevStatus = order.status;
   if (status) order.status = status;
   order.timeline = adjustTimelineForStatus(order.timeline || [], status || order.status, cleanNote, location || "");
 
@@ -742,6 +917,12 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
   };
 
   await order.save();
+
+  if (prevStatus !== "cancelled" && newStatusKey === "cancelled") {
+    await restoreItemsStock(order.items);
+  } else if (prevStatus === "cancelled" && newStatusKey !== "cancelled") {
+    await deductItemsStock(order.items);
+  }
 
   const milestoneNotification = getMilestoneNotification(order, status || order.status, cleanNote);
   await dispatchMilestoneNotification(order, milestoneNotification);
