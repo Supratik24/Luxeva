@@ -9,11 +9,13 @@ import { createBrand,
   createCoupon,
   createProduct,
   createReview,
+  createAdminReview,
   deleteBrand,
   deleteCategory,
   deleteCoupon,
   deleteMedia,
   deleteProduct,
+  deleteReview,
   getBrands,
   getCatalogMeta,
   getCategories,
@@ -26,6 +28,7 @@ import { createBrand,
   listMedia,
   listProducts,
   moderateReview,
+  setProductRating,
   toggleWishlist,
   uploadProductImages,
   updateBrand,
@@ -76,7 +79,10 @@ router.post("/admin/brands", createBrand);
 router.put("/admin/brands/:id", updateBrand);
 router.delete("/admin/brands/:id", deleteBrand);
 router.get("/admin/reviews", getReviews);
+router.post("/admin/reviews", createAdminReview);
 router.patch("/admin/reviews/:id", moderateReview);
+router.delete("/admin/reviews/:id", deleteReview);
+router.patch("/admin/products/:id/rating", setProductRating);
 router.get("/admin/coupons", getCoupons);
 router.post("/admin/coupons", createCoupon);
 router.put("/admin/coupons/:id", updateCoupon);

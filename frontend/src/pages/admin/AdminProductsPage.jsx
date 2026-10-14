@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { Plus, Pencil, Trash2, Tag, Package, Star, ChevronDown, X, ImageIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, Package, Star, ChevronDown, X, ImageIcon, Check } from "lucide-react";
 import api, { endpoints } from "../../services/api";
 import ImagePicker from "../../components/admin/ImagePicker";
 
@@ -46,6 +46,27 @@ const AdminProductsPage = () => {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Admin Review & Rating Controls state
+  const [adminReviewForm, setAdminReviewForm] = useState({
+    productId: "",
+    rating: 5,
+    userName: "Verified Customer",
+    title: "",
+    comment: "",
+    status: "approved"
+  });
+  const [ratingOverrideForm, setRatingOverrideForm] = useState({
+    productId: "",
+    averageRating: 4.8,
+    reviewCount: 12
+  });
+  const [reviewTabMode, setReviewTabMode] = useState("add"); // "add" | "override"
+  const [reviewFilterProduct, setReviewFilterProduct] = useState("all");
+  const [reviewFilterStatus, setReviewFilterStatus] = useState("all");
+  const [reviewSearch, setReviewSearch] = useState("");
+  const [savingReview, setSavingReview] = useState(false);
+  const [savingRating, setSavingRating] = useState(false);
+
   const load = () =>
     Promise.all([
       api.get(`${endpoints.catalog.products}?limit=1000`),
@@ -62,6 +83,98 @@ const AdminProductsPage = () => {
   useEffect(() => { load(); }, []);
 
   const set = (field, value) => setForm((s) => ({ ...s, [field]: value }));
+
+  const handleCreateAdminReview = async (e) => {
+    e?.preventDefault?.();
+    if (!adminReviewForm.productId) {
+      toast.error("Please select a product");
+      return;
+    }
+    if (!adminReviewForm.comment && !adminReviewForm.title) {
+      toast.error("Please provide a review comment or title");
+      return;
+    }
+
+    setSavingReview(true);
+    try {
+      await api.post(endpoints.catalog.adminReviews, adminReviewForm);
+      toast.success("Review & rating published successfully!");
+      setAdminReviewForm((prev) => ({
+        ...prev,
+        title: "",
+        comment: "",
+        rating: 5
+      }));
+      await load();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to publish review");
+    } finally {
+      setSavingReview(false);
+    }
+  };
+
+  const handleSelectProductForOverride = (pId) => {
+    const prod = products.find((p) => p._id === pId);
+    setRatingOverrideForm({
+      productId: pId,
+      averageRating: prod?.averageRating !== undefined && prod.averageRating > 0 ? prod.averageRating : 4.8,
+      reviewCount: prod?.reviewCount !== undefined && prod.reviewCount > 0 ? prod.reviewCount : 12
+    });
+  };
+
+  const handleUpdateProductRating = async (e) => {
+    e?.preventDefault?.();
+    if (!ratingOverrideForm.productId) {
+      toast.error("Please select a product");
+      return;
+    }
+
+    setSavingRating(true);
+    try {
+      await api.patch(endpoints.catalog.adminProductRating(ratingOverrideForm.productId), {
+        averageRating: Number(ratingOverrideForm.averageRating),
+        reviewCount: Number(ratingOverrideForm.reviewCount)
+      });
+      toast.success("Product rating updated successfully!");
+      await load();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to update product rating");
+    } finally {
+      setSavingRating(false);
+    }
+  };
+
+  const handleDeleteReview = async (id) => {
+    try {
+      await api.delete(endpoints.catalog.adminReview(id));
+      toast.success("Review deleted and rating refreshed");
+      await load();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to delete review");
+    }
+  };
+
+  const filteredReviews = reviews.filter((r) => {
+    if (reviewFilterProduct !== "all") {
+      const pId = String(r.product?._id || r.product);
+      if (pId !== reviewFilterProduct) return false;
+    }
+    if (reviewFilterStatus !== "all" && r.status !== reviewFilterStatus) {
+      return false;
+    }
+    if (reviewSearch.trim()) {
+      const q = reviewSearch.toLowerCase();
+      const matchComment = r.comment?.toLowerCase().includes(q);
+      const matchTitle = r.title?.toLowerCase().includes(q);
+      const matchUser = r.userName?.toLowerCase().includes(q);
+      const matchProd = r.product?.name?.toLowerCase().includes(q);
+      if (!matchComment && !matchTitle && !matchUser && !matchProd) return false;
+    }
+    return true;
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -418,37 +531,343 @@ const AdminProductsPage = () => {
 
       {/* ── Reviews Section ── */}
       {activeSection === "Reviews" && (
-        <div className="space-y-4">
-          {reviews.map((review) => (
-            <div key={review._id} className="rounded-2xl border border-ink/5 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#222222]">
-              <div className="flex flex-wrap items-start justify-between gap-4 mb-3">
-                <div>
-                  <p className="font-semibold">{review.product?.name}</p>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-sm text-clay dark:text-white/65">{review.userName}</span>
-                    <span className="flex items-center gap-1 text-sm text-amber-500">
-                      <Star size={13} className="fill-current" />
-                      {review.rating}/5
-                    </span>
-                  </div>
+        <div className="grid gap-8 lg:grid-cols-[440px_1fr]">
+          {/* Left Column: Admin Controls */}
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/12 dark:bg-[#222222]">
+              <div className="flex items-center justify-between gap-2 border-b border-ink/5 pb-4 dark:border-white/10">
+                <div className="flex gap-2 p-1 rounded-xl bg-sand/60 dark:bg-white/5 w-full">
+                  <button
+                    type="button"
+                    onClick={() => setReviewTabMode("add")}
+                    className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${
+                      reviewTabMode === "add"
+                        ? "bg-white text-ink shadow-sm dark:bg-white/15 dark:text-white"
+                        : "text-clay hover:text-ink dark:text-white/60 dark:hover:text-white"
+                    }`}
+                  >
+                    Add Product Review
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReviewTabMode("override")}
+                    className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${
+                      reviewTabMode === "override"
+                        ? "bg-white text-ink shadow-sm dark:bg-white/15 dark:text-white"
+                        : "text-clay hover:text-ink dark:text-white/60 dark:hover:text-white"
+                    }`}
+                  >
+                    Set Product Rating
+                  </button>
                 </div>
-                <select
-                  value={review.status}
-                  onChange={async (e) => { await api.patch(endpoints.catalog.adminReview(review._id), { status: e.target.value }); await load(); }}
-                  className={`rounded-full border px-4 py-2 text-xs font-semibold outline-none transition ${
-                    review.status === "approved" ? "border-green-200 bg-green-50 text-green-700 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-400" :
-                    review.status === "rejected" ? "border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400" :
-                    "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400"
-                  }`}
-                >
-                  <option value="approved">Approved</option>
-                  <option value="pending">Pending</option>
-                  <option value="rejected">Rejected</option>
-                </select>
               </div>
-              <p className="text-sm leading-relaxed text-clay dark:text-white/65 bg-sand/50 rounded-xl p-3 dark:bg-white/5">{review.comment}</p>
+
+              {reviewTabMode === "add" ? (
+                <form onSubmit={handleCreateAdminReview} className="mt-5 space-y-4">
+                  <div>
+                    <h3 className="text-base font-semibold">Publish New Review & Rating</h3>
+                    <p className="text-xs text-clay dark:text-white/65 mt-0.5">
+                      Enter a customer or editorial rating for any specific product.
+                    </p>
+                  </div>
+
+                  <Field label="Target Product">
+                    <select
+                      value={adminReviewForm.productId}
+                      onChange={(e) => setAdminReviewForm((s) => ({ ...s, productId: e.target.value }))}
+                      className="input"
+                      required
+                    >
+                      <option value="">-- Select a product --</option>
+                      {products.map((p) => (
+                        <option key={p._id} value={p._id}>
+                          {p.name} ({p.averageRating?.toFixed(1) || 0}★ · {p.reviewCount || 0} reviews)
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field label="Rating">
+                    <div className="flex items-center gap-2 py-1">
+                      <div className="flex items-center gap-1.5">
+                        {[1, 2, 3, 4, 5].map((starVal) => (
+                          <button
+                            key={starVal}
+                            type="button"
+                            onClick={() => setAdminReviewForm((s) => ({ ...s, rating: starVal }))}
+                            className="p-1 transition hover:scale-110"
+                            title={`${starVal} Star${starVal > 1 ? "s" : ""}`}
+                          >
+                            <Star
+                              size={22}
+                              className={
+                                starVal <= adminReviewForm.rating
+                                  ? "fill-amber-400 text-amber-400"
+                                  : "text-ink/15 dark:text-white/15"
+                              }
+                            />
+                          </button>
+                        ))}
+                      </div>
+                      <span className="text-xs font-semibold text-clay dark:text-white/65 ml-2">
+                        {adminReviewForm.rating} of 5 Stars
+                      </span>
+                    </div>
+                  </Field>
+
+                  <Field label="Reviewer Name">
+                    <input
+                      type="text"
+                      value={adminReviewForm.userName}
+                      onChange={(e) => setAdminReviewForm((s) => ({ ...s, userName: e.target.value }))}
+                      placeholder="e.g. Verified Buyer, Priya Sharma"
+                      className="input"
+                      required
+                    />
+                  </Field>
+
+                  <Field label="Review Title (Optional)">
+                    <input
+                      type="text"
+                      value={adminReviewForm.title}
+                      onChange={(e) => setAdminReviewForm((s) => ({ ...s, title: e.target.value }))}
+                      placeholder="e.g. Flawless silk finish and perfect fit"
+                      className="input"
+                    />
+                  </Field>
+
+                  <Field label="Review Comment">
+                    <textarea
+                      value={adminReviewForm.comment}
+                      onChange={(e) => setAdminReviewForm((s) => ({ ...s, comment: e.target.value }))}
+                      placeholder="Write review details..."
+                      rows={3}
+                      className="input resize-none"
+                    />
+                  </Field>
+
+                  <Field label="Initial Status">
+                    <select
+                      value={adminReviewForm.status}
+                      onChange={(e) => setAdminReviewForm((s) => ({ ...s, status: e.target.value }))}
+                      className="input"
+                    >
+                      <option value="approved">Approved (Live on Storefront)</option>
+                      <option value="pending">Pending</option>
+                    </select>
+                  </Field>
+
+                  <button
+                    type="submit"
+                    disabled={savingReview}
+                    className="btn-primary w-full justify-center py-3"
+                  >
+                    <Plus size={15} />
+                    {savingReview ? "Publishing…" : "Publish Review & Rating"}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleUpdateProductRating} className="mt-5 space-y-4">
+                  <div>
+                    <h3 className="text-base font-semibold">Set Product Rating Directly</h3>
+                    <p className="text-xs text-clay dark:text-white/65 mt-0.5">
+                      Directly set the average rating stars and review count for any product.
+                    </p>
+                  </div>
+
+                  <Field label="Target Product">
+                    <select
+                      value={ratingOverrideForm.productId}
+                      onChange={(e) => handleSelectProductForOverride(e.target.value)}
+                      className="input"
+                      required
+                    >
+                      <option value="">-- Select a product --</option>
+                      {products.map((p) => (
+                        <option key={p._id} value={p._id}>
+                          {p.name} (Current: {p.averageRating?.toFixed(1) || 0}★)
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field label="Average Star Rating (0.0 - 5.0)">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="5"
+                        value={ratingOverrideForm.averageRating}
+                        onChange={(e) =>
+                          setRatingOverrideForm((s) => ({ ...s, averageRating: e.target.value }))
+                        }
+                        className="input font-semibold"
+                        required
+                      />
+                      <div className="flex items-center gap-1 text-amber-500 shrink-0">
+                        <Star size={16} className="fill-current" />
+                        <span className="text-sm font-semibold">{ratingOverrideForm.averageRating}★</span>
+                      </div>
+                    </div>
+                  </Field>
+
+                  <Field label="Total Reviews Count">
+                    <input
+                      type="number"
+                      min="0"
+                      value={ratingOverrideForm.reviewCount}
+                      onChange={(e) =>
+                        setRatingOverrideForm((s) => ({ ...s, reviewCount: e.target.value }))
+                      }
+                      className="input font-semibold"
+                      required
+                    />
+                  </Field>
+
+                  <button
+                    type="submit"
+                    disabled={savingRating}
+                    className="btn-primary w-full justify-center py-3"
+                  >
+                    <Check size={15} />
+                    {savingRating ? "Saving…" : "Update Product Rating"}
+                  </button>
+                </form>
+              )}
             </div>
-          ))}
+          </div>
+
+          {/* Right Column: Manage & Moderate Reviews */}
+          <div className="space-y-4">
+            {/* Filter and stats bar */}
+            <div className="rounded-2xl border border-ink/5 bg-white p-4 shadow-card dark:border-white/12 dark:bg-[#222222]">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm font-semibold">
+                  All Reviews ({filteredReviews.length} {filteredReviews.length === 1 ? "review" : "reviews"})
+                </p>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={reviewFilterProduct}
+                    onChange={(e) => setReviewFilterProduct(e.target.value)}
+                    className="rounded-xl border border-ink/10 bg-transparent px-3 py-1.5 text-xs outline-none dark:border-white/10 max-w-[200px] truncate"
+                  >
+                    <option value="all">All Products</option>
+                    {products.map((p) => (
+                      <option key={p._id} value={p._id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={reviewFilterStatus}
+                    onChange={(e) => setReviewFilterStatus(e.target.value)}
+                    className="rounded-xl border border-ink/10 bg-transparent px-3 py-1.5 text-xs outline-none dark:border-white/10"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="approved">Approved</option>
+                    <option value="pending">Pending</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-3 relative">
+                <input
+                  type="text"
+                  value={reviewSearch}
+                  onChange={(e) => setReviewSearch(e.target.value)}
+                  placeholder="Search reviews by comment, title, author or product..."
+                  className="w-full rounded-xl border border-ink/10 bg-transparent px-3.5 py-2 text-xs outline-none dark:border-white/10"
+                />
+              </div>
+            </div>
+
+            {/* Reviews List */}
+            {filteredReviews.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-ink/10 p-12 text-center text-sm text-clay dark:border-white/10 dark:text-white/65">
+                No reviews found matching the filters.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredReviews.map((review) => (
+                  <div
+                    key={review._id}
+                    className="rounded-2xl border border-ink/5 bg-white p-5 shadow-card dark:border-white/12 dark:bg-[#222222] transition hover:shadow-soft"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-4 mb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-md bg-sand px-2 py-0.5 text-xs font-semibold text-ink dark:bg-white/10 dark:text-white">
+                            {review.product?.name || "Product"}
+                          </span>
+                          {review.product?.averageRating ? (
+                            <span className="text-xs text-clay dark:text-white/50">
+                              (Product avg: {review.product.averageRating}★)
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="flex items-center gap-3 mt-1.5">
+                          <span className="text-sm font-semibold">{review.userName || "Customer"}</span>
+                          <span className="flex items-center gap-1 text-sm font-semibold text-amber-500">
+                            <Star size={13} className="fill-current" />
+                            {review.rating}/5
+                          </span>
+                          <span className="text-xs text-clay dark:text-white/50">
+                            {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ""}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={review.status}
+                          onChange={async (e) => {
+                            await api.patch(endpoints.catalog.adminReview(review._id), {
+                              status: e.target.value
+                            });
+                            await load();
+                            toast.success("Review status updated");
+                          }}
+                          className={`rounded-full border px-3 py-1.5 text-xs font-semibold outline-none transition ${
+                            review.status === "approved"
+                              ? "border-green-200 bg-green-50 text-green-700 dark:border-green-500/20 dark:bg-green-500/10 dark:text-green-400"
+                              : review.status === "rejected"
+                              ? "border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
+                              : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400"
+                          }`}
+                        >
+                          <option value="approved">Approved</option>
+                          <option value="pending">Pending</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteReview(review._id)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full border border-red-200 text-red-500 transition hover:bg-red-500 hover:text-white dark:border-red-500/20"
+                          title="Delete review"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {review.title && (
+                      <p className="font-semibold text-sm mb-1">{review.title}</p>
+                    )}
+                    {review.comment && (
+                      <p className="text-sm leading-relaxed text-clay dark:text-white/70 bg-sand/40 rounded-xl p-3 dark:bg-white/5">
+                        {review.comment}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

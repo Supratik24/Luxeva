@@ -130,8 +130,8 @@ const ProductCard = ({ product, compact = false }) => {
           </span>
           <span className="flex items-center gap-1 text-[11px] font-medium text-clay dark:text-white/55">
             <Star size={11} className="fill-amber-400 text-amber-400" />
-            {product.averageRating?.toFixed?.(1) || "4.8"}
-            <span className="text-clay/60 dark:text-white/40">({product.reviewCount || 18})</span>
+            {typeof product.averageRating === "number" ? product.averageRating.toFixed(1) : "5.0"}
+            <span className="text-clay/60 dark:text-white/40">({product.reviewCount ?? 0})</span>
           </span>
         </div>
 

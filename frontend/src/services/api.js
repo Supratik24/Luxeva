@@ -52,6 +52,7 @@ export const endpoints = {
     adminCoupon: (id) => `/api/catalog/admin/coupons/${id}`,
     adminReviews: "/api/catalog/admin/reviews",
     adminReview: (id) => `/api/catalog/admin/reviews/${id}`,
+    adminProductRating: (id) => `/api/catalog/admin/products/${id}/rating`,
     uploadImages: "/api/catalog/admin/uploads",
     lowStock: "/api/catalog/admin/inventory/low-stock",
     adminMedia: "/api/catalog/admin/media",

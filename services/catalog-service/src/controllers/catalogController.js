@@ -40,11 +40,22 @@ const invalidateCatalogCache = async () => {
 };
 
 const syncProductRating = async (productId) => {
+  if (!productId) return { averageRating: 0, reviewCount: 0 };
+  const objId = mongoose.Types.ObjectId.isValid(productId)
+    ? new mongoose.Types.ObjectId(productId)
+    : productId;
+  const strId = String(productId);
+
   const stats = await Review.aggregate([
-    { $match: { product: productId, status: "approved" } },
+    {
+      $match: {
+        product: { $in: [objId, strId] },
+        status: { $in: ["approved", undefined] }
+      }
+    },
     {
       $group: {
-        _id: "$product",
+        _id: null,
         averageRating: { $avg: "$rating" },
         reviewCount: { $sum: 1 }
       }
@@ -52,10 +63,15 @@ const syncProductRating = async (productId) => {
   ]);
 
   const payload = stats[0] || { averageRating: 0, reviewCount: 0 };
+  const averageRating = Number(Number(payload.averageRating || 0).toFixed(1));
+  const reviewCount = Number(payload.reviewCount || 0);
+
   await Product.findByIdAndUpdate(productId, {
-    averageRating: Number(payload.averageRating?.toFixed?.(1) || 0),
-    reviewCount: payload.reviewCount
+    averageRating,
+    reviewCount
   });
+  await invalidateCatalogCache();
+  return { averageRating, reviewCount };
 };
 
 const buildProductQuery = (query) => {
@@ -213,8 +229,18 @@ export const getProductBySlug = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Product not found");
   }
 
+  const prodObjId = mongoose.Types.ObjectId.isValid(product._id)
+    ? new mongoose.Types.ObjectId(product._id)
+    : product._id;
+  const prodStrId = String(product._id);
+
   const [reviews, relatedProducts] = await Promise.all([
-    Review.find({ product: product._id, status: "approved" }).sort({ createdAt: -1 }).limit(10),
+    Review.find({
+      product: { $in: [prodObjId, prodStrId] },
+      status: { $ne: "rejected" }
+    })
+      .sort({ createdAt: -1 })
+      .limit(50),
     Product.find({
       _id: { $ne: product._id },
       $or: [{ category: product.category._id }, { brand: product.brand._id }]
@@ -386,19 +412,69 @@ export const createReview = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Product not found");
   }
 
+  const prodObjectId = mongoose.Types.ObjectId.isValid(product._id)
+    ? new mongoose.Types.ObjectId(product._id)
+    : product._id;
+
+  let userName = (req.body.userName || req.user?.name || "").trim();
+  if (!userName || userName.toLowerCase() === "user" || userName.toLowerCase() === "customer") {
+    if (req.user?.email) {
+      const raw = req.user.email.split("@")[0].replace(/[._-]/g, " ");
+      userName = raw
+        .split(" ")
+        .filter(Boolean)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+    } else {
+      userName = "Verified Customer";
+    }
+  }
+
   const review = await Review.create({
-    product: req.params.productId,
-    userId: req.user.id,
-    userName: req.user.name,
-    rating: req.body.rating,
-    title: req.body.title,
-    comment: req.body.comment
+    product: prodObjectId,
+    userId: req.user?.id || "user",
+    userName,
+    rating: Math.max(1, Math.min(5, Number(req.body.rating || 5))),
+    title: String(req.body.title || "").trim(),
+    comment: String(req.body.comment || "").trim(),
+    status: "approved"
   });
 
-  await syncProductRating(product._id);
+  const ratingSummary = await syncProductRating(product._id);
   await invalidateCatalogCache();
 
-  sendSuccess(res, 201, "Review submitted successfully", { review });
+  sendSuccess(res, 201, "Review submitted successfully", { review, ...ratingSummary });
+});
+
+export const createAdminReview = asyncHandler(async (req, res) => {
+  const { productId, rating, userName, title, comment, status } = req.body || {};
+  if (!productId) {
+    throw new ApiError(400, "Product ID is required");
+  }
+
+  const product = await Product.findById(productId);
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
+
+  const prodObjectId = mongoose.Types.ObjectId.isValid(product._id)
+    ? new mongoose.Types.ObjectId(product._id)
+    : product._id;
+
+  const review = await Review.create({
+    product: prodObjectId,
+    userId: req.user?.id || "admin",
+    userName: String(userName || "Verified Buyer").trim(),
+    rating: Math.max(1, Math.min(5, Number(rating || 5))),
+    title: String(title || "").trim(),
+    comment: String(comment || "").trim(),
+    status: status || "approved"
+  });
+
+  const ratingSummary = await syncProductRating(product._id);
+  await invalidateCatalogCache();
+
+  sendSuccess(res, 201, "Review created successfully", { review, ...ratingSummary });
 });
 
 export const moderateReview = asyncHandler(async (req, res) => {
@@ -418,8 +494,64 @@ export const moderateReview = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, "Review updated successfully", { review });
 });
 
+export const deleteReview = asyncHandler(async (req, res) => {
+  const review = await Review.findByIdAndDelete(req.params.id);
+  if (!review) {
+    throw new ApiError(404, "Review not found");
+  }
+
+  await syncProductRating(review.product);
+  await invalidateCatalogCache();
+
+  sendSuccess(res, 200, "Review deleted successfully");
+});
+
+export const setProductRating = asyncHandler(async (req, res) => {
+  const { averageRating, reviewCount } = req.body || {};
+  const product = await Product.findById(req.params.id);
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
+
+  const updateFields = {};
+  if (averageRating !== undefined) {
+    updateFields.averageRating = Math.max(0, Math.min(5, Number(Number(averageRating).toFixed(1))));
+  }
+  if (reviewCount !== undefined) {
+    updateFields.reviewCount = Math.max(0, Number(reviewCount));
+  }
+
+  const updated = await Product.findByIdAndUpdate(req.params.id, updateFields, {
+    new: true,
+    runValidators: true
+  });
+
+  await invalidateCatalogCache();
+  sendSuccess(res, 200, "Product rating updated successfully", { product: updated });
+});
+
 export const getReviews = asyncHandler(async (req, res) => {
-  const reviews = await Review.find().populate("product", "name slug").sort({ createdAt: -1 });
+  const rawReviews = await Review.find().sort({ createdAt: -1 }).lean();
+
+  const productIds = rawReviews.map((r) => r.product).filter(Boolean);
+  const products = await Product.find({
+    _id: { $in: productIds }
+  }).select("name slug images averageRating reviewCount").lean();
+
+  const productMap = new Map();
+  products.forEach((p) => {
+    productMap.set(String(p._id), p);
+  });
+
+  const reviews = rawReviews.map((r) => {
+    const rawProdId = r.product ? String(r.product._id || r.product) : "";
+    const matchedProduct = rawProdId ? productMap.get(rawProdId) : null;
+    return {
+      ...r,
+      product: matchedProduct || (typeof r.product === "object" ? r.product : { _id: r.product, name: "Product" })
+    };
+  });
+
   sendSuccess(res, 200, "Reviews fetched successfully", { reviews });
 });
 

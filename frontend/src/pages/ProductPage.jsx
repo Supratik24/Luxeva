@@ -106,31 +106,52 @@ const ProductPage = () => {
   const submitReview = async (event) => {
     event.preventDefault();
 
+    if (!reviewForm.comment && !reviewForm.title) {
+      toast.error("Please add a comment or title for your review");
+      return;
+    }
+
     if (useLocalPreviewData) {
+      const newReview = {
+        _id: `preview-review-${Date.now()}`,
+        userName: "You",
+        rating: reviewForm.rating,
+        comment: reviewForm.comment,
+        title: reviewForm.title,
+        createdAt: new Date().toISOString()
+      };
       setPayload((current) => ({
         ...current,
-        reviews: [
-          {
-            _id: `preview-review-${Date.now()}`,
-            userName: "You",
-            rating: reviewForm.rating,
-            comment: reviewForm.comment,
-            title: reviewForm.title,
-            createdAt: new Date().toISOString()
-          },
-          ...(current.reviews || [])
-        ]
+        reviews: [newReview, ...(current.reviews || [])]
       }));
-      toast.success("Review submitted");
+      toast.success("Review submitted!");
       setReviewForm({ rating: 5, comment: "", title: "" });
       return;
     }
 
-    await api.post(endpoints.catalog.review(product._id), reviewForm);
-    toast.success("Review submitted");
-    const { data } = await api.get(endpoints.catalog.product(slug));
-    setPayload(data);
-    setReviewForm({ rating: 5, comment: "", title: "" });
+    try {
+      const res = await api.post(endpoints.catalog.review(product._id), reviewForm);
+      toast.success("Review submitted successfully!");
+      setReviewForm({ rating: 5, comment: "", title: "" });
+
+      const { data } = await api.get(endpoints.catalog.product(slug));
+      if (data?.product) {
+        setPayload(data);
+      } else if (res.data?.review) {
+        setPayload((current) => ({
+          ...current,
+          reviews: [res.data.review, ...(current.reviews || [])],
+          product: {
+            ...current.product,
+            averageRating: res.data.averageRating ?? current.product.averageRating,
+            reviewCount: res.data.reviewCount ?? (current.product.reviewCount + 1)
+          }
+        }));
+      }
+    } catch (err) {
+      console.error("Submit review error:", err);
+      toast.error(err.response?.data?.message || "Failed to submit review");
+    }
   };
 
   if (loading) {
@@ -348,34 +369,105 @@ const ProductPage = () => {
           </div>
         </div>
         <div className="glass rounded-[2rem] p-6 shadow-soft">
-          <h2 className="font-display text-3xl">Ratings & reviews</h2>
-          <div className="mt-6 space-y-4">
-            {payload.reviews.map((review) => (
-              <article key={review._id} className="rounded-[1.4rem] border border-ink/10 p-4 dark:border-white/12">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-semibold">{review.userName}</p>
-                  <p className="text-sm text-ink/45 dark:text-white/45">{shortDate(review.createdAt)}</p>
-                </div>
-                <p className="mt-2 text-sm text-amber-500">{Array.from({ length: review.rating }).map((_, index) => "*")}</p>
-                <p className="mt-3 text-muted">{review.comment}</p>
-              </article>
-            ))}
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="font-display text-3xl">Ratings & reviews</h2>
+              <p className="mt-1 text-xs text-muted">
+                {product.averageRating?.toFixed(1) || "0.0"} out of 5 ({product.reviewCount || payload.reviews.length} reviews)
+              </p>
+            </div>
+            <div className="flex items-center gap-1 text-amber-500">
+              <Star size={18} className="fill-current" />
+              <span className="font-semibold text-lg">{product.averageRating?.toFixed(1) || "5.0"}</span>
+            </div>
           </div>
-          {isAuthenticated ? (
-            <form onSubmit={submitReview} className="mt-6 rounded-[1.4rem] border border-ink/10 p-4 dark:border-white/12">
-              <p className="text-sm font-semibold">Leave a review</p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <input value={reviewForm.title} onChange={(e) => setReviewForm((s) => ({ ...s, title: e.target.value }))} placeholder="Title" className="rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/12" />
-                <select value={reviewForm.rating} onChange={(e) => setReviewForm((s) => ({ ...s, rating: Number(e.target.value) }))} className="rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/12">
-                  {[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value} stars</option>)}
-                </select>
-                <textarea value={reviewForm.comment} onChange={(e) => setReviewForm((s) => ({ ...s, comment: e.target.value }))} placeholder="Share your experience" rows="4" className="rounded-[1.4rem] border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10 sm:col-span-2" />
+
+          <div className="mt-6 space-y-4">
+            {!payload.reviews?.length ? (
+              <div className="rounded-[1.4rem] border border-dashed border-ink/15 p-6 text-center text-sm text-muted dark:border-white/15">
+                No reviews yet for this piece. Be the first to share your thoughts!
               </div>
-              <button type="submit" className="mt-4 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white">
+            ) : (
+              payload.reviews.map((review) => (
+                <article
+                  key={review._id}
+                  className="rounded-[1.4rem] border border-ink/10 p-5 shadow-sm dark:border-white/12 bg-white/40 dark:bg-white/[0.02]"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-ink/10 text-xs font-bold text-ink dark:bg-white/10 dark:text-white uppercase">
+                        {review.userName?.charAt(0) || "U"}
+                      </span>
+                      <div>
+                        <p className="font-semibold text-sm leading-tight">{review.userName || "Verified Buyer"}</p>
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">✓ Verified Buyer</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-ink/45 dark:text-white/45">{shortDate(review.createdAt)}</p>
+                  </div>
+
+                  <div className="mt-2.5 flex items-center gap-1 text-amber-400">
+                    {Array.from({ length: 5 }).map((_, idx) => (
+                      <Star
+                        key={idx}
+                        size={13}
+                        className={idx < (review.rating || 5) ? "fill-amber-400 text-amber-400" : "text-ink/15 dark:text-white/15"}
+                      />
+                    ))}
+                    <span className="ml-1 text-xs font-semibold text-ink/75 dark:text-white/75">{review.rating} / 5</span>
+                  </div>
+
+                  {review.title ? (
+                    <h4 className="mt-2 font-semibold text-sm text-ink dark:text-white">{review.title}</h4>
+                  ) : null}
+
+                  {review.comment ? (
+                    <p className="mt-1.5 text-sm leading-relaxed text-ink/75 dark:text-white/75">{review.comment}</p>
+                  ) : null}
+                </article>
+              ))
+            )}
+          </div>
+
+          {isAuthenticated ? (
+            <form onSubmit={submitReview} className="mt-6 rounded-[1.4rem] border border-ink/10 p-5 dark:border-white/12 bg-sand/20 dark:bg-white/[0.02]">
+              <p className="text-sm font-semibold">Write a review</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <input
+                  value={reviewForm.title}
+                  onChange={(e) => setReviewForm((s) => ({ ...s, title: e.target.value }))}
+                  placeholder="Review title (e.g. Excellent fit & quality)"
+                  className="rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/12"
+                />
+                <select
+                  value={reviewForm.rating}
+                  onChange={(e) => setReviewForm((s) => ({ ...s, rating: Number(e.target.value) }))}
+                  className="rounded-2xl border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/12"
+                >
+                  <option value={5}>★★★★★ (5 stars - Outstanding)</option>
+                  <option value={4}>★★★★☆ (4 stars - Very Good)</option>
+                  <option value={3}>★★★☆☆ (3 stars - Average)</option>
+                  <option value={2}>★★☆☆☆ (2 stars - Below Average)</option>
+                  <option value={1}>★☆☆☆☆ (1 star - Poor)</option>
+                </select>
+                <textarea
+                  value={reviewForm.comment}
+                  onChange={(e) => setReviewForm((s) => ({ ...s, comment: e.target.value }))}
+                  placeholder="Share details about fit, material quality, and craftsmanship..."
+                  rows="4"
+                  className="rounded-[1.4rem] border border-ink/10 bg-transparent px-4 py-3 text-sm outline-none dark:border-white/10 sm:col-span-2"
+                />
+              </div>
+              <button type="submit" className="mt-4 rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white hover:opacity-90 transition">
                 Submit review
               </button>
             </form>
-          ) : null}
+          ) : (
+            <div className="mt-6 rounded-[1.4rem] border border-ink/10 p-5 text-center text-sm dark:border-white/12 bg-sand/20 dark:bg-white/[0.02]">
+              <p className="font-semibold text-ink dark:text-white">Share your experience</p>
+              <p className="mt-1 text-xs text-muted">Please sign in to your Luxeva account to write a review.</p>
+            </div>
+          )}
         </div>
       </div>
 
