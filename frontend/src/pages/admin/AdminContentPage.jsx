@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import toast from "react-hot-toast";
-import { ImageIcon, Plus, Trash2, Pencil, X, Star } from "lucide-react";
+import { ImageIcon, Plus, Trash2, Pencil, X, Star, Crop, Sparkles, AlertCircle, Eye, Upload } from "lucide-react";
 import api, { endpoints } from "../../services/api";
 import ImagePicker from "../../components/admin/ImagePicker";
+import BannerCropModal from "../../components/admin/BannerCropModal";
 
 const initialBanner = {
   title: "",
@@ -35,7 +36,10 @@ const AdminContentPage = () => {
   const [editingBannerId, setEditingBannerId] = useState(null);
   const [tab, setTab] = useState("Banners");
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [previewMode, setPreviewMode] = useState("storefront"); // "storefront" (4:5) | "full"
   const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef(null);
 
   const load = () =>
     Promise.all([
@@ -224,38 +228,182 @@ const AdminContentPage = () => {
               </select>
             </Field>
 
-            {/* Image picker */}
-            <Field label="Banner image">
+            {/* Banner image & Storefront Viewport Preview */}
+            <Field label="Banner Image (Hero Showcase)">
               <div className="space-y-3">
+                {/* Hidden local file input for direct upload & crop */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const objectUrl = URL.createObjectURL(file);
+                    setBf("image", objectUrl);
+                    setCropModalOpen(true);
+                  }}
+                />
+
                 {bannerForm.image ? (
-                  <div className="relative group overflow-hidden rounded-2xl bg-sand dark:bg-white/5 aspect-[16/7]">
-                    <img src={bannerForm.image} alt="Banner" className="h-full w-full object-cover" />
-                    <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity">
-                      <button
-                        type="button"
-                        onClick={() => setPickerOpen(true)}
-                        className="btn-ghost bg-white/90 text-ink text-xs px-4 py-2"
-                      >
-                        Change
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setBf("image", "")}
-                        className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-red-500 hover:bg-red-500 hover:text-white transition"
-                      >
-                        <X size={14} />
-                      </button>
+                  <div className="space-y-3">
+                    {/* View mode toggle */}
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-clay dark:text-white/65 flex items-center gap-1">
+                        <Sparkles size={12} className="text-amber-500" />
+                        Website Viewport Preview
+                      </span>
+                      <div className="flex items-center rounded-lg bg-sand/60 dark:bg-white/5 p-0.5 border border-ink/5 dark:border-white/10">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewMode("storefront")}
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition ${
+                            previewMode === "storefront"
+                              ? "bg-white text-ink shadow-sm dark:bg-white/15 dark:text-white"
+                              : "text-clay hover:text-ink dark:text-white/60"
+                          }`}
+                        >
+                          Storefront View (4:5)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewMode("full")}
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition ${
+                            previewMode === "full"
+                              ? "bg-white text-ink shadow-sm dark:bg-white/15 dark:text-white"
+                              : "text-clay hover:text-ink dark:text-white/60"
+                          }`}
+                        >
+                          Full Uncropped
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Image Preview Container */}
+                    <div className="relative group overflow-hidden rounded-2xl bg-stone-900 border border-ink/10 dark:border-white/10 shadow-md">
+                      {previewMode === "storefront" ? (
+                        /* Exact 4:5 Storefront Hero aspect ratio */
+                        <div className="relative aspect-[4/5] max-h-[380px] w-full overflow-hidden flex items-center justify-center">
+                          <img
+                            src={bannerForm.image}
+                            alt="Banner"
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-102"
+                          />
+
+                          {/* Top Badges */}
+                          <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+                            <span className="rounded-full bg-black/60 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider backdrop-blur-md">
+                              4:5 Storefront Format
+                            </span>
+                            <span className="rounded-full bg-emerald-500/90 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
+                              ✓ Live Hero Frame
+                            </span>
+                          </div>
+
+                          {/* Floating Card Overlay (matches HeroSection.jsx) */}
+                          <div className="absolute bottom-3 left-3 right-3 rounded-xl border border-white/20 bg-white/70 p-3 shadow-md backdrop-blur-md dark:bg-black/60 dark:border-white/15 pointer-events-none transition-transform duration-300 group-hover:-translate-y-0.5">
+                            <p className="text-[9px] font-semibold uppercase tracking-wider text-clay dark:text-white/60 mb-0.5">
+                              {bannerForm.subtitle || "Editor's pick"}
+                            </p>
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-serif text-xs font-semibold truncate text-ink dark:text-white">
+                                {bannerForm.title || "Limited seasonal edit"}
+                              </p>
+                              <span className="rounded-full bg-ink px-2 py-0.5 text-[9px] font-semibold text-white dark:bg-white dark:text-ink shrink-0">
+                                {bannerForm.ctaLabel || "Shop now"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Full Uncropped view */
+                        <div className="relative p-2 flex items-center justify-center bg-stone-950/80 min-h-[220px]">
+                          <img
+                            src={bannerForm.image}
+                            alt="Banner Full"
+                            className="max-h-[320px] w-auto object-contain rounded-lg"
+                          />
+                        </div>
+                      )}
+
+                      {/* Action buttons bar */}
+                      <div className="p-3 bg-white dark:bg-[#1e1e1e] border-t border-ink/5 dark:border-white/5 flex flex-wrap items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setCropModalOpen(true)}
+                          className="btn-primary text-xs py-2 px-3.5 flex items-center gap-1.5 shadow-sm"
+                        >
+                          <Crop size={14} />
+                          <span>Crop & Reposition</span>
+                        </button>
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setPickerOpen(true)}
+                            className="btn-ghost text-xs py-2 px-3 border border-ink/10 dark:border-white/10"
+                            title="Choose different image from library"
+                          >
+                            <ImageIcon size={13} />
+                            <span>Change</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="btn-ghost text-xs py-2 px-3 border border-ink/10 dark:border-white/10"
+                            title="Upload fresh image file"
+                          >
+                            <Upload size={13} />
+                            <span>Upload</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setBf("image", "")}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 text-red-500 hover:bg-red-500 hover:text-white dark:border-red-500/20 transition"
+                            title="Remove image"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Viewport Guidance Alert */}
+                    <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs dark:border-amber-400/20 dark:bg-amber-400/5 text-clay dark:text-white/70 space-y-1">
+                      <div className="flex items-center gap-1.5 font-semibold text-amber-700 dark:text-amber-400">
+                        <AlertCircle size={14} />
+                        <span>Which portion of the banner is shown?</span>
+                      </div>
+                      <p className="leading-relaxed">
+                        The homepage hero showcases banners in a <strong>4:5 portrait frame</strong> with a floating title card covering the lower 22%.
+                        Use <strong>Crop & Reposition</strong> to position key elements (faces, products) safely in the upper-center view!
+                      </p>
                     </div>
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setPickerOpen(true)}
-                    className="flex w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-ink/10 py-8 text-sm font-medium text-clay transition hover:border-ink/30 hover:text-ink dark:border-white/10 dark:text-white/65 dark:hover:border-white/30 dark:hover:text-white"
-                  >
-                    <ImageIcon size={24} className="opacity-50" />
-                    Click to add banner image
-                  </button>
+                  /* Empty image state with options */
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPickerOpen(true)}
+                      className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-ink/10 py-7 px-4 text-center transition hover:border-ink/30 hover:bg-sand/30 dark:border-white/10 dark:hover:border-white/30 dark:hover:bg-white/5"
+                    >
+                      <ImageIcon size={22} className="text-clay dark:text-white/60" />
+                      <span className="text-xs font-semibold text-ink dark:text-white">Media Library</span>
+                      <span className="text-[11px] text-clay dark:text-white/50">Choose from Cloudinary</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-ink/10 py-7 px-4 text-center transition hover:border-ink/30 hover:bg-sand/30 dark:border-white/10 dark:hover:border-white/30 dark:hover:bg-white/5"
+                    >
+                      <Upload size={22} className="text-clay dark:text-white/60" />
+                      <span className="text-xs font-semibold text-ink dark:text-white">Upload & Crop</span>
+                      <span className="text-[11px] text-clay dark:text-white/50">Upload from device with instant crop</span>
+                    </button>
+                  </div>
                 )}
               </div>
             </Field>
@@ -307,6 +455,20 @@ const AdminContentPage = () => {
                       >
                         <Star size={12} className="fill-current" />
                         Set Primary
+                      </button>
+                    )}
+                    {banner.image && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          startEditBanner(banner);
+                          setCropModalOpen(true);
+                        }}
+                        title="Crop & reposition this banner image"
+                        className="flex h-9 items-center gap-1.5 px-3 text-xs font-semibold rounded-full border border-ink/10 transition hover:bg-ink/5 dark:border-white/10 dark:hover:bg-white/5"
+                      >
+                        <Crop size={13} />
+                        <span>Crop</span>
                       </button>
                     )}
                     <button
@@ -391,9 +553,28 @@ const AdminContentPage = () => {
         onClose={() => setPickerOpen(false)}
         onSelect={(file) => {
           const img = Array.isArray(file) ? file[0] : file;
-          setBf("image", img?.url || img);
+          const url = img?.url || img;
+          setBf("image", url);
+          // Automatically open crop editor so the admin immediately sees the crop frame!
+          setCropModalOpen(true);
         }}
         multiple={false}
+      />
+
+      {/* Banner Crop & Reposition Modal with Live Storefront Preview */}
+      <BannerCropModal
+        open={cropModalOpen}
+        imageSrc={bannerForm.image}
+        onClose={() => setCropModalOpen(false)}
+        onApply={(croppedUrl) => {
+          setBf("image", croppedUrl);
+        }}
+        bannerData={{
+          title: bannerForm.title,
+          subtitle: bannerForm.subtitle,
+          description: bannerForm.description,
+          ctaLabel: bannerForm.ctaLabel
+        }}
       />
     </div>
   );
