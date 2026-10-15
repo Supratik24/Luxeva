@@ -34,9 +34,12 @@ import {
   ArrowUpRight,
   TrendingDown,
   FileSpreadsheet,
+  FileText,
   Check
 } from "lucide-react";
 import toast from "react-hot-toast";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import api, { endpoints } from "../../services/api";
 import { currency, shortDate } from "../../utils/format";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -189,6 +192,7 @@ const AdminDashboardPage = () => {
 
   // Export Dropdown State
   const [exportOpen, setExportOpen] = useState(false);
+  const [exportFormatTab, setExportFormatTab] = useState("pdf"); // "pdf" | "csv"
   const exportRef = useRef(null);
 
   // Close export dropdown on click outside
@@ -286,7 +290,6 @@ const AdminDashboardPage = () => {
 
   // Dynamic Metrics calculated in real time from filtered orders
   const metrics = useMemo(() => {
-    // If no orders loaded yet, fall back gracefully to analytics from API
     if (allOrders.length === 0) {
       return {
         revenue: analytics.revenue || 0,
@@ -638,6 +641,249 @@ const AdminDashboardPage = () => {
     setExportOpen(false);
   };
 
+  // ── PDF Export Functionality ────────────────────────────────────────────────
+  const handleExportSummaryPDF = () => {
+    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+    const dateStamp = new Date().toISOString().split("T")[0];
+
+    // Luxury Header Banner
+    doc.setFillColor(21, 21, 21);
+    doc.rect(0, 0, 595, 75, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(255, 255, 255);
+    doc.text("LUXEVA COMMERCE PLATFORM", 40, 36);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(200, 200, 200);
+    doc.text("EXECUTIVE OPERATIONS & REVENUE REPORT", 40, 54);
+
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Period Filter: ${activeRangeLabel}`, 40, 95);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 380, 95);
+
+    // Section 1: Financial & Fulfillment Summary Table
+    autoTable(doc, {
+      startY: 110,
+      head: [["Performance Metric", "Value", "Operational Analysis"]],
+      body: [
+        ["Total Net Revenue", `INR ${metrics.revenue.toLocaleString()}`, "Fulfilled and active checkouts"],
+        ["Estimated Gross Profit (38%)", `INR ${metrics.estimatedProfit.toLocaleString()}`, "Estimated gross margin benchmark"],
+        ["Total Orders Placed", `${metrics.orders} orders`, "Orders recorded within date window"],
+        ["Delivered Orders", `${metrics.deliveredOrders} orders`, "Successfully fulfilled"],
+        ["Active Orders In-Transit", `${metrics.activeOrders} orders`, "Placed, packed, shipped, out for delivery"],
+        ["Cancelled Orders", `${metrics.cancelledOrders} orders`, "Order cancellations"],
+        ["Cancellation Rate", `${metrics.cancellationRate.toFixed(1)}%`, metrics.cancellationRate > 15 ? "High Risk Attention" : "Healthy Performance"],
+        ["Lost Gross Revenue", `INR ${metrics.lostRevenue.toLocaleString()}`, "Unrealized gross revenue from cancellations"],
+        ["Average Order Value (AOV)", `INR ${metrics.averageOrderValue.toLocaleString()}`, "Revenue per valid order checkout"]
+      ],
+      theme: "striped",
+      headStyles: { fillColor: [21, 21, 21], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
+      bodyStyles: { fontSize: 8.5, textColor: [30, 30, 30] },
+      alternateRowStyles: { fillColor: [248, 248, 248] },
+      margin: { left: 40, right: 40 }
+    });
+
+    const nextY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 25 : 320;
+
+    // Section 2: Fulfillment Pipeline Stage Distribution
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(21, 21, 21);
+    doc.text("Fulfillment Pipeline Stage Breakdown", 40, nextY);
+
+    autoTable(doc, {
+      startY: nextY + 10,
+      head: [["Milestone Stage", "Orders Count", "Distribution (%)", "Operational Status"]],
+      body: [
+        ["Placed", `${metrics.statusBreakdown?.placed || 0}`, `${metrics.orders ? (((metrics.statusBreakdown?.placed || 0) / metrics.orders) * 100).toFixed(1) : 0}%`, "Awaiting warehouse fulfillment"],
+        ["Packed", `${metrics.statusBreakdown?.packed || 0}`, `${metrics.orders ? (((metrics.statusBreakdown?.packed || 0) / metrics.orders) * 100).toFixed(1) : 0}%`, "Packed in eco-friendly packaging"],
+        ["Shipped", `${metrics.statusBreakdown?.shipped || 0}`, `${metrics.orders ? (((metrics.statusBreakdown?.shipped || 0) / metrics.orders) * 100).toFixed(1) : 0}%`, "In transit with logistics courier"],
+        ["Out for Delivery", `${metrics.statusBreakdown?.out_for_delivery || 0}`, `${metrics.orders ? (((metrics.statusBreakdown?.out_for_delivery || 0) / metrics.orders) * 100).toFixed(1) : 0}%`, "With local delivery partner"],
+        ["Delivered", `${metrics.statusBreakdown?.delivered || 0}`, `${metrics.orders ? (((metrics.statusBreakdown?.delivered || 0) / metrics.orders) * 100).toFixed(1) : 0}%`, "Successfully received by customer"],
+        ["Cancelled", `${metrics.statusBreakdown?.cancelled || 0}`, `${metrics.orders ? (((metrics.statusBreakdown?.cancelled || 0) / metrics.orders) * 100).toFixed(1) : 0}%`, "Terminated before delivery"]
+      ],
+      theme: "striped",
+      headStyles: { fillColor: [50, 50, 50], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
+      bodyStyles: { fontSize: 8.5, textColor: [30, 30, 30] },
+      alternateRowStyles: { fillColor: [248, 248, 248] },
+      margin: { left: 40, right: 40 }
+    });
+
+    const nextY2 = doc.lastAutoTable ? doc.lastAutoTable.finalY + 25 : 520;
+
+    // Section 3: Inventory Health Summary
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(21, 21, 21);
+    doc.text("Warehouse Inventory Stock Health", 40, nextY2);
+
+    autoTable(doc, {
+      startY: nextY2 + 10,
+      head: [["Stock Status Category", "Products Count", "Catalog Share", "Action Required"]],
+      body: [
+        ["Critical: Out of Stock (0 units)", `${inventoryHealth.outOfStock}`, `${inventoryHealth.outOfStockPct.toFixed(1)}%`, "Urgent restock needed"],
+        ["Warning: Low Stock (1-10 units)", `${inventoryHealth.lowStockCount}`, `${inventoryHealth.lowStockPct.toFixed(1)}%`, "Replenishment recommended"],
+        ["Adequate: Healthy Stock (>10 units)", `${inventoryHealth.healthyCount}`, `${inventoryHealth.healthyPct.toFixed(1)}%`, "Inventory levels optimal"],
+        ["Total Active Products in Catalog", `${inventoryHealth.total}`, "100%", "Monitored across categories"]
+      ],
+      theme: "striped",
+      headStyles: { fillColor: [70, 70, 70], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
+      bodyStyles: { fontSize: 8.5, textColor: [30, 30, 30] },
+      alternateRowStyles: { fillColor: [248, 248, 248] },
+      margin: { left: 40, right: 40 }
+    });
+
+    // Multi-page footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(
+        `Luxeva Confidential • Operations Telemetry • Page ${i} of ${pageCount}`,
+        40,
+        doc.internal.pageSize.height - 20
+      );
+    }
+
+    doc.save(`luxeva-operations-summary-${dateStamp}.pdf`);
+    toast.success("Operations summary PDF downloaded!");
+    setExportOpen(false);
+  };
+
+  const handleExportProductPerformancePDF = () => {
+    const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+    const dateStamp = new Date().toISOString().split("T")[0];
+
+    doc.setFillColor(21, 21, 21);
+    doc.rect(0, 0, 595, 75, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(255, 255, 255);
+    doc.text("LUXEVA COMMERCE PLATFORM", 40, 36);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(200, 200, 200);
+    doc.text("PRODUCT PERFORMANCE & CATALOG VELOCITY REPORT", 40, 54);
+
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Period Filter: ${activeRangeLabel}`, 40, 95);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 380, 95);
+
+    const tableBody = allProductStats.map((p, idx) => [
+      idx + 1,
+      p.name,
+      p.sku || "N/A",
+      `INR ${p.price.toLocaleString()}`,
+      `${p.unitsSold} units`,
+      `INR ${p.revenue.toLocaleString()}`,
+      p.stock === 0 ? "0 (Out)" : `${p.stock}`,
+      p.unitsSold >= 3 ? "Top Seller" : p.unitsSold > 0 ? "Active Moving" : p.stock > 10 ? "Stagnant Stock" : "Low Demand"
+    ]);
+
+    autoTable(doc, {
+      startY: 110,
+      head: [["#", "Product Name", "SKU", "Price", "Sold", "Revenue", "Stock", "Status"]],
+      body: tableBody,
+      theme: "striped",
+      headStyles: { fillColor: [21, 21, 21], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.5 },
+      bodyStyles: { fontSize: 8, textColor: [30, 30, 30] },
+      alternateRowStyles: { fillColor: [248, 248, 248] },
+      margin: { left: 40, right: 40 }
+    });
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(
+        `Luxeva Confidential • Product Analytics • Page ${i} of ${pageCount}`,
+        40,
+        doc.internal.pageSize.height - 20
+      );
+    }
+
+    doc.save(`luxeva-product-performance-${dateStamp}.pdf`);
+    toast.success("Product performance PDF downloaded!");
+    setExportOpen(false);
+  };
+
+  const handleExportOrdersLogPDF = () => {
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const dateStamp = new Date().toISOString().split("T")[0];
+
+    // Landscape width: 842 pt
+    doc.setFillColor(21, 21, 21);
+    doc.rect(0, 0, 842, 65, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(255, 255, 255);
+    doc.text("LUXEVA COMMERCE PLATFORM", 40, 32);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(200, 200, 200);
+    doc.text("ORDERS AUDIT & FULFILLMENT LOG", 40, 48);
+
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Period Filter: ${activeRangeLabel}`, 40, 82);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 620, 82);
+
+    const ordersToLog = filteredOrders.length > 0 ? filteredOrders : allOrders;
+    const tableBody = ordersToLog.map((o) => [
+      o.orderNumber || o._id,
+      o.createdAt ? new Date(o.createdAt).toLocaleDateString() : "N/A",
+      o.customer?.name || "Customer",
+      o.customer?.email || "",
+      (o.status || "placed").toUpperCase(),
+      (o.items || []).map((i) => `${i.name} (x${i.quantity || 1})`).join(", "),
+      `INR ${(o.total || 0).toLocaleString()}`,
+      o.shipping?.address?.city || o.shippingAddress?.city || "N/A",
+      o.shipping?.carrier || "N/A",
+      o.shipping?.trackingNumber || "N/A"
+    ]);
+
+    autoTable(doc, {
+      startY: 95,
+      head: [["Order #", "Date", "Customer", "Email", "Status", "Items", "Total", "Destination", "Carrier", "Tracking #"]],
+      body: tableBody,
+      theme: "striped",
+      headStyles: { fillColor: [21, 21, 21], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+      bodyStyles: { fontSize: 7.5, textColor: [30, 30, 30] },
+      alternateRowStyles: { fillColor: [248, 248, 248] },
+      margin: { left: 40, right: 40 }
+    });
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(
+        `Luxeva Confidential • Orders Audit Log • Page ${i} of ${pageCount}`,
+        40,
+        doc.internal.pageSize.height - 20
+      );
+    }
+
+    doc.save(`luxeva-orders-log-${dateStamp}.pdf`);
+    toast.success("Orders log PDF downloaded!");
+    setExportOpen(false);
+  };
+
   const handleApplyCustomRange = () => {
     if (!customStart || !customEnd) {
       toast.error("Please select both start and end dates");
@@ -732,7 +978,7 @@ const AdminDashboardPage = () => {
             <span>{refreshing ? "Syncing..." : "Refresh Data"}</span>
           </button>
 
-          {/* Downloadable CSV Reports Dropdown */}
+          {/* Downloadable PDF & CSV Reports Dropdown */}
           <div className="relative" ref={exportRef}>
             <button
               type="button"
@@ -740,61 +986,143 @@ const AdminDashboardPage = () => {
               className="inline-flex items-center gap-2 rounded-full border border-ink/10 bg-sand/60 px-4 py-2.5 text-xs font-semibold text-ink shadow-sm transition hover:bg-sand dark:border-white/12 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
             >
               <Download size={14} />
-              <span>Export CSV</span>
+              <span>Export Reports</span>
               <ChevronDown size={13} className={`transition-transform duration-200 ${exportOpen ? "rotate-180" : ""}`} />
             </button>
 
             {exportOpen && (
-              <div className="absolute right-0 z-50 mt-2 w-72 origin-top-right rounded-2xl border border-ink/10 bg-white p-2 shadow-xl backdrop-blur-lg dark:border-white/12 dark:bg-[#1f1f1f] dark:shadow-black/70 animate-in fade-in zoom-in-95 duration-150">
-                <div className="px-3 py-2 border-b border-ink/5 dark:border-white/5">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-clay dark:text-white/50">
-                    Download CSV Reports
-                  </p>
-                  <p className="text-[11px] text-clay/80 dark:text-white/40">Includes current {activeRangeLabel} data</p>
+              <div className="absolute right-0 z-50 mt-2 w-80 origin-top-right rounded-2xl border border-ink/10 bg-white p-3 shadow-xl backdrop-blur-lg dark:border-white/12 dark:bg-[#1f1f1f] dark:shadow-black/70 animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between px-2 pb-2.5 border-b border-ink/5 dark:border-white/5">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-clay dark:text-white/50">
+                      Export Operations Data
+                    </p>
+                    <p className="text-[11px] text-clay/80 dark:text-white/40">{activeRangeLabel}</p>
+                  </div>
+
+                  {/* Format Selector Pills (PDF / CSV) */}
+                  <div className="flex items-center rounded-full bg-sand/80 p-0.5 dark:bg-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setExportFormatTab("pdf")}
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+                        exportFormatTab === "pdf"
+                          ? "bg-ink text-white shadow-xs dark:bg-white dark:text-ink"
+                          : "text-clay hover:text-ink dark:text-white/60 dark:hover:text-white"
+                      }`}
+                    >
+                      <FileText size={11} />
+                      <span>PDF</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setExportFormatTab("csv")}
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+                        exportFormatTab === "csv"
+                          ? "bg-ink text-white shadow-xs dark:bg-white dark:text-ink"
+                          : "text-clay hover:text-ink dark:text-white/60 dark:hover:text-white"
+                      }`}
+                    >
+                      <FileSpreadsheet size={11} />
+                      <span>CSV</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="mt-1 space-y-1">
-                  <button
-                    type="button"
-                    onClick={handleExportSummaryCSV}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-medium text-ink transition hover:bg-ink/5 dark:text-white dark:hover:bg-white/5"
-                  >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
-                      <FileSpreadsheet size={16} />
+                {/* Report Options List */}
+                <div className="mt-2 space-y-1">
+                  {/* Report 1: Operations Summary */}
+                  <div className="flex items-center justify-between rounded-xl p-2 transition hover:bg-ink/5 dark:hover:bg-white/5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+                        {exportFormatTab === "pdf" ? <FileText size={16} /> : <FileSpreadsheet size={16} />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-xs text-ink dark:text-white">Operations Summary</p>
+                        <p className="text-[10px] text-clay dark:text-white/50 truncate">Revenue, profit, KPIs & stages</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold">Operations Summary</p>
-                      <p className="text-[11px] text-clay dark:text-white/50">Revenue, profit, KPIs & stages</p>
+                    <div className="flex items-center gap-1.5 shrink-0 pl-2">
+                      <button
+                        type="button"
+                        onClick={handleExportSummaryPDF}
+                        title="Download Summary as PDF"
+                        className="rounded-lg border border-ink/10 px-2 py-1 text-[11px] font-semibold text-ink hover:bg-ink hover:text-white transition dark:border-white/10 dark:text-white dark:hover:bg-white dark:hover:text-ink"
+                      >
+                        PDF
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleExportSummaryCSV}
+                        title="Download Summary as CSV"
+                        className="rounded-lg border border-ink/10 px-2 py-1 text-[11px] font-semibold text-ink hover:bg-ink hover:text-white transition dark:border-white/10 dark:text-white dark:hover:bg-white dark:hover:text-ink"
+                      >
+                        CSV
+                      </button>
                     </div>
-                  </button>
+                  </div>
 
-                  <button
-                    type="button"
-                    onClick={handleExportProductPerformanceCSV}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-medium text-ink transition hover:bg-ink/5 dark:text-white dark:hover:bg-white/5"
-                  >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
-                      <Layers size={16} />
+                  {/* Report 2: Product Performance */}
+                  <div className="flex items-center justify-between rounded-xl p-2 transition hover:bg-ink/5 dark:hover:bg-white/5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
+                        {exportFormatTab === "pdf" ? <FileText size={16} /> : <FileSpreadsheet size={16} />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-xs text-ink dark:text-white">Product Performance</p>
+                        <p className="text-[10px] text-clay dark:text-white/50 truncate">Best sellers & slow stock</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold">Product Performance</p>
-                      <p className="text-[11px] text-clay dark:text-white/50">Best sellers & slow-moving stock</p>
+                    <div className="flex items-center gap-1.5 shrink-0 pl-2">
+                      <button
+                        type="button"
+                        onClick={handleExportProductPerformancePDF}
+                        title="Download Product Performance as PDF"
+                        className="rounded-lg border border-ink/10 px-2 py-1 text-[11px] font-semibold text-ink hover:bg-ink hover:text-white transition dark:border-white/10 dark:text-white dark:hover:bg-white dark:hover:text-ink"
+                      >
+                        PDF
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleExportProductPerformanceCSV}
+                        title="Download Product Performance as CSV"
+                        className="rounded-lg border border-ink/10 px-2 py-1 text-[11px] font-semibold text-ink hover:bg-ink hover:text-white transition dark:border-white/10 dark:text-white dark:hover:bg-white dark:hover:text-ink"
+                      >
+                        CSV
+                      </button>
                     </div>
-                  </button>
+                  </div>
 
-                  <button
-                    type="button"
-                    onClick={handleExportOrdersLogCSV}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-medium text-ink transition hover:bg-ink/5 dark:text-white dark:hover:bg-white/5"
-                  >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
-                      <ShoppingBag size={16} />
+                  {/* Report 3: Filtered Orders Log */}
+                  <div className="flex items-center justify-between rounded-xl p-2 transition hover:bg-ink/5 dark:hover:bg-white/5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
+                        {exportFormatTab === "pdf" ? <FileText size={16} /> : <FileSpreadsheet size={16} />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-xs text-ink dark:text-white">Orders Audit Log</p>
+                        <p className="text-[10px] text-clay dark:text-white/50 truncate">Full customer & dispatch ledger</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold">Filtered Orders Log</p>
-                      <p className="text-[11px] text-clay dark:text-white/50">Complete customer & tracking audit</p>
+                    <div className="flex items-center gap-1.5 shrink-0 pl-2">
+                      <button
+                        type="button"
+                        onClick={handleExportOrdersLogPDF}
+                        title="Download Orders Log as PDF"
+                        className="rounded-lg border border-ink/10 px-2 py-1 text-[11px] font-semibold text-ink hover:bg-ink hover:text-white transition dark:border-white/10 dark:text-white dark:hover:bg-white dark:hover:text-ink"
+                      >
+                        PDF
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleExportOrdersLogCSV}
+                        title="Download Orders Log as CSV"
+                        className="rounded-lg border border-ink/10 px-2 py-1 text-[11px] font-semibold text-ink hover:bg-ink hover:text-white transition dark:border-white/10 dark:text-white dark:hover:bg-white dark:hover:text-ink"
+                      >
+                        CSV
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 </div>
               </div>
             )}
