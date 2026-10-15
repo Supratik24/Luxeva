@@ -2,9 +2,18 @@ import express from "express";
 import fs from "node:fs";
 import path from "node:path";
 import multer from "multer";
-import { body } from "express-validator";
-import { protect, restrictTo, validateRequest } from "@luxeva/shared";
-import { createBrand,
+import {
+  protect,
+  restrictTo,
+  validateRequest,
+  searchLimiter,
+  reviewLimiter,
+  adminLimiter,
+  validateCreateReview,
+  validateCouponCode
+} from "@luxeva/shared";
+import {
+  createBrand,
   createCategory,
   createCoupon,
   createProduct,
@@ -19,7 +28,8 @@ import { createBrand,
   getBrands,
   getCatalogMeta,
   getCategories,
-  getActiveCoupons, getCoupons,
+  getActiveCoupons,
+  getCoupons,
   getLowStockProducts,
   getProductBySlug,
   getReviews,
@@ -48,27 +58,35 @@ const storage = multer.diskStorage({
     cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, "-")}`);
   }
 });
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit per image
+});
 
+// Public Catalog Discovery Endpoints
 router.get("/meta", getCatalogMeta);
 router.get("/products", listProducts);
-router.get("/products/suggestions", getSearchSuggestions);
+router.get("/products/suggestions", searchLimiter, getSearchSuggestions);
 router.get("/products/:slug", getProductBySlug);
 router.get("/categories", getCategories);
 router.get("/brands", getBrands);
-router.get("/coupons", getActiveCoupons); router.post("/coupons/validate", validateCoupon);
+router.get("/coupons", getActiveCoupons);
+router.post("/coupons/validate", validateCouponCode, validateRequest, validateCoupon);
 
+// Authenticated Customer Endpoints
 router.get("/wishlist", protect, getWishlist);
 router.post("/wishlist/toggle", protect, toggleWishlist);
 router.post(
   "/products/:productId/reviews",
   protect,
-  [body("rating").isInt({ min: 1, max: 5 })],
+  reviewLimiter,
+  validateCreateReview,
   validateRequest,
   createReview
 );
 
-router.use("/admin", protect, restrictTo("admin"));
+// Admin-Only Endpoints Guarded by protect + restrictTo("admin") + adminLimiter
+router.use("/admin", protect, restrictTo("admin"), adminLimiter);
 router.post("/admin/products", createProduct);
 router.put("/admin/products/:id", updateProduct);
 router.delete("/admin/products/:id", deleteProduct);

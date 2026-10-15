@@ -1,7 +1,7 @@
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { attachErrorHandlers, createServiceApp } from "@luxeva/shared";
 
-const app = createServiceApp({ serviceName: "api-gateway", rateLimitMax: 300, parseBody: false });
+const app = createServiceApp({ serviceName: "api-gateway", rateLimitMax: 400, parseBody: false });
 
 const normalizeServiceUrl = (value, fallback) => {
   const target = String(value || fallback || "").trim();
@@ -23,12 +23,18 @@ const restreamBody = (proxyReq, req) => {
   proxyReq.write(bodyData);
 };
 
+const internalSecret = process.env.INTERNAL_SERVICE_SECRET || "luxeva_internal_service_secret";
+
 const proxyConfig = (target, prefix) => ({
   target,
   changeOrigin: true,
   xfwd: true,
   pathRewrite: (path) => `${prefix}${path}`,
-  onProxyReq: restreamBody,
+  onProxyReq: (proxyReq, req) => {
+    // Inject internal service security token so services know requests came through Gateway
+    proxyReq.setHeader("x-internal-service-token", internalSecret);
+    restreamBody(proxyReq, req);
+  },
   logLevel: "warn"
 });
 

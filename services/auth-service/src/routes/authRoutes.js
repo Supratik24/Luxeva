@@ -1,5 +1,11 @@
 import express from "express";
-import { protect } from "@luxeva/shared";
+import {
+  protect,
+  authLimiter,
+  validateAddress,
+  validateProfileUpdate,
+  validateRequest
+} from "@luxeva/shared";
 import {
   addAddress,
   deleteAddress,
@@ -13,12 +19,16 @@ import {
 const router = express.Router();
 
 router.use(protect);
-router.post("/sync", syncCurrentUser);
-router.get("/me", getMe);
-router.put("/profile", updateProfile);
+
+// User profile & synchronization guarded by authLimiter
+router.post("/sync", authLimiter, syncCurrentUser);
+router.get("/me", authLimiter, getMe);
+router.put("/profile", validateProfileUpdate, validateRequest, updateProfile);
+
+// Address book management guarded by validateAddress
 router.get("/addresses", listAddresses);
-router.post("/addresses", addAddress);
-router.put("/addresses/:id", updateAddress);
+router.post("/addresses", validateAddress, validateRequest, addAddress);
+router.put("/addresses/:id", validateAddress, validateRequest, updateAddress);
 router.delete("/addresses/:id", deleteAddress);
 
 export default router;
