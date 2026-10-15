@@ -18,7 +18,7 @@ const fallbackOrders = [
     _id: "ord_fb_101",
     orderNumber: "LX-1001",
     status: "delivered",
-    items: [{ name: "Handcrafted Silk Kurta", price: 2999, quantity: 1, image: "" }],
+    items: [{ productId: "p_silk_kurta", name: "Handcrafted Silk Kurta", price: 2999, quantity: 1, image: "" }],
     total: 3450,
     customer: { name: "Supratik Sangram", email: "supratiksangram9@gmail.com" },
     shipping: { address: { city: "Kolkata", state: "West Bengal" }, carrier: "BlueDart", trackingNumber: "BD99281726" },
@@ -35,7 +35,7 @@ const fallbackOrders = [
     _id: "ord_fb_102",
     orderNumber: "LX-1002",
     status: "shipped",
-    items: [{ name: "Leather Formal Loafers", price: 3499, quantity: 1, image: "" }],
+    items: [{ productId: "p_loafers", name: "Leather Formal Loafers", price: 3499, quantity: 1, image: "" }],
     total: 4015,
     customer: { name: "Ananya Sharma", email: "ananya.sharma@example.com" },
     shipping: { address: { city: "Bengaluru", state: "Karnataka" }, carrier: "Delhivery", trackingNumber: "DL88291024" },
@@ -50,7 +50,7 @@ const fallbackOrders = [
     _id: "ord_fb_103",
     orderNumber: "LX-1003",
     status: "out_for_delivery",
-    items: [{ name: "Analog Minimalist Watch", price: 4299, quantity: 1, image: "" }],
+    items: [{ productId: "p_watch", name: "Analog Minimalist Watch", price: 4299, quantity: 1, image: "" }],
     total: 4899,
     customer: { name: "Rahul Verma", email: "rahul.verma@example.com" },
     shipping: { address: { city: "Mumbai", state: "Maharashtra" }, carrier: "BlueDart", trackingNumber: "BD77182910" },
@@ -60,6 +60,133 @@ const fallbackOrders = [
       { status: "packed", note: "Packed at central fulfillment center", at: new Date(Date.now() - 86400000 * 2) },
       { status: "shipped", note: "In transit to delivery hub", at: new Date(Date.now() - 86400000 * 1) },
       { status: "out_for_delivery", note: "Out for delivery today", at: new Date() }
+    ]
+  },
+  {
+    _id: "ord_fb_104",
+    orderNumber: "LX-1004",
+    status: "placed",
+    items: [{ productId: "p_cashmere_coat", name: "Cashmere Wool Overcoat", price: 8999, quantity: 1, image: "" }],
+    total: 10078,
+    customer: { name: "Pooja Hegde", email: "pooja.hegde@luxury.in" },
+    shipping: { address: { city: "Hyderabad", state: "Telangana" }, carrier: "Delhivery", trackingNumber: "DL90214811" },
+    createdAt: new Date(Date.now() - 86400000 * 0.4).toISOString(),
+    timeline: [
+      { status: "placed", note: "Payment verified, order placed", at: new Date(Date.now() - 86400000 * 0.4) }
+    ]
+  },
+  {
+    _id: "ord_fb_105",
+    orderNumber: "LX-1005",
+    status: "cancelled",
+    items: [{ productId: "p_silk_gown", name: "Silk Evening Gown", price: 5499, quantity: 1, image: "" }],
+    total: 6158,
+    customer: { name: "Simran Kapoor", email: "simran.k@outlook.com" },
+    shipping: { address: { city: "New Delhi", state: "Delhi" }, carrier: "BlueDart", trackingNumber: "BD55432109" },
+    createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
+    timeline: [
+      { status: "placed", note: "Order placed", at: new Date(Date.now() - 86400000 * 4) },
+      { status: "cancelled", note: "Cancelled by customer before dispatch", at: new Date(Date.now() - 86400000 * 3.8) }
+    ]
+  },
+  {
+    _id: "ord_fb_106",
+    orderNumber: "LX-1006",
+    status: "delivered",
+    items: [{ productId: "p_silk_kurta", name: "Handcrafted Silk Kurta", price: 2999, quantity: 2, image: "" }],
+    total: 6718,
+    customer: { name: "Vikram Malhotra", email: "vikram.m@gmail.com" },
+    shipping: { address: { city: "Pune", state: "Maharashtra" }, carrier: "BlueDart", trackingNumber: "BD66554433" },
+    createdAt: new Date(Date.now() - 86400000 * 8).toISOString(),
+    timeline: [
+      { status: "placed", note: "Order confirmed", at: new Date(Date.now() - 86400000 * 8) },
+      { status: "packed", note: "Packed", at: new Date(Date.now() - 86400000 * 7) },
+      { status: "shipped", note: "Shipped", at: new Date(Date.now() - 86400000 * 6) },
+      { status: "delivered", note: "Delivered", at: new Date(Date.now() - 86400000 * 4) }
+    ]
+  },
+  {
+    _id: "ord_fb_107",
+    orderNumber: "LX-1007",
+    status: "packed",
+    items: [{ productId: "p_silk_kurta", name: "Handcrafted Silk Kurta", price: 2999, quantity: 1, image: "" }],
+    total: 3450,
+    customer: { name: "Rohit Deshmukh", email: "rohit.d@gmail.com" },
+    shipping: { address: { city: "Nagpur", state: "Maharashtra" }, carrier: "Delhivery", trackingNumber: "DL33445566" },
+    createdAt: new Date(Date.now() - 86400000 * 1.2).toISOString(),
+    timeline: [
+      { status: "placed", note: "Order placed", at: new Date(Date.now() - 86400000 * 1.2) },
+      { status: "packed", note: "Packed at warehouse", at: new Date(Date.now() - 86400000 * 0.8) }
+    ]
+  },
+  {
+    _id: "ord_fb_108",
+    orderNumber: "LX-1008",
+    status: "delivered",
+    items: [{ productId: "p_scarf", name: "Pure Mulberry Silk Scarf", price: 1899, quantity: 2, image: "" }],
+    total: 4253,
+    customer: { name: "Meera Sen", email: "meera.sen@yahoo.com" },
+    shipping: { address: { city: "Chennai", state: "Tamil Nadu" }, carrier: "BlueDart", trackingNumber: "BD22110099" },
+    createdAt: new Date(Date.now() - 86400000 * 12).toISOString(),
+    timeline: [
+      { status: "placed", note: "Order confirmed", at: new Date(Date.now() - 86400000 * 12) },
+      { status: "delivered", note: "Delivered safely", at: new Date(Date.now() - 86400000 * 8) }
+    ]
+  },
+  {
+    _id: "ord_fb_109",
+    orderNumber: "LX-1009",
+    status: "delivered",
+    items: [{ productId: "p_watch", name: "Analog Minimalist Watch", price: 4299, quantity: 1, image: "" }],
+    total: 4899,
+    customer: { name: "Aditya Roy", email: "aditya.roy@luxeva.com" },
+    shipping: { address: { city: "Jaipur", state: "Rajasthan" }, carrier: "Delhivery", trackingNumber: "DL11223344" },
+    createdAt: new Date(Date.now() - 86400000 * 16).toISOString(),
+    timeline: [
+      { status: "placed", note: "Order confirmed", at: new Date(Date.now() - 86400000 * 16) },
+      { status: "delivered", note: "Delivered", at: new Date(Date.now() - 86400000 * 12) }
+    ]
+  },
+  {
+    _id: "ord_fb_110",
+    orderNumber: "LX-1010",
+    status: "delivered",
+    items: [{ productId: "p_silk_kurta", name: "Handcrafted Silk Kurta", price: 2999, quantity: 1, image: "" }],
+    total: 3450,
+    customer: { name: "Kavita Rao", email: "kavita.rao@gmail.com" },
+    shipping: { address: { city: "Ahmedabad", state: "Gujarat" }, carrier: "BlueDart", trackingNumber: "BD44332211" },
+    createdAt: new Date(Date.now() - 86400000 * 22).toISOString(),
+    timeline: [
+      { status: "placed", note: "Order confirmed", at: new Date(Date.now() - 86400000 * 22) },
+      { status: "delivered", note: "Delivered", at: new Date(Date.now() - 86400000 * 18) }
+    ]
+  },
+  {
+    _id: "ord_fb_111",
+    orderNumber: "LX-1011",
+    status: "cancelled",
+    items: [{ productId: "p_loafers", name: "Leather Formal Loafers", price: 3499, quantity: 1, image: "" }],
+    total: 4015,
+    customer: { name: "Tarun Gill", email: "tarun.gill@rediffmail.com" },
+    shipping: { address: { city: "Chandigarh", state: "Punjab" }, carrier: "Delhivery", trackingNumber: "DL77889900" },
+    createdAt: new Date(Date.now() - 86400000 * 25).toISOString(),
+    timeline: [
+      { status: "placed", note: "Order confirmed", at: new Date(Date.now() - 86400000 * 25) },
+      { status: "cancelled", note: "Customer changed delivery address, reordered", at: new Date(Date.now() - 86400000 * 24) }
+    ]
+  },
+  {
+    _id: "ord_fb_112",
+    orderNumber: "LX-1012",
+    status: "delivered",
+    items: [{ productId: "p_watch", name: "Analog Minimalist Watch", price: 4299, quantity: 2, image: "" }],
+    total: 9630,
+    customer: { name: "Siddharth Sen", email: "siddharth.sen@gmail.com" },
+    shipping: { address: { city: "Kolkata", state: "West Bengal" }, carrier: "BlueDart", trackingNumber: "BD88990011" },
+    createdAt: new Date(Date.now() - 86400000 * 35).toISOString(),
+    timeline: [
+      { status: "placed", note: "Order placed", at: new Date(Date.now() - 86400000 * 35) },
+      { status: "delivered", note: "Delivered", at: new Date(Date.now() - 86400000 * 30) }
     ]
   }
 ];
@@ -947,6 +1074,7 @@ const buildMonthlySalesSeries = (orderList = []) => {
       month: d.toLocaleString("en-US", { month: "short" }),
       year: d.getFullYear(),
       sales: 0,
+      profit: 0,
       orders: 0
     });
   }
@@ -959,35 +1087,58 @@ const buildMonthlySalesSeries = (orderList = []) => {
     const entry = result.find((item) => item.month === m && item.year === y);
     if (entry) {
       entry.sales = Number((entry.sales + (order.total || 0)).toFixed(2));
+      entry.profit = Number((entry.sales * 0.38).toFixed(2));
       entry.orders += 1;
     }
   });
 
-  return result.map(({ month, sales, orders }) => ({ month, sales, orders }));
+  return result.map(({ month, sales, profit, orders }) => ({ month, sales, profit, orders }));
 };
 
 export const getAnalytics = asyncHandler(async (req, res) => {
+  const { startDate, endDate } = req.query || {};
+
   if (isOrderFallbackMode()) {
-    const validOrders = fallbackOrders.filter((o) => o.status !== "cancelled");
+    let orderPool = fallbackOrders;
+    if (startDate || endDate) {
+      const startMs = startDate ? new Date(startDate).getTime() : 0;
+      const endMs = endDate ? new Date(endDate).getTime() : Infinity;
+      orderPool = fallbackOrders.filter((o) => {
+        const t = new Date(o.createdAt).getTime();
+        return t >= startMs && t <= endMs;
+      });
+    }
+
+    const validOrders = orderPool.filter((o) => o.status !== "cancelled");
+    const cancelledOrdersList = orderPool.filter((o) => o.status === "cancelled");
     const revenue = Number(validOrders.reduce((sum, order) => sum + (order.total || 0), 0).toFixed(2));
-    const statusBreakdown = fallbackOrders.reduce((acc, order) => {
+    const estimatedProfit = Number((revenue * 0.38).toFixed(2));
+    const lostRevenue = Number(cancelledOrdersList.reduce((sum, order) => sum + (order.total || 0), 0).toFixed(2));
+    const cancellationRate = orderPool.length
+      ? Number(((cancelledOrdersList.length / orderPool.length) * 100).toFixed(1))
+      : 0;
+
+    const statusBreakdown = orderPool.reduce((acc, order) => {
       acc[order.status] = (acc[order.status] || 0) + 1;
       return acc;
     }, {});
-    const activeOrders = fallbackOrders.filter((o) =>
+    const activeOrders = orderPool.filter((o) =>
       ["placed", "packed", "shipped", "out_for_delivery"].includes(o.status)
     ).length;
-    const deliveredOrders = fallbackOrders.filter((o) => o.status === "delivered").length;
-    const cancelledOrders = fallbackOrders.filter((o) => o.status === "cancelled").length;
-    const monthlySales = buildMonthlySalesSeries(fallbackOrders);
+    const deliveredOrders = orderPool.filter((o) => o.status === "delivered").length;
+    const cancelledOrders = cancelledOrdersList.length;
+    const monthlySales = buildMonthlySalesSeries(orderPool);
 
     sendSuccess(res, 200, "Analytics fetched successfully", {
       analytics: {
         revenue,
-        orders: fallbackOrders.length,
+        estimatedProfit,
+        orders: orderPool.length,
         activeOrders,
         deliveredOrders,
         cancelledOrders,
+        cancellationRate,
+        lostRevenue,
         averageOrderValue: validOrders.length ? Number((revenue / validOrders.length).toFixed(2)) : 0,
         statusBreakdown,
         monthlySales
@@ -996,11 +1147,23 @@ export const getAnalytics = asyncHandler(async (req, res) => {
     return;
   }
 
+  const query = {};
+  if (startDate || endDate) {
+    query.createdAt = {};
+    if (startDate) query.createdAt.$gte = new Date(startDate);
+    if (endDate) query.createdAt.$lte = new Date(endDate);
+  }
+
+  const matchValid = { status: { $ne: "cancelled" } };
+  if (startDate || endDate) {
+    matchValid.createdAt = query.createdAt;
+  }
+
   const [orders, revenueAgg] = await Promise.all([
-    Order.find().sort({ createdAt: -1 }),
+    Order.find(query).sort({ createdAt: -1 }),
     Order.aggregate([
       {
-        $match: { status: { $ne: "cancelled" } }
+        $match: matchValid
       },
       {
         $group: {
@@ -1015,6 +1178,7 @@ export const getAnalytics = asyncHandler(async (req, res) => {
   const current = revenueAgg[0] || { revenue: 0, orders: 0 };
   const validOrdersCount = current.orders || 0;
   const totalRevenue = Number((current.revenue || 0).toFixed(2));
+  const estimatedProfit = Number((totalRevenue * 0.38).toFixed(2));
 
   const statusBreakdown = orders.reduce((acc, order) => {
     acc[order.status] = (acc[order.status] || 0) + 1;
@@ -1025,16 +1189,24 @@ export const getAnalytics = asyncHandler(async (req, res) => {
     ["placed", "packed", "shipped", "out_for_delivery"].includes(o.status)
   ).length;
   const deliveredOrders = orders.filter((o) => o.status === "delivered").length;
-  const cancelledOrders = orders.filter((o) => o.status === "cancelled").length;
+  const cancelledOrdersList = orders.filter((o) => o.status === "cancelled");
+  const cancelledOrders = cancelledOrdersList.length;
+  const lostRevenue = Number(cancelledOrdersList.reduce((sum, o) => sum + (o.total || 0), 0).toFixed(2));
+  const cancellationRate = orders.length
+    ? Number(((cancelledOrders / orders.length) * 100).toFixed(1))
+    : 0;
   const monthlySales = buildMonthlySalesSeries(orders);
 
   sendSuccess(res, 200, "Analytics fetched successfully", {
     analytics: {
       revenue: totalRevenue,
+      estimatedProfit,
       orders: orders.length,
       activeOrders,
       deliveredOrders,
       cancelledOrders,
+      cancellationRate,
+      lostRevenue,
       averageOrderValue: validOrdersCount ? Number((totalRevenue / validOrdersCount).toFixed(2)) : 0,
       statusBreakdown,
       monthlySales
