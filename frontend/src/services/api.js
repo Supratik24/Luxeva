@@ -24,7 +24,12 @@ export const endpoints = {
     home: "/api/content/home",
     page: (slug) => `/api/content/pages/${slug}`,
     adminBanners: "/api/content/admin/banners",
-    adminBlocks: "/api/content/admin/blocks"
+    adminBlocks: "/api/content/admin/blocks",
+    newsletterSubscribe: "/api/content/newsletter/subscribe",
+    adminSubscribers: "/api/content/admin/newsletter/subscribers",
+    adminDeleteSubscriber: (id) => `/api/content/admin/newsletter/subscribers/${id}`,
+    adminCampaigns: "/api/content/admin/newsletter/campaigns",
+    adminSendCampaign: "/api/content/admin/newsletter/campaigns"
   },
   auth: {
     sync: "/api/auth/sync",

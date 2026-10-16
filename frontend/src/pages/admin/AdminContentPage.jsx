@@ -1,7 +1,28 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import toast from "react-hot-toast";
-import { ImageIcon, Plus, Trash2, Pencil, X, Star, Crop, Sparkles, AlertCircle, Eye, Upload } from "lucide-react";
+import {
+  ImageIcon,
+  Plus,
+  Trash2,
+  Pencil,
+  X,
+  Star,
+  Crop,
+  Sparkles,
+  AlertCircle,
+  Eye,
+  Upload,
+  Mail,
+  Send,
+  Users,
+  Search,
+  Megaphone,
+  Check,
+  RefreshCw,
+  ArrowRight
+} from "lucide-react";
 import api, { endpoints } from "../../services/api";
+import { shortDate } from "../../utils/format";
 import ImagePicker from "../../components/admin/ImagePicker";
 import BannerCropModal from "../../components/admin/BannerCropModal";
 
@@ -26,7 +47,7 @@ const Field = ({ label, children }) => (
   </div>
 );
 
-const TABS = ["Banners", "Content Blocks"];
+const TABS = ["Banners", "Content Blocks", "Newsletter & Audience"];
 
 const AdminContentPage = () => {
   const [banners, setBanners] = useState([]);
@@ -41,18 +62,98 @@ const AdminContentPage = () => {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Newsletter & Audience State
+  const [subscribers, setSubscribers] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
+  const [subscriberSearch, setSubscriberSearch] = useState("");
+  const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
+  const [sendingBroadcast, setSendingBroadcast] = useState(false);
+  const [broadcastForm, setBroadcastForm] = useState({
+    subject: "",
+    title: "",
+    message: "",
+    category: "private_drop",
+    actionUrl: "/shop",
+    actionText: "Explore Collection"
+  });
+
   const load = () =>
-    Promise.all([
+    Promise.allSettled([
       api.get(endpoints.content.adminBanners),
-      api.get(endpoints.content.adminBlocks)
-    ]).then(([bannerRes, blockRes]) => {
-      // Sort banners by order
-      const fetchedBanners = (bannerRes.data.banners || []).sort(
-        (a, b) => (a.order || 0) - (b.order || 0)
-      );
-      setBanners(fetchedBanners);
-      setBlocks(blockRes.data.blocks || []);
+      api.get(endpoints.content.adminBlocks),
+      api.get(endpoints.content.adminSubscribers),
+      api.get(endpoints.content.adminCampaigns)
+    ]).then(([bannerRes, blockRes, subRes, campRes]) => {
+      if (bannerRes.status === "fulfilled") {
+        const fetchedBanners = (bannerRes.value?.data?.banners || []).sort(
+          (a, b) => (a.order || 0) - (b.order || 0)
+        );
+        setBanners(fetchedBanners);
+      }
+      if (blockRes.status === "fulfilled") {
+        setBlocks(blockRes.value?.data?.blocks || []);
+      }
+      if (subRes.status === "fulfilled") {
+        const subs = subRes.value?.data?.data?.subscribers || subRes.value?.data?.subscribers || [];
+        setSubscribers(subs);
+      }
+      if (campRes.status === "fulfilled") {
+        const camps = campRes.value?.data?.data?.campaigns || campRes.value?.data?.campaigns || [];
+        setCampaigns(camps);
+      }
     });
+
+  const activeSubscribersCount = useMemo(() => {
+    return subscribers.filter((s) => s.status === "subscribed").length;
+  }, [subscribers]);
+
+  const filteredSubscribers = useMemo(() => {
+    if (!subscriberSearch.trim()) return subscribers;
+    const term = subscriberSearch.toLowerCase();
+    return subscribers.filter((s) => s.email?.toLowerCase().includes(term));
+  }, [subscribers, subscriberSearch]);
+
+  const handleSendBroadcast = async (e) => {
+    e.preventDefault();
+    if (!broadcastForm.subject.trim() || !broadcastForm.message.trim()) {
+      toast.error("Subject and campaign message are required.");
+      return;
+    }
+
+    setSendingBroadcast(true);
+    try {
+      const res = await api.post(endpoints.content.adminSendCampaign, broadcastForm);
+      const data = res.data?.data || res.data || {};
+      toast.success(res.data?.message || `Broadcast sent to ${data.recipientCount || subscribers.length} subscribers!`);
+      setBroadcastModalOpen(false);
+      setBroadcastForm({
+        subject: "",
+        title: "",
+        message: "",
+        category: "private_drop",
+        actionUrl: "/shop",
+        actionText: "Explore Collection"
+      });
+      const campsRes = await api.get(endpoints.content.adminCampaigns);
+      const updatedCamps = campsRes.data?.data?.campaigns || campsRes.data?.campaigns || [];
+      setCampaigns(updatedCamps);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to dispatch broadcast");
+    } finally {
+      setSendingBroadcast(false);
+    }
+  };
+
+  const handleDeleteSubscriber = async (id, email) => {
+    if (!window.confirm(`Are you sure you want to remove ${email} from the subscribers list?`)) return;
+    try {
+      await api.delete(endpoints.content.adminDeleteSubscriber(id));
+      setSubscribers((prev) => prev.filter((s) => s._id !== id));
+      toast.success(`Removed ${email}`);
+    } catch (err) {
+      toast.error("Failed to remove subscriber");
+    }
+  };
 
   useEffect(() => { load(); }, []);
 
@@ -563,6 +664,346 @@ const AdminContentPage = () => {
                 {block.subtitle && <p className="text-xs text-clay dark:text-white/65 mt-0.5 truncate">{block.subtitle}</p>}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Newsletter & Audience ── */}
+      {tab === "Newsletter & Audience" && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-ink/5 bg-white p-6 shadow-card dark:border-white/5 dark:bg-[#222222]">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink text-white dark:bg-white dark:text-ink">
+                    <Mail size={14} />
+                  </span>
+                  <h2 className="text-base font-semibold text-ink dark:text-white">
+                    Newsletter Audience & Broadcasts
+                  </h2>
+                </div>
+                <p className="mt-1 text-xs text-clay dark:text-white/50">
+                  Subscribers captured via the storefront newsletter subscription form
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  {activeSubscribersCount} Active Subscribers
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setBroadcastModalOpen(true)}
+                  className="btn-primary py-2 px-4 text-xs"
+                >
+                  <Send size={13} />
+                  Compose Broadcast
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-6 lg:grid-cols-12">
+              {/* Left Column: Subscribers Roster (7 cols) */}
+              <div className="lg:col-span-7 flex flex-col rounded-2xl border border-ink/8 bg-sand/30 p-4 dark:border-white/8 dark:bg-white/[0.03]">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-2">
+                    <Users size={15} className="text-clay dark:text-white/50" />
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-ink dark:text-white">
+                      Subscriber Roster ({filteredSubscribers.length})
+                    </h3>
+                  </div>
+                  <div className="relative w-48 sm:w-56">
+                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-clay dark:text-white/40" />
+                    <input
+                      type="text"
+                      placeholder="Search email..."
+                      value={subscriberSearch}
+                      onChange={(e) => setSubscriberSearch(e.target.value)}
+                      className="w-full rounded-full border border-ink/10 bg-white py-1.5 pl-8 pr-3 text-xs text-ink placeholder:text-clay outline-none transition focus:border-ink/30 dark:border-white/10 dark:bg-[#1a1a1a] dark:text-white dark:placeholder:text-white/40"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-x-auto max-h-[360px] overflow-y-auto pr-1">
+                  {filteredSubscribers.length === 0 ? (
+                    <div className="py-12 text-center text-xs text-clay dark:text-white/40">
+                      {subscriberSearch
+                        ? "No subscribers match your search."
+                        : "No newsletter subscribers yet. Subscriptions made on the storefront will appear here."}
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-ink/5 dark:divide-white/5">
+                      {filteredSubscribers.map((sub) => (
+                        <div
+                          key={sub._id}
+                          className="flex items-center justify-between py-2.5 px-1 text-xs transition hover:bg-ink/[0.02] dark:hover:bg-white/[0.02]"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink/5 font-semibold text-[11px] text-ink dark:bg-white/10 dark:text-white">
+                              {sub.email?.[0]?.toUpperCase() || "S"}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-ink dark:text-white truncate">{sub.email}</p>
+                              <p className="text-[10px] text-clay dark:text-white/45">
+                                Subscribed {sub.subscribedAt ? shortDate(sub.subscribedAt) : "Recently"} ·{" "}
+                                {sub.source || "storefront"}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                sub.status === "subscribed"
+                                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                                  : "bg-ink/5 text-clay dark:bg-white/10 dark:text-white/50"
+                              }`}
+                            >
+                              {sub.status || "active"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSubscriber(sub._id, sub.email)}
+                              title="Remove subscriber"
+                              className="rounded-lg p-1 text-clay hover:bg-rose-500/10 hover:text-rose-600 transition dark:text-white/40 dark:hover:text-rose-400"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column: Campaign Broadcasts History (5 cols) */}
+              <div className="lg:col-span-5 flex flex-col rounded-2xl border border-ink/8 bg-sand/30 p-4 dark:border-white/8 dark:bg-white/[0.03]">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-2">
+                    <Megaphone size={15} className="text-clay dark:text-white/50" />
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-ink dark:text-white">
+                      Broadcast History ({campaigns.length})
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
+                  {campaigns.length === 0 ? (
+                    <div className="py-12 text-center text-xs text-clay dark:text-white/40">
+                      No campaigns broadcasted yet. Click "Compose Broadcast" to send a drop announcement or
+                      newsletter to your subscribers.
+                    </div>
+                  ) : (
+                    campaigns.map((camp) => (
+                      <div
+                        key={camp._id}
+                        className="rounded-xl border border-ink/5 bg-white p-3.5 shadow-sm transition hover:border-ink/15 dark:border-white/5 dark:bg-[#1f1f1f] dark:hover:border-white/15"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="rounded-full bg-ink/5 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-clay dark:bg-white/8 dark:text-white/60">
+                            {camp.category?.replace("_", " ") || "announcement"}
+                          </span>
+                          <span className="text-[10px] text-clay dark:text-white/45">
+                            {camp.sentAt ? shortDate(camp.sentAt) : "Just now"}
+                          </span>
+                        </div>
+                        <h4 className="mt-1.5 font-semibold text-xs text-ink dark:text-white line-clamp-1">
+                          {camp.subject}
+                        </h4>
+                        <p className="mt-1 text-[11px] text-clay dark:text-white/65 line-clamp-2 leading-relaxed">
+                          {camp.message}
+                        </p>
+                        <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-ink/5 dark:border-white/5 text-[10px] text-clay dark:text-white/50">
+                          <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                            <Check size={11} /> Sent to {camp.recipientCount || subscribers.length} subscribers
+                          </span>
+                          {camp.actionUrl && (
+                            <span className="font-mono text-clay/80 dark:text-white/40">
+                              {camp.actionUrl}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Broadcast Composer Modal in AdminContentPage */}
+      {broadcastModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-xl rounded-3xl border border-ink/10 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-[#1c1c1c] max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-ink/5 dark:border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-white dark:bg-white dark:text-ink">
+                  <Send size={16} />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-ink dark:text-white">Broadcast to Subscribers</h3>
+                  <p className="text-xs text-clay dark:text-white/50">
+                    Dispatch an editorial update, private drop, or announcement to {activeSubscribersCount} active subscribers
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBroadcastModalOpen(false)}
+                className="rounded-full p-1.5 text-clay hover:bg-ink/5 dark:text-white/60 dark:hover:bg-white/10"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSendBroadcast} className="mt-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-clay dark:text-white/60 mb-1.5">
+                  Campaign Category
+                </label>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {[
+                    { key: "private_drop", label: "Private Drop" },
+                    { key: "weekly_edit", label: "Weekly Edit" },
+                    { key: "flash_sale", label: "Flash Sale" },
+                    { key: "announcement", label: "Announcement" }
+                  ].map((cat) => (
+                    <button
+                      key={cat.key}
+                      type="button"
+                      onClick={() => setBroadcastForm((f) => ({ ...f, category: cat.key }))}
+                      className={`rounded-xl py-2 px-2.5 text-xs font-medium text-center transition border ${
+                        broadcastForm.category === cat.key
+                          ? "border-ink bg-ink text-white dark:border-white dark:bg-white dark:text-ink"
+                          : "border-ink/10 bg-sand/30 text-clay hover:border-ink/30 dark:border-white/10 dark:bg-white/5 dark:text-white/60"
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-clay dark:text-white/60 mb-1.5">
+                  Email Subject Line *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Private Access: Autumn Silk Collection is Live"
+                  value={broadcastForm.subject}
+                  onChange={(e) => setBroadcastForm((f) => ({ ...f, subject: e.target.value }))}
+                  className="input"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-clay dark:text-white/60 mb-1.5">
+                  Header / Announcement Title
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. The Handcrafted Autumn Edit"
+                  value={broadcastForm.title}
+                  onChange={(e) => setBroadcastForm((f) => ({ ...f, title: e.target.value }))}
+                  className="input"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-clay dark:text-white/60 mb-1.5">
+                  Campaign Content / Message *
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="Write the newsletter message, launch details, promo highlights..."
+                  value={broadcastForm.message}
+                  onChange={(e) => setBroadcastForm((f) => ({ ...f, message: e.target.value }))}
+                  className="input rounded-2xl resize-none py-3"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-clay dark:text-white/60 mb-1.5">
+                    Button Label
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Explore Now"
+                    value={broadcastForm.actionText}
+                    onChange={(e) => setBroadcastForm((f) => ({ ...f, actionText: e.target.value }))}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-clay dark:text-white/60 mb-1.5">
+                    Target Destination URL
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="/shop"
+                    value={broadcastForm.actionUrl}
+                    onChange={(e) => setBroadcastForm((f) => ({ ...f, actionUrl: e.target.value }))}
+                    className="input"
+                  />
+                </div>
+              </div>
+
+              {/* Preview card */}
+              <div className="rounded-2xl border border-dashed border-ink/15 bg-sand/30 p-3.5 dark:border-white/15 dark:bg-white/[0.02]">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-clay dark:text-white/40 mb-1.5">
+                  Subscriber Broadcast Preview
+                </p>
+                <div className="rounded-xl border border-ink/10 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-[#222222]">
+                  <p className="text-xs font-bold text-ink dark:text-white">
+                    {broadcastForm.subject || "Subject line preview..."}
+                  </p>
+                  <p className="mt-1 text-xs text-clay dark:text-white/60 whitespace-pre-wrap">
+                    {broadcastForm.message || "Your campaign message content will display here to subscribers."}
+                  </p>
+                  <div className="mt-2.5 pt-2 border-t border-ink/5 flex justify-end dark:border-white/5">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-ink px-3 py-1 text-[11px] font-semibold text-white dark:bg-white dark:text-ink">
+                      {broadcastForm.actionText || "Explore"}
+                      <ArrowRight size={11} />
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-ink/5 dark:border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setBroadcastModalOpen(false)}
+                  className="btn-ghost py-2.5 px-5 text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={sendingBroadcast}
+                  className="btn-primary py-2.5 px-6 text-xs"
+                >
+                  {sendingBroadcast ? (
+                    <>
+                      <RefreshCw size={13} className="animate-spin" />
+                      Dispatching to {activeSubscribersCount} Subscribers...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={13} />
+                      Send Broadcast ({activeSubscribersCount} recipients)
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

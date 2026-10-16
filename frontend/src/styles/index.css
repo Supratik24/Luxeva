@@ -112,7 +112,7 @@ body {
 
 /* ✦ Input */
 .input {
-  @apply w-full rounded-full border border-ink/10 bg-white px-5 py-3.5 text-sm outline-none ring-0 transition placeholder:text-clay focus:border-ink/30 focus:ring-2 focus:ring-ink/5 dark:border-white/20 dark:bg-white/10 dark:text-white dark:placeholder:text-white/40 dark:focus:border-white/30 dark:focus:ring-white/5;
+  @apply w-full rounded-full border border-ink/10 bg-white px-5 py-3.5 text-sm text-ink outline-none ring-0 transition placeholder:text-clay focus:border-ink/30 focus:ring-2 focus:ring-ink/5 dark:border-white/20 dark:bg-white/10 dark:text-white dark:placeholder:text-white/40 dark:focus:border-white/30 dark:focus:ring-white/5;
 }
 
 /* ✦ Admin card surface */
