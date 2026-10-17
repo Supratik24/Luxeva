@@ -409,8 +409,8 @@ const AdminContentPage = () => {
                           </div>
 
                           {/* Floating Card Overlay */}
-                          <div className="absolute bottom-2.5 left-2.5 right-2.5 rounded-xl border border-white/20 bg-white/70 p-2.5 shadow-md backdrop-blur-md dark:bg-black/60 dark:border-white/15 pointer-events-none transition-transform duration-300 group-hover:-translate-y-0.5">
-                            <p className="text-[8px] font-semibold uppercase tracking-wider text-clay dark:text-white/60 mb-0.5">
+                          <div className="absolute bottom-2.5 left-2.5 right-2.5 rounded-xl border border-white/20 bg-white/80 p-2.5 shadow-md backdrop-blur-md dark:bg-[#1a1a1a]/95 dark:border-white/20 dark:shadow-xl pointer-events-none transition-transform duration-300 group-hover:-translate-y-0.5">
+                            <p className="text-[8px] font-semibold uppercase tracking-wider text-clay dark:text-white/70 mb-0.5">
                               {bannerForm.subtitle || "Editor's pick"}
                             </p>
                             <div className="flex items-center justify-between gap-1.5">
@@ -531,7 +531,7 @@ const AdminContentPage = () => {
             {banners.map((banner, index) => (
               <div
                 key={banner._id}
-                className="overflow-hidden rounded-2xl border border-ink/5 bg-white shadow-card dark:border-white/5 dark:bg-[#222222] min-w-0"
+                className="overflow-hidden rounded-2xl border border-ink/5 bg-white shadow-card dark:border-white/12 dark:bg-[#1e1e1e] min-w-0"
               >
                 {banner.image && (
                   <div className="h-28 sm:h-32 w-full overflow-hidden bg-sand dark:bg-white/8 relative">
@@ -557,10 +557,10 @@ const AdminContentPage = () => {
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold truncate text-sm text-ink dark:text-white">{banner.title}</p>
                     {banner.subtitle && (
-                      <p className="text-xs text-clay dark:text-white/60 mt-0.5 truncate">{banner.subtitle}</p>
+                      <p className="text-xs text-clay dark:text-white/70 mt-0.5 truncate">{banner.subtitle}</p>
                     )}
                     {banner.ctaLink && (
-                      <p className="text-[11px] text-clay/60 dark:text-white/40 mt-0.5 font-mono truncate">{banner.ctaLink}</p>
+                      <p className="text-[11px] text-clay/60 dark:text-white/50 mt-0.5 font-mono truncate">{banner.ctaLink}</p>
                     )}
                   </div>
 

@@ -20,7 +20,7 @@ const AnnouncementBar = () => {
   const ctaText = user ? "Shop now" : "Join now";
 
   return (
-    <div className="group relative flex overflow-hidden bg-[#151515] text-white/90 py-2.5 text-xs md:text-sm font-medium z-50 select-none dark:bg-[#1a1a1a] dark:text-white/85">
+    <div className="group relative flex overflow-hidden border-b border-black/10 bg-[#151515] py-2.5 text-xs font-medium text-white/95 select-none dark:border-white/10 dark:bg-[#121212] dark:text-white md:text-sm z-50">
       {/* Primary marquee block */}
       <div className="flex animate-marquee whitespace-nowrap items-center shrink-0 min-w-full justify-around group-hover:[animation-play-state:paused] group-focus-within:[animation-play-state:paused] will-change-transform">
         {messages.map((message, index) => (

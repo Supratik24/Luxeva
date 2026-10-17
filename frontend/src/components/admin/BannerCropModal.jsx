@@ -574,7 +574,7 @@ const BannerCropModal = ({
 
                       {/* Storefront Floating Card Overlay Guide */}
                       {showOverlayGuide && aspectId === "4:5" && (
-                        <div className="absolute bottom-2.5 left-2.5 right-2.5 rounded-xl border border-white/20 bg-white/25 p-2.5 text-white backdrop-blur-md shadow-lg pointer-events-none">
+                        <div className="absolute bottom-2.5 left-2.5 right-2.5 rounded-xl border border-white/25 bg-[#141414]/90 p-2.5 text-white backdrop-blur-md shadow-2xl pointer-events-none">
                           <div className="flex items-center justify-between gap-1 mb-1">
                             <span className="rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-300">
                               ⚠ Storefront Card Overlay
@@ -763,8 +763,8 @@ const BannerCropModal = ({
                       </div>
 
                       {/* Floating Card at bottom */}
-                      <div className="absolute bottom-2 left-2 right-2 rounded-xl border border-white/20 bg-white/60 p-2 shadow-sm backdrop-blur-md dark:bg-black/60 dark:border-white/10">
-                        <p className="text-[7px] font-semibold uppercase tracking-wider text-clay dark:text-white/60">
+                      <div className="absolute bottom-2 left-2 right-2 rounded-xl border border-black/10 bg-white/90 p-2 shadow-md backdrop-blur-md dark:bg-[#1a1a1a]/95 dark:border-white/15 dark:shadow-xl">
+                        <p className="text-[7px] font-semibold uppercase tracking-wider text-clay dark:text-white/70">
                           {bannerData?.subtitle || "Editor's pick"}
                         </p>
                         <div className="flex items-center justify-between gap-1 mt-0.5">
@@ -810,8 +810,8 @@ const BannerCropModal = ({
                         />
                       </div>
 
-                      <div className="absolute bottom-2 left-2 right-2 rounded-xl border border-white/20 bg-white/60 p-2 shadow-sm backdrop-blur-md dark:bg-black/60 dark:border-white/10">
-                        <p className="text-[7px] font-semibold uppercase tracking-wider text-clay dark:text-white/60">
+                      <div className="absolute bottom-2 left-2 right-2 rounded-xl border border-black/10 bg-white/90 p-2 shadow-md backdrop-blur-md dark:bg-[#1a1a1a]/95 dark:border-white/15 dark:shadow-xl">
+                        <p className="text-[7px] font-semibold uppercase tracking-wider text-clay dark:text-white/70">
                           {bannerData?.subtitle || "Editor's pick"}
                         </p>
                         <div className="flex items-center justify-between gap-1 mt-0.5">
@@ -828,7 +828,7 @@ const BannerCropModal = ({
                 )}
 
                 {/* Helpful Explanation */}
-                <div className="rounded-xl border border-ink/5 bg-sand/30 p-3 text-[11px] text-clay dark:border-white/5 dark:bg-white/5 dark:text-white/70 space-y-1">
+                <div className="rounded-xl border border-ink/5 bg-sand/30 p-3 text-[11px] text-clay dark:border-white/12 dark:bg-[#1e1e1e] dark:text-white/75 space-y-1">
                   <div className="flex items-center gap-1.5 font-semibold text-ink dark:text-white">
                     <AlertCircle size={13} className="text-amber-500" />
                     <span>Framing Recommendation</span>
