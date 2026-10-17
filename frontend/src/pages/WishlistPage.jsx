@@ -1,20 +1,24 @@
 import Meta from "../components/ui/Meta";
-import ProductCard from "../components/ui/ProductCard";
-import { useShop } from "../contexts/ShopContext";
+import WishlistSection from "../components/wishlist/WishlistSection";
 
 const WishlistPage = () => {
-  const { wishlist } = useShop();
-
   return (
-    <section className="section-shell py-12">
-      <Meta title="Wishlist" description="Saved favorites and products you want to revisit." />
-      <p className="eyebrow">Wishlist</p>
-      <h1 className="mt-3 font-display text-5xl dark:text-white">Saved for later</h1>
-      <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        {wishlist.map((product) => (
-          <ProductCard key={product._id} product={product} compact />
-        ))}
+    <section className="section-shell py-10 lg:py-14">
+      <Meta
+        title="My Wishlist"
+        description="Saved favorites organized by clothing, electronics, footwear, and home collections."
+      />
+      <div className="mb-8">
+        <span className="eyebrow text-clay dark:text-white/70">Personal Collection</span>
+        <h1 className="mt-2 font-display text-4xl sm:text-5xl font-bold text-ink dark:text-white">
+          Saved For Later
+        </h1>
+        <p className="mt-2 text-sm text-clay dark:text-white/70 max-w-xl">
+          Your saved items organized into separate collections like clothing, electronics, and lifestyle essentials.
+        </p>
       </div>
+
+      <WishlistSection inDashboard={false} />
     </section>
   );
 };

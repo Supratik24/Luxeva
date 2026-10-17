@@ -598,7 +598,10 @@ export const deleteCoupon = asyncHandler(async (req, res) => {
 });
 
 export const getWishlist = asyncHandler(async (req, res) => {
-  const wishlist = await Wishlist.findOne({ userId: req.user.id }).populate("products");
+  const wishlist = await Wishlist.findOne({ userId: req.user.id }).populate({
+    path: "products",
+    populate: [{ path: "category" }, { path: "brand" }]
+  });
   sendSuccess(res, 200, "Wishlist fetched successfully", {
     wishlist: wishlist || { userId: req.user.id, products: [] }
   });
@@ -614,7 +617,10 @@ export const toggleWishlist = asyncHandler(async (req, res) => {
     : [...wishlist.products, productId];
 
   await wishlist.save();
-  await wishlist.populate("products");
+  await wishlist.populate({
+    path: "products",
+    populate: [{ path: "category" }, { path: "brand" }]
+  });
 
   sendSuccess(res, 200, exists ? "Removed from wishlist" : "Added to wishlist", { wishlist });
 });

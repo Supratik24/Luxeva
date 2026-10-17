@@ -5,6 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import Meta from "../../components/ui/Meta";
 import ProductCard from "../../components/ui/ProductCard";
+import WishlistSection from "../../components/wishlist/WishlistSection";
 import OrderTrackingTimeline, { computeDeliveryTiming, cleanCustomerNote } from "../../components/orders/OrderTrackingTimeline";
 import useOrderSocket from "../../hooks/useOrderSocket";
 import { mockProducts, useLocalPreviewData } from "../../data/mockStorefront";
@@ -790,13 +791,7 @@ const DashboardPage = () => {
     }
 
     if (currentTab === "wishlist") {
-      return (
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {wishlist.map((product) => (
-            <ProductCard key={product._id} product={product} compact />
-          ))}
-        </div>
-      );
+      return <WishlistSection inDashboard={true} />;
     }
 
     if (currentTab === "notifications") {
