@@ -17,7 +17,11 @@ import {
   getMyOrders,
   syncCart,
   verifyRazorpayPayment,
-  updateOrderStatus
+  updateOrderStatus,
+  requestReturn,
+  getReturnDetails,
+  getAllReturns,
+  reviewReturnDecision
 } from "../controllers/orderController.js";
 
 const router = express.Router();
@@ -42,10 +46,14 @@ router.put("/cart", syncCart);
 router.post("/", checkoutLimiter, validateCreateOrder, validateRequest, createOrder);
 router.get("/mine", getMyOrders);
 router.get("/mine/:id", getMyOrderById);
+router.post("/:id/return", requestReturn);
+router.get("/:id/return", getReturnDetails);
 
 // Admin-only endpoints guarded by restrictTo("admin") and dedicated adminLimiter
 router.use("/admin", restrictTo("admin"), adminLimiter);
 router.get("/admin/all", getAllOrders);
+router.get("/admin/returns", getAllReturns);
+router.patch("/admin/returns/:id/decision", reviewReturnDecision);
 router.patch("/admin/:id/status", updateOrderStatus);
 router.get("/admin/analytics/overview", getAnalytics);
 

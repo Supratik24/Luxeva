@@ -38,6 +38,62 @@ const timelineSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const returnTimelineSchema = new mongoose.Schema(
+  {
+    status: String,
+    title: String,
+    note: String,
+    at: { type: Date, default: Date.now }
+  },
+  { _id: false }
+);
+
+const returnRequestSchema = new mongoose.Schema(
+  {
+    returnId: { type: String },
+    status: {
+      type: String,
+      enum: ["none", "requested", "approved", "picked_up", "inspected", "refunded", "rejected"],
+      default: "none"
+    },
+    reason: String,
+    detailedReason: String,
+    items: [
+      {
+        productId: mongoose.Schema.Types.Mixed,
+        name: String,
+        price: Number,
+        quantity: Number,
+        image: String
+      }
+    ],
+    evidence: [{ url: String, name: String }],
+    preferredResolution: {
+      type: String,
+      enum: ["refund_original", "store_credit", "exchange"],
+      default: "refund_original"
+    },
+    upiId: String,
+    refundAmount: Number,
+    requestedAt: Date,
+    reviewedAt: Date,
+    reviewedBy: String,
+    adminDecision: {
+      status: String,
+      rationale: String,
+      decisionDate: Date,
+      refundTransactionId: String,
+      refundMethod: String,
+      pickupDate: Date,
+      pickupCarrier: String,
+      pickupTrackingNumber: String,
+      notes: String
+    },
+    timeline: [returnTimelineSchema]
+  },
+  { _id: false }
+);
+
 const orderSchema = new mongoose.Schema(
   {
     orderNumber: { type: String, required: true, unique: true, index: true },
@@ -72,7 +128,8 @@ const orderSchema = new mongoose.Schema(
     tax: Number,
     total: Number,
     couponCode: String,
-    notes: String
+    notes: String,
+    returnRequest: { type: returnRequestSchema, default: () => ({ status: "none" }) }
   },
   { timestamps: true }
 );

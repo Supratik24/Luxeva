@@ -1,10 +1,11 @@
-import { ArrowLeft, BarChart3, Boxes, Image, LayoutPanelTop, PackageSearch, ScrollText, Users } from "lucide-react";
+import { ArrowLeft, BarChart3, Boxes, Image, LayoutPanelTop, PackageSearch, RotateCcw, ScrollText, Users } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 const items = [
   { label: "Overview", to: "/portal/admin", icon: BarChart3 },
   { label: "Products", to: "/portal/admin/products", icon: Boxes },
   { label: "Orders", to: "/portal/admin/orders", icon: PackageSearch },
+  { label: "Returns", to: "/portal/admin/returns", icon: RotateCcw },
   { label: "Users", to: "/portal/admin/users", icon: Users },
   { label: "Content", to: "/portal/admin/content", icon: LayoutPanelTop },
   { label: "Media", to: "/portal/admin/media", icon: Image },

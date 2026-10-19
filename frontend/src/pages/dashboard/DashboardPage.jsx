@@ -1,4 +1,4 @@
-import { Bell, Heart, MapPinHouse, PackageCheck, UserRoundCog, Truck, AlertCircle, CheckCircle2, Check, CheckCheck, BellRing, BellOff, ArrowRight } from "lucide-react";
+import { Bell, Heart, MapPinHouse, PackageCheck, UserRoundCog, Truck, AlertCircle, CheckCircle2, Check, CheckCheck, BellRing, BellOff, ArrowRight, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -7,6 +7,8 @@ import Meta from "../../components/ui/Meta";
 import ProductCard from "../../components/ui/ProductCard";
 import WishlistSection from "../../components/wishlist/WishlistSection";
 import OrderTrackingTimeline, { computeDeliveryTiming, cleanCustomerNote } from "../../components/orders/OrderTrackingTimeline";
+import ReturnRequestModal from "../../components/orders/ReturnRequestModal";
+import ReturnTrackingTimeline from "../../components/orders/ReturnTrackingTimeline";
 import useOrderSocket from "../../hooks/useOrderSocket";
 import { mockProducts, useLocalPreviewData } from "../../data/mockStorefront";
 import { useAuth } from "../../contexts/AuthContext";
@@ -104,6 +106,8 @@ const DashboardPage = () => {
   const currentTab = searchParams.get("tab") || "profile";
   const highlightedOrder = searchParams.get("highlight") || "";
   const [expandedTracking, setExpandedTracking] = useState({});
+  const [returnModalOrder, setReturnModalOrder] = useState(null);
+  const [expandedReturn, setExpandedReturn] = useState({});
 
   const lastPushedNotifRef = useRef(new Set());
   const [notificationPermission, setNotificationPermission] = useState(
@@ -647,10 +651,46 @@ const DashboardPage = () => {
                             Order Cancelled
                           </span>
                         ) : isDelivered ? (
-                          <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle2 size={14} className="text-emerald-500" />
-                            Order Delivered
-                          </span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                              <CheckCircle2 size={14} className="text-emerald-500" />
+                              Order Delivered
+                            </span>
+
+                            {order.returnRequest && order.returnRequest.status !== "none" ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExpandedReturn((prev) => ({
+                                    ...prev,
+                                    [order._id]: !prev[order._id]
+                                  }))
+                                }
+                                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                                  expandedReturn[order._id]
+                                    ? "bg-amber-600 text-white shadow-sm"
+                                    : "border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20"
+                                }`}
+                              >
+                                <RotateCcw size={13} />
+                                <span>
+                                  {expandedReturn[order._id]
+                                    ? "Hide Return Tracker ▲"
+                                    : `Track Return (${order.returnRequest.status?.replace("_", " ")}) ▼`}
+                                </span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setReturnModalOrder(order)}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-white px-3.5 py-1.5 text-xs font-semibold text-ink shadow-xs hover:bg-ink/5 dark:border-white/15 dark:bg-[#1a1a1a] dark:text-white dark:hover:bg-white/10 transition"
+                                title="Request return or refund within 14 days of delivery"
+                              >
+                                <RotateCcw size={13} className="text-amber-500" />
+                                <span>Request Return / Refund</span>
+                              </button>
+                            )}
+                          </div>
                         ) : (
                           <span className="flex items-center gap-1.5 text-xs text-ink/50 dark:text-white/40">
                             <span className="relative flex h-2 w-2">
@@ -676,6 +716,11 @@ const DashboardPage = () => {
                           </motion.div>
                         )}
                       </AnimatePresence>
+
+                      {/* Smart Return & Refund Lifecycle Timeline */}
+                      {isDelivered && order.returnRequest && order.returnRequest.status !== "none" && expandedReturn[order._id] && (
+                        <ReturnTrackingTimeline order={order} />
+                      )}
                     </>
                   );
                 })()}
@@ -991,6 +1036,19 @@ const DashboardPage = () => {
         </aside>
         <div className="glass rounded-[2rem] p-6 shadow-soft">{renderContent()}</div>
       </div>
+      {returnModalOrder && (
+        <ReturnRequestModal
+          order={returnModalOrder}
+          isOpen={Boolean(returnModalOrder)}
+          onClose={() => setReturnModalOrder(null)}
+          onReturnSubmitted={(updatedOrder) => {
+            setOrders((prev) =>
+              prev.map((o) => (o._id === updatedOrder._id ? updatedOrder : o))
+            );
+            setExpandedReturn((prev) => ({ ...prev, [updatedOrder._id]: true }));
+          }}
+        />
+      )}
     </section>
   );
 };

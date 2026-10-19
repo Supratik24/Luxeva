@@ -72,7 +72,11 @@ export const endpoints = {
     razorpayVerify: "/api/orders/payments/razorpay/verify",
     adminOrders: "/api/orders/admin/all",
     adminAnalytics: "/api/orders/admin/analytics/overview",
-    updateStatus: (id) => `/api/orders/admin/${id}/status`
+    updateStatus: (id) => `/api/orders/admin/${id}/status`,
+    requestReturn: (id) => `/api/orders/${id}/return`,
+    getReturn: (id) => `/api/orders/${id}/return`,
+    adminReturns: "/api/orders/admin/returns",
+    adminReviewReturn: (id) => `/api/orders/admin/returns/${id}/decision`
   },
   notifications: {
     mine: "/api/notifications/mine",

@@ -1213,3 +1213,209 @@ export const getAnalytics = asyncHandler(async (req, res) => {
     }
   });
 });
+
+// ── Smart Returns & Refunds Controllers ──────────────────────────────────────
+
+export const requestReturn = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { reason, detailedReason, items, evidence, preferredResolution, upiId } = req.body;
+
+  let order = null;
+  if (mongoose.connection.readyState === 1) {
+    order = await Order.findOne({
+      $or: [{ _id: mongoose.isValidObjectId(id) ? id : null }, { orderNumber: id }]
+    });
+  }
+
+  // Fallback memory order
+  if (!order) {
+    order = fallbackOrders.find((o) => o._id === id || o.orderNumber === id);
+  }
+
+  if (!order) {
+    throw new ApiError(404, "Order not found");
+  }
+
+  if (order.status !== "delivered") {
+    throw new ApiError(400, "Returns can only be requested for delivered orders.");
+  }
+
+  const returnId = `RET-LX-${Math.floor(100000 + Math.random() * 900000)}`;
+  const returnItems = Array.isArray(items) && items.length > 0 ? items : order.items || [];
+  const refundAmount = returnItems.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
+
+  const newReturnRequest = {
+    returnId,
+    status: "requested",
+    reason: reason || "Defective / Quality Issue",
+    detailedReason: detailedReason || "",
+    items: returnItems,
+    evidence: Array.isArray(evidence) ? evidence : [],
+    preferredResolution: preferredResolution || "refund_original",
+    upiId: upiId || "",
+    refundAmount: refundAmount || order.total,
+    requestedAt: new Date(),
+    timeline: [
+      {
+        status: "requested",
+        title: "Return Request Submitted",
+        note: "Customer initiated return request with uploaded details. Pending quality team review.",
+        at: new Date()
+      }
+    ]
+  };
+
+  order.returnRequest = newReturnRequest;
+
+  if (order.save) {
+    await order.save();
+  }
+
+  try {
+    emitOrderUpdate(order.orderNumber, order);
+  } catch (e) {}
+
+  sendSuccess(res, 200, "Return request submitted successfully. Our team will review within 24 hours.", {
+    order,
+    returnRequest: order.returnRequest
+  });
+});
+
+export const getReturnDetails = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  let order = null;
+  if (mongoose.connection.readyState === 1) {
+    order = await Order.findOne({
+      $or: [{ _id: mongoose.isValidObjectId(id) ? id : null }, { orderNumber: id }]
+    });
+  }
+  if (!order) {
+    order = fallbackOrders.find((o) => o._id === id || o.orderNumber === id);
+  }
+  if (!order) {
+    throw new ApiError(404, "Order not found");
+  }
+  sendSuccess(res, 200, "Return details fetched", {
+    returnRequest: order.returnRequest || { status: "none" },
+    order
+  });
+});
+
+export const getAllReturns = asyncHandler(async (req, res) => {
+  const { status } = req.query;
+  let returns = [];
+
+  if (mongoose.connection.readyState === 1) {
+    const query = { "returnRequest.status": { $exists: true, $nin: ["none", null] } };
+    if (status && status !== "all") {
+      query["returnRequest.status"] = status;
+    }
+    const orders = await Order.find(query).sort({ "returnRequest.requestedAt": -1 });
+    returns = orders.map((o) => ({
+      ...o.toObject(),
+      returnRequest: o.returnRequest
+    }));
+  }
+
+  // Fallback
+  if (!returns.length) {
+    returns = fallbackOrders
+      .filter((o) => o.returnRequest && o.returnRequest.status && o.returnRequest.status !== "none")
+      .filter((o) => (!status || status === "all" ? true : o.returnRequest.status === status));
+  }
+
+  sendSuccess(res, 200, "Returns fetched successfully", { returns });
+});
+
+export const reviewReturnDecision = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const {
+    decision,
+    rationale,
+    pickupDate,
+    pickupCarrier,
+    pickupTrackingNumber,
+    refundTransactionId,
+    refundMethod,
+    notes
+  } = req.body;
+
+  let order = null;
+  if (mongoose.connection.readyState === 1) {
+    order = await Order.findOne({
+      $or: [{ _id: mongoose.isValidObjectId(id) ? id : null }, { orderNumber: id }]
+    });
+  }
+  if (!order) {
+    order = fallbackOrders.find((o) => o._id === id || o.orderNumber === id);
+  }
+  if (!order) {
+    throw new ApiError(404, "Order not found");
+  }
+
+  if (!order.returnRequest || order.returnRequest.status === "none") {
+    throw new ApiError(400, "No return request exists for this order");
+  }
+
+  order.returnRequest.status = decision;
+  order.returnRequest.reviewedAt = new Date();
+  order.returnRequest.reviewedBy = req.user?.email || "Admin Operations";
+
+  if (!order.returnRequest.adminDecision) {
+    order.returnRequest.adminDecision = {};
+  }
+
+  order.returnRequest.adminDecision = {
+    ...order.returnRequest.adminDecision,
+    status: decision,
+    rationale: rationale || order.returnRequest.adminDecision.rationale || "",
+    decisionDate: new Date(),
+    pickupDate: pickupDate || order.returnRequest.adminDecision.pickupDate,
+    pickupCarrier: pickupCarrier || order.returnRequest.adminDecision.pickupCarrier,
+    pickupTrackingNumber: pickupTrackingNumber || order.returnRequest.adminDecision.pickupTrackingNumber,
+    refundTransactionId: refundTransactionId || order.returnRequest.adminDecision.refundTransactionId,
+    refundMethod: refundMethod || order.returnRequest.adminDecision.refundMethod,
+    notes: notes || order.returnRequest.adminDecision.notes || ""
+  };
+
+  let milestoneTitle = "Return Status Updated";
+  let milestoneNote = notes || rationale || "";
+
+  if (decision === "approved") {
+    milestoneTitle = "Return Approved & Pickup Scheduled";
+    milestoneNote = notes || `Return authorized. Reverse pickup assigned to ${pickupCarrier || "Courier Partner"}${pickupTrackingNumber ? ` (Tracking: ${pickupTrackingNumber})` : ""}.`;
+  } else if (decision === "picked_up") {
+    milestoneTitle = "Item Collected by Logistics";
+    milestoneNote = notes || `Reverse pickup completed. Package en route to central return hub.`;
+  } else if (decision === "inspected") {
+    milestoneTitle = "Warehouse Inspection Passed";
+    milestoneNote = notes || `Item tags and physical condition inspected successfully. Approved for refund.`;
+  } else if (decision === "refunded") {
+    milestoneTitle = "Refund Issued & Completed";
+    milestoneNote = notes || `Refund credited to ${refundMethod || "Original Payment Method"}. Bank Ref: ${refundTransactionId || "REF-" + Math.floor(100000 + Math.random() * 900000)}`;
+  } else if (decision === "rejected") {
+    milestoneTitle = "Return Request Rejected";
+    milestoneNote = rationale || "Return request rejected as per policy guidelines.";
+  }
+
+  if (!order.returnRequest.timeline) {
+    order.returnRequest.timeline = [];
+  }
+
+  order.returnRequest.timeline.push({
+    status: decision,
+    title: milestoneTitle,
+    note: milestoneNote,
+    at: new Date()
+  });
+
+  if (order.save) {
+    await order.save();
+  }
+
+  try {
+    emitOrderUpdate(order.orderNumber, order);
+  } catch (e) {}
+
+  sendSuccess(res, 200, `Return decision recorded: ${decision.toUpperCase()}`, { order });
+});

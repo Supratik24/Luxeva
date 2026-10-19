@@ -20,6 +20,7 @@ import AdminMediaPage from "../pages/admin/AdminMediaPage";
 import AdminOrdersPage from "../pages/admin/AdminOrdersPage";
 import AdminProductsPage from "../pages/admin/AdminProductsPage";
 import AdminReportsPage from "../pages/admin/AdminReportsPage";
+import AdminReturnsPage from "../pages/admin/AdminReturnsPage";
 import AdminUsersPage from "../pages/admin/AdminUsersPage";
 import LoginPage from "../pages/auth/LoginPage";
 import SignupPage from "../pages/auth/SignupPage";
@@ -53,6 +54,7 @@ const App = () => (
         <Route index element={<AdminDashboardPage />} />
         <Route path="products" element={<AdminProductsPage />} />
         <Route path="orders" element={<AdminOrdersPage />} />
+        <Route path="returns" element={<AdminReturnsPage />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="content" element={<AdminContentPage />} />
         <Route path="media" element={<AdminMediaPage />} />
