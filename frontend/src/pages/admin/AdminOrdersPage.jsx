@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   Truck,
@@ -11,7 +12,9 @@ import {
   CheckCircle2,
   Clock,
   Send,
-  AlertCircle
+  AlertCircle,
+  RotateCcw,
+  RefreshCw
 } from "lucide-react";
 import api, { endpoints } from "../../services/api";
 import { currency, shortDate } from "../../utils/format";
@@ -221,14 +224,24 @@ const AdminOrdersPage = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <span className="eyebrow">Admin Portal</span>
-        <h1 className="mt-2 font-display text-4xl font-semibold dark:text-white">
-          Order Management & Live Tracking
-        </h1>
-        <p className="mt-1 text-sm text-ink/60 dark:text-white/60">
-          Update shipping carriers, tracking numbers, and stage milestones in real-time. Changes are pushed live to customer devices.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <span className="eyebrow">Admin Portal</span>
+          <h1 className="mt-2 font-display text-4xl font-semibold dark:text-white">
+            Order Management & Live Tracking
+          </h1>
+          <p className="mt-1 text-sm text-ink/60 dark:text-white/60">
+            Update shipping carriers, tracking numbers, and stage milestones in real-time. Changes are pushed live to customer devices.
+          </p>
+        </div>
+
+        <Link
+          to="/portal/admin/returns"
+          className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-5 py-2.5 text-xs font-semibold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500/25 transition shadow-xs shrink-0"
+        >
+          <RotateCcw size={14} />
+          <span>Returns & Replacements Desk →</span>
+        </Link>
       </div>
 
       {/* Filter and Search Bar */}
@@ -322,6 +335,23 @@ const AdminOrdersPage = () => {
                       >
                         {order.status?.replace("_", " ")}
                       </span>
+                      {order.returnRequest && order.returnRequest.status && order.returnRequest.status !== "none" && (() => {
+                        const isExchange = order.returnRequest.requestType === "replacement" || order.returnRequest.preferredResolution === "exchange";
+                        return (
+                          <Link
+                            to={`/portal/admin/returns?search=${order.orderNumber}`}
+                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold transition ${
+                              isExchange
+                                ? "border-blue-500/30 bg-blue-500/15 text-blue-800 dark:text-blue-300 hover:bg-blue-500/25"
+                                : "border-amber-500/30 bg-amber-500/15 text-amber-800 dark:text-amber-300 hover:bg-amber-500/25"
+                            }`}
+                            title="View claim in Returns & Replacements Desk"
+                          >
+                            {isExchange ? <RefreshCw size={11} /> : <RotateCcw size={11} />}
+                            <span>{isExchange ? "Exchange" : "Return"}: {order.returnRequest.status?.replace("_", " ")}</span>
+                          </Link>
+                        );
+                      })()}
                     </div>
 
                     {/* Customer Discriminator Badge & Details */}

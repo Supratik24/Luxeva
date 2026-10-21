@@ -103,7 +103,48 @@ const fallbackOrders = [
       { status: "packed", note: "Packed", at: new Date(Date.now() - 86400000 * 7) },
       { status: "shipped", note: "Shipped", at: new Date(Date.now() - 86400000 * 6) },
       { status: "delivered", note: "Delivered", at: new Date(Date.now() - 86400000 * 4) }
-    ]
+    ],
+    returnRequest: {
+      returnId: "REP-LX-823901",
+      requestType: "replacement",
+      status: "replacement_dispatched",
+      reason: "Size or fit not right",
+      detailedReason: "Item fits smaller around shoulders than expected. Requesting size XL replacement.",
+      items: [
+        { productId: "p_silk_kurta", name: "Handcrafted Silk Kurta", price: 2999, quantity: 1, image: "" }
+      ],
+      evidence: [
+        { url: "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=600&q=80", name: "kurta_fit.jpg" }
+      ],
+      preferredResolution: "exchange",
+      replacementDetails: {
+        exchangeType: "size",
+        requestedSize: "XL",
+        requestedColor: "Olive",
+        replacementCarrier: "BlueDart Express",
+        replacementTrackingNumber: "BD-REP-908122",
+        replacementEstimatedDelivery: "Tomorrow by 2 PM",
+        customerNotes: "Please ensure size XL is dispatched"
+      },
+      refundAmount: 2999,
+      requestedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+      adminDecision: {
+        status: "replacement_dispatched",
+        pickupCarrier: "Delhivery Reverse",
+        pickupTrackingNumber: "DL-RET-882910",
+        replacementCarrier: "BlueDart Express",
+        replacementTrackingNumber: "BD-REP-908122",
+        replacementEstimatedDelivery: "Tomorrow by 2 PM",
+        notes: "Original item inspected & approved. Fresh Size XL replacement dispatched via BlueDart Express."
+      },
+      timeline: [
+        { status: "requested", title: "Replacement Request Submitted", note: "Customer submitted size exchange request for Size XL.", at: new Date(Date.now() - 86400000 * 3) },
+        { status: "approved", title: "Replacement Approved & Reverse Pickup Scheduled", note: "Pickup scheduled via Delhivery Reverse.", at: new Date(Date.now() - 86400000 * 2) },
+        { status: "picked_up", title: "Original Item Collected", note: "Courier picked up original item.", at: new Date(Date.now() - 86400000 * 1.5) },
+        { status: "inspected", title: "Inspection Passed", note: "Item condition verified. Replacement approved.", at: new Date(Date.now() - 86400000 * 1) },
+        { status: "replacement_dispatched", title: "Replacement Item Dispatched", note: "Fresh Size XL replacement dispatched via BlueDart Express (Tracking: BD-REP-908122).", at: new Date(Date.now() - 86400000 * 0.4) }
+      ]
+    }
   },
   {
     _id: "ord_fb_107",
@@ -131,7 +172,37 @@ const fallbackOrders = [
     timeline: [
       { status: "placed", note: "Order confirmed", at: new Date(Date.now() - 86400000 * 12) },
       { status: "delivered", note: "Delivered safely", at: new Date(Date.now() - 86400000 * 8) }
-    ]
+    ],
+    returnRequest: {
+      returnId: "RET-LX-710294",
+      status: "refunded",
+      reason: "Damaged / Defective product received",
+      detailedReason: "Minor weaving imperfection near border.",
+      items: [
+        { productId: "p_scarf", name: "Pure Mulberry Silk Scarf", price: 1899, quantity: 1, image: "" }
+      ],
+      evidence: [
+        { url: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=600&q=80", name: "scarf_defect.jpg" }
+      ],
+      preferredResolution: "refund_original",
+      refundAmount: 1899,
+      requestedAt: new Date(Date.now() - 86400000 * 6).toISOString(),
+      adminDecision: {
+        status: "refunded",
+        pickupCarrier: "BlueDart Express",
+        pickupTrackingNumber: "BD-RET-441122",
+        refundTransactionId: "REF-UPI-98218731",
+        refundMethod: "UPI Direct",
+        notes: "Item verified. Refund settled."
+      },
+      timeline: [
+        { status: "requested", title: "Return Request Submitted", note: "Customer submitted defect claim.", at: new Date(Date.now() - 86400000 * 6) },
+        { status: "approved", title: "Return Approved", note: "Approved by Operations.", at: new Date(Date.now() - 86400000 * 5) },
+        { status: "picked_up", title: "Item Collected", note: "Courier picked up package.", at: new Date(Date.now() - 86400000 * 3.5) },
+        { status: "inspected", title: "Warehouse Inspection Passed", note: "Verified damage tag intact.", at: new Date(Date.now() - 86400000 * 2) },
+        { status: "refunded", title: "Refund Issued & Completed", note: "Refund of Rs 1,899 credited to UPI. Ref: REF-UPI-98218731", at: new Date(Date.now() - 86400000 * 1) }
+      ]
+    }
   },
   {
     _id: "ord_fb_109",
@@ -788,12 +859,22 @@ export const createOrder = asyncHandler(async (req, res) => {
 
 export const getMyOrders = asyncHandler(async (req, res) => {
   if (isOrderFallbackMode()) {
-    const orders = fallbackOrders.filter((order) => order.userId === req.user.id);
+    const userOrders = fallbackOrders.filter((order) => order.userId === req.user.id);
+    const orders = userOrders.length ? userOrders : fallbackOrders.slice(0, 4);
     sendSuccess(res, 200, "Orders fetched successfully", { orders });
     return;
   }
 
-  const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
+  let orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
+  if (!orders.length && req.user?.email) {
+    orders = await Order.find({ "customer.email": req.user.email }).sort({ createdAt: -1 });
+  }
+  if (!orders.length) {
+    const userOrders = fallbackOrders.filter((order) => order.userId === req.user.id);
+    if (userOrders.length) {
+      orders = userOrders;
+    }
+  }
   sendSuccess(res, 200, "Orders fetched successfully", { orders });
 });
 
@@ -1218,7 +1299,7 @@ export const getAnalytics = asyncHandler(async (req, res) => {
 
 export const requestReturn = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { reason, detailedReason, items, evidence, preferredResolution, upiId } = req.body;
+  const { reason, detailedReason, items, evidence, preferredResolution, upiId, requestType, replacementDetails } = req.body;
 
   let order = null;
   if (mongoose.connection.readyState === 1) {
@@ -1240,26 +1321,35 @@ export const requestReturn = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Returns can only be requested for delivered orders.");
   }
 
-  const returnId = `RET-LX-${Math.floor(100000 + Math.random() * 900000)}`;
+  const isReplacement = requestType === "replacement" || preferredResolution === "exchange";
+  const returnId = isReplacement
+    ? `REP-LX-${Math.floor(100000 + Math.random() * 900000)}`
+    : `RET-LX-${Math.floor(100000 + Math.random() * 900000)}`;
   const returnItems = Array.isArray(items) && items.length > 0 ? items : order.items || [];
   const refundAmount = returnItems.reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
 
+  const initialMilestoneNote = isReplacement
+    ? `Customer requested item replacement${replacementDetails?.requestedSize ? ` (Exchange size: ${replacementDetails.requestedSize})` : ""}${replacementDetails?.requestedColor ? ` (Color: ${replacementDetails.requestedColor})` : ""}. Pending verification.`
+    : "Customer initiated return request with uploaded details. Pending quality team review.";
+
   const newReturnRequest = {
     returnId,
+    requestType: isReplacement ? "replacement" : "return",
     status: "requested",
-    reason: reason || "Defective / Quality Issue",
+    reason: reason || (isReplacement ? "Size or Fit Exchange" : "Defective / Quality Issue"),
     detailedReason: detailedReason || "",
     items: returnItems,
     evidence: Array.isArray(evidence) ? evidence : [],
-    preferredResolution: preferredResolution || "refund_original",
+    preferredResolution: isReplacement ? "exchange" : (preferredResolution || "refund_original"),
+    replacementDetails: isReplacement ? (replacementDetails || {}) : undefined,
     upiId: upiId || "",
     refundAmount: refundAmount || order.total,
     requestedAt: new Date(),
     timeline: [
       {
         status: "requested",
-        title: "Return Request Submitted",
-        note: "Customer initiated return request with uploaded details. Pending quality team review.",
+        title: isReplacement ? "Replacement Request Submitted" : "Return Request Submitted",
+        note: initialMilestoneNote,
         at: new Date()
       }
     ]
@@ -1275,7 +1365,7 @@ export const requestReturn = asyncHandler(async (req, res) => {
     emitOrderUpdate(order.orderNumber, order);
   } catch (e) {}
 
-  sendSuccess(res, 200, "Return request submitted successfully. Our team will review within 24 hours.", {
+  sendSuccess(res, 200, isReplacement ? "Replacement request submitted successfully. Our team will review within 24 hours." : "Return request submitted successfully. Our team will review within 24 hours.", {
     order,
     returnRequest: order.returnRequest
   });
@@ -1335,6 +1425,9 @@ export const reviewReturnDecision = asyncHandler(async (req, res) => {
     pickupDate,
     pickupCarrier,
     pickupTrackingNumber,
+    replacementCarrier,
+    replacementTrackingNumber,
+    replacementEstimatedDelivery,
     refundTransactionId,
     refundMethod,
     notes
@@ -1373,29 +1466,53 @@ export const reviewReturnDecision = asyncHandler(async (req, res) => {
     pickupDate: pickupDate || order.returnRequest.adminDecision.pickupDate,
     pickupCarrier: pickupCarrier || order.returnRequest.adminDecision.pickupCarrier,
     pickupTrackingNumber: pickupTrackingNumber || order.returnRequest.adminDecision.pickupTrackingNumber,
+    replacementCarrier: replacementCarrier || order.returnRequest.adminDecision.replacementCarrier,
+    replacementTrackingNumber: replacementTrackingNumber || order.returnRequest.adminDecision.replacementTrackingNumber,
+    replacementEstimatedDelivery: replacementEstimatedDelivery || order.returnRequest.adminDecision.replacementEstimatedDelivery,
     refundTransactionId: refundTransactionId || order.returnRequest.adminDecision.refundTransactionId,
     refundMethod: refundMethod || order.returnRequest.adminDecision.refundMethod,
     notes: notes || order.returnRequest.adminDecision.notes || ""
   };
 
+  if (replacementCarrier || replacementTrackingNumber) {
+    if (!order.returnRequest.replacementDetails) {
+      order.returnRequest.replacementDetails = {};
+    }
+    if (replacementCarrier) order.returnRequest.replacementDetails.replacementCarrier = replacementCarrier;
+    if (replacementTrackingNumber) order.returnRequest.replacementDetails.replacementTrackingNumber = replacementTrackingNumber;
+    if (replacementEstimatedDelivery) order.returnRequest.replacementDetails.replacementEstimatedDelivery = replacementEstimatedDelivery;
+    if (decision === "replacement_dispatched") order.returnRequest.replacementDetails.replacementDispatchedAt = new Date();
+    if (decision === "replaced") order.returnRequest.replacementDetails.replacementDeliveredAt = new Date();
+  }
+
   let milestoneTitle = "Return Status Updated";
   let milestoneNote = notes || rationale || "";
 
   if (decision === "approved") {
-    milestoneTitle = "Return Approved & Pickup Scheduled";
-    milestoneNote = notes || `Return authorized. Reverse pickup assigned to ${pickupCarrier || "Courier Partner"}${pickupTrackingNumber ? ` (Tracking: ${pickupTrackingNumber})` : ""}.`;
+    const isExchange = order.returnRequest.preferredResolution === "exchange" || order.returnRequest.requestType === "replacement";
+    milestoneTitle = isExchange ? "Replacement Approved & Pickup Scheduled" : "Return Approved & Pickup Scheduled";
+    milestoneNote = notes || `Request authorized. Reverse pickup assigned to ${pickupCarrier || "Courier Partner"}${pickupTrackingNumber ? ` (Tracking: ${pickupTrackingNumber})` : ""}.`;
   } else if (decision === "picked_up") {
     milestoneTitle = "Item Collected by Logistics";
     milestoneNote = notes || `Reverse pickup completed. Package en route to central return hub.`;
   } else if (decision === "inspected") {
+    const isExchange = order.returnRequest.preferredResolution === "exchange" || order.returnRequest.requestType === "replacement";
     milestoneTitle = "Warehouse Inspection Passed";
-    milestoneNote = notes || `Item tags and physical condition inspected successfully. Approved for refund.`;
+    milestoneNote = notes || (isExchange
+      ? "Item condition verified and passed quality check. Replacement item queued for packaging & dispatch."
+      : "Item tags and physical condition inspected successfully. Approved for refund.");
+  } else if (decision === "replacement_dispatched") {
+    milestoneTitle = "Replacement Item Dispatched";
+    milestoneNote = notes || `Replacement unit dispatched via ${replacementCarrier || "Express Courier"}${replacementTrackingNumber ? ` (Tracking: ${replacementTrackingNumber})` : ""}.${replacementEstimatedDelivery ? ` Expected delivery: ${replacementEstimatedDelivery}` : ""}`;
+  } else if (decision === "replaced") {
+    milestoneTitle = "Replacement Delivered & Completed";
+    milestoneNote = notes || "Customer received replacement item. Exchange lifecycle successfully closed.";
   } else if (decision === "refunded") {
     milestoneTitle = "Refund Issued & Completed";
     milestoneNote = notes || `Refund credited to ${refundMethod || "Original Payment Method"}. Bank Ref: ${refundTransactionId || "REF-" + Math.floor(100000 + Math.random() * 900000)}`;
   } else if (decision === "rejected") {
-    milestoneTitle = "Return Request Rejected";
-    milestoneNote = rationale || "Return request rejected as per policy guidelines.";
+    milestoneTitle = "Request Rejected";
+    milestoneNote = rationale || "Return/replacement request rejected as per policy guidelines.";
   }
 
   if (!order.returnRequest.timeline) {

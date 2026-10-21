@@ -51,9 +51,24 @@ const returnTimelineSchema = new mongoose.Schema(
 const returnRequestSchema = new mongoose.Schema(
   {
     returnId: { type: String },
+    requestType: {
+      type: String,
+      enum: ["return", "replacement"],
+      default: "return"
+    },
     status: {
       type: String,
-      enum: ["none", "requested", "approved", "picked_up", "inspected", "refunded", "rejected"],
+      enum: [
+        "none",
+        "requested",
+        "approved",
+        "picked_up",
+        "inspected",
+        "refunded",
+        "replacement_dispatched",
+        "replaced",
+        "rejected"
+      ],
       default: "none"
     },
     reason: String,
@@ -73,6 +88,17 @@ const returnRequestSchema = new mongoose.Schema(
       enum: ["refund_original", "store_credit", "exchange"],
       default: "refund_original"
     },
+    replacementDetails: {
+      exchangeType: { type: String, enum: ["size", "color", "defective_swap", "other"], default: "size" },
+      requestedSize: String,
+      requestedColor: String,
+      replacementItemName: String,
+      replacementCarrier: String,
+      replacementTrackingNumber: String,
+      replacementDispatchedAt: Date,
+      replacementEstimatedDelivery: Date,
+      customerNotes: String
+    },
     upiId: String,
     refundAmount: Number,
     requestedAt: Date,
@@ -87,6 +113,10 @@ const returnRequestSchema = new mongoose.Schema(
       pickupDate: Date,
       pickupCarrier: String,
       pickupTrackingNumber: String,
+      replacementCarrier: String,
+      replacementTrackingNumber: String,
+      replacementDispatchedAt: Date,
+      replacementEstimatedDelivery: Date,
       notes: String
     },
     timeline: [returnTimelineSchema]

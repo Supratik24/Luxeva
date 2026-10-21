@@ -1,4 +1,4 @@
-import { Bell, Heart, MapPinHouse, PackageCheck, UserRoundCog, Truck, AlertCircle, CheckCircle2, Check, CheckCheck, BellRing, BellOff, ArrowRight, RotateCcw } from "lucide-react";
+import { Bell, Heart, MapPinHouse, PackageCheck, UserRoundCog, Truck, AlertCircle, CheckCircle2, Check, CheckCheck, BellRing, BellOff, ArrowRight, RotateCcw, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -20,6 +20,7 @@ import { isPreviewAuthEnabled } from "../../utils/previewMode";
 const tabs = [
   { key: "profile", label: "Profile", icon: UserRoundCog },
   { key: "orders", label: "Orders", icon: PackageCheck },
+  { key: "returns", label: "Returns & Replacements", icon: RotateCcw },
   { key: "addresses", label: "Addresses", icon: MapPinHouse },
   { key: "wishlist", label: "Wishlist", icon: Heart },
   { key: "notifications", label: "Notifications", icon: Bell }
@@ -108,6 +109,8 @@ const DashboardPage = () => {
   const [expandedTracking, setExpandedTracking] = useState({});
   const [returnModalOrder, setReturnModalOrder] = useState(null);
   const [expandedReturn, setExpandedReturn] = useState({});
+  const [orderFilter, setOrderFilter] = useState("all");
+  const [returnsFilter, setReturnsFilter] = useState("all");
 
   const lastPushedNotifRef = useRef(new Set());
   const [notificationPermission, setNotificationPermission] = useState(
@@ -296,7 +299,7 @@ const DashboardPage = () => {
       .then(({ data }) => setNotifications(data.notifications || []))
       .catch(() => {});
 
-    if (currentTab === "orders") {
+    if (currentTab === "orders" || currentTab === "returns") {
       api
         .get(endpoints.orders.mine)
         .then(async ({ data }) => {
@@ -438,15 +441,89 @@ const DashboardPage = () => {
 
   const renderContent = () => {
     if (currentTab === "orders") {
+      const deliveredCount = orders.filter((o) => o.status === "delivered").length;
+      const returnsCount = orders.filter(
+        (o) => o.returnRequest && o.returnRequest.status && o.returnRequest.status !== "none"
+      ).length;
+
+      const filteredOrders = orders.filter((order) => {
+        if (orderFilter === "delivered") return order.status === "delivered";
+        if (orderFilter === "returns") {
+          return order.returnRequest && order.returnRequest.status && order.returnRequest.status !== "none";
+        }
+        return true;
+      });
+
       return (
         <div className="space-y-4">
-          {!orders.length ? (
+          {/* Order Category Filter Chips */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-ink/5 dark:border-white/5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setOrderFilter("all")}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                  orderFilter === "all"
+                    ? "bg-ink text-white dark:bg-white dark:text-ink shadow-xs"
+                    : "border border-ink/10 hover:border-ink/20 dark:border-white/10 dark:hover:border-white/20"
+                }`}
+              >
+                All Orders ({orders.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOrderFilter("delivered")}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                  orderFilter === "delivered"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                }`}
+              >
+                Delivered ({deliveredCount})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOrderFilter("returns")}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                  orderFilter === "returns"
+                    ? "bg-amber-600 text-white shadow-xs"
+                    : "border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                }`}
+              >
+                <RotateCcw size={12} />
+                <span>Returns & Replacements ({returnsCount})</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSearchParams({ tab: "returns" })}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400 transition"
+            >
+              <span>Open Returns & Replacements Hub</span>
+              <ArrowRight size={13} />
+            </button>
+          </div>
+
+          {!filteredOrders.length ? (
             <div className="rounded-[1.5rem] border border-dashed border-ink/15 p-8 text-center dark:border-white/15">
-              <p className="font-semibold">No orders yet</p>
-              <p className="mt-2 text-muted">Your placed orders will appear here after checkout.</p>
+              <p className="font-semibold">
+                {orderFilter === "returns"
+                  ? "No returns or replacements requested yet"
+                  : orderFilter === "delivered"
+                  ? "No delivered orders found"
+                  : "No orders yet"}
+              </p>
+              <p className="mt-2 text-muted">
+                {orderFilter === "returns"
+                  ? "Eligible delivered orders can be returned or exchanged within 14 days of delivery."
+                  : "Your placed orders will appear here after checkout."}
+              </p>
             </div>
           ) : null}
-          {orders.map((order) => {
+          {filteredOrders.map((order) => {
             const visibleItems = getVisibleOrderItems(order);
             const totalQuantity = visibleItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
             const hasRecoveredItems = visibleItems.some((item) => item.recoveredPreviewItem);
@@ -668,27 +745,50 @@ const DashboardPage = () => {
                                 }
                                 className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
                                   expandedReturn[order._id]
-                                    ? "bg-amber-600 text-white shadow-sm"
+                                    ? order.returnRequest.requestType === "replacement" || order.returnRequest.preferredResolution === "exchange"
+                                      ? "bg-blue-600 text-white shadow-sm"
+                                      : "bg-amber-600 text-white shadow-sm"
+                                    : order.returnRequest.requestType === "replacement" || order.returnRequest.preferredResolution === "exchange"
+                                    ? "border border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20"
                                     : "border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20"
                                 }`}
                               >
-                                <RotateCcw size={13} />
+                                {order.returnRequest.requestType === "replacement" || order.returnRequest.preferredResolution === "exchange" ? (
+                                  <RefreshCw size={13} />
+                                ) : (
+                                  <RotateCcw size={13} />
+                                )}
                                 <span>
                                   {expandedReturn[order._id]
-                                    ? "Hide Return Tracker ▲"
+                                    ? order.returnRequest.requestType === "replacement" || order.returnRequest.preferredResolution === "exchange"
+                                      ? "Hide Replacement Tracker ▲"
+                                      : "Hide Return Tracker ▲"
+                                    : order.returnRequest.requestType === "replacement" || order.returnRequest.preferredResolution === "exchange"
+                                    ? `Track Replacement (${order.returnRequest.status?.replace("_", " ")}) ▼`
                                     : `Track Return (${order.returnRequest.status?.replace("_", " ")}) ▼`}
                                 </span>
                               </button>
                             ) : (
-                              <button
-                                type="button"
-                                onClick={() => setReturnModalOrder(order)}
-                                className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-white px-3.5 py-1.5 text-xs font-semibold text-ink shadow-xs hover:bg-ink/5 dark:border-white/15 dark:bg-[#1a1a1a] dark:text-white dark:hover:bg-white/10 transition"
-                                title="Request return or refund within 14 days of delivery"
-                              >
-                                <RotateCcw size={13} className="text-amber-500" />
-                                <span>Request Return / Refund</span>
-                              </button>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setReturnModalOrder({ ...order, _initialMode: "return" })}
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-white px-3 py-1.5 text-xs font-semibold text-ink shadow-xs hover:bg-ink/5 dark:border-white/15 dark:bg-[#1a1a1a] dark:text-white dark:hover:bg-white/10 transition"
+                                  title="Request return & refund within 14 days of delivery"
+                                >
+                                  <RotateCcw size={12} className="text-amber-500" />
+                                  <span>Return & Refund</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setReturnModalOrder({ ...order, _initialMode: "replacement" })}
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-500/20 dark:text-blue-300 transition"
+                                  title="Request size or color exchange"
+                                >
+                                  <RefreshCw size={12} className="text-blue-500" />
+                                  <span>Replacement</span>
+                                </button>
+                              </div>
                             )}
                           </div>
                         ) : (
@@ -727,6 +827,289 @@ const DashboardPage = () => {
               </div>
             );
           })}
+        </div>
+      );
+    }
+
+    if (currentTab === "returns") {
+      const allClaims = orders.filter(
+        (o) => o.returnRequest && o.returnRequest.status && o.returnRequest.status !== "none"
+      );
+      const returnsOnly = allClaims.filter(
+        (o) => o.returnRequest?.requestType !== "replacement" && o.returnRequest?.preferredResolution !== "exchange"
+      );
+      const replacementsOnly = allClaims.filter(
+        (o) => o.returnRequest?.requestType === "replacement" || o.returnRequest?.preferredResolution === "exchange"
+      );
+
+      const displayClaims =
+        returnsFilter === "returns"
+          ? returnsOnly
+          : returnsFilter === "replacements"
+          ? replacementsOnly
+          : allClaims;
+
+      const eligibleDeliveredOrders = orders.filter(
+        (o) => o.status === "delivered" && (!o.returnRequest || o.returnRequest.status === "none")
+      );
+
+      return (
+        <div className="space-y-6">
+          {/* Header Banner */}
+          <div className="rounded-[1.8rem] border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent p-6 dark:border-amber-500/25 dark:from-amber-500/15 dark:via-white/5 dark:to-transparent">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
+                  <RotateCcw size={13} />
+                  <span>Returns & Replacements Hub</span>
+                </span>
+                <h2 className="mt-2 font-display text-2xl sm:text-3xl font-semibold">
+                  Returns, Refunds & Exchanges
+                </h2>
+                <p className="mt-1 text-xs sm:text-sm text-ink/60 dark:text-white/60 max-w-xl">
+                  Track reverse courier pickups, size or color exchanges, and instant refunds. Free doorstep pickup on all eligible delivered items within 14 days.
+                </p>
+              </div>
+
+              {eligibleDeliveredOrders.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setReturnModalOrder({ ...eligibleDeliveredOrders[0], _initialMode: "return" })}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-ink/80 dark:bg-white dark:text-ink dark:hover:bg-white/90"
+                  >
+                    <RotateCcw size={13} />
+                    <span>Return & Refund</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReturnModalOrder({ ...eligibleDeliveredOrders[0], _initialMode: "replacement" })}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                  >
+                    <RefreshCw size={13} />
+                    <span>Exchange / Replace</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Guarantees Strip */}
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-4 gap-3 border-t border-ink/5 dark:border-white/5 pt-4 text-xs">
+              <div className="flex items-center gap-2 text-ink/75 dark:text-white/75">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 font-bold text-[11px]">✓</span>
+                <span>14-day hassle-free window</span>
+              </div>
+              <div className="flex items-center gap-2 text-ink/75 dark:text-white/75">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 font-bold text-[11px]">🚚</span>
+                <span>Free reverse doorstep pickup</span>
+              </div>
+              <div className="flex items-center gap-2 text-ink/75 dark:text-white/75">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 font-bold text-[11px]">🔄</span>
+                <span>Hassle-free size exchanges</span>
+              </div>
+              <div className="flex items-center gap-2 text-ink/75 dark:text-white/75">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400 font-bold text-[11px]">⚡</span>
+                <span>Instant UPI or card refund</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Sub-filter chips: All Claims | Returns & Refunds | Product Replacements */}
+          <div className="flex items-center justify-between gap-3 border-b border-ink/5 pb-2 dark:border-white/5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setReturnsFilter("all")}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                  returnsFilter === "all"
+                    ? "bg-ink text-white dark:bg-white dark:text-ink shadow-xs"
+                    : "border border-ink/10 hover:border-ink/20 dark:border-white/10 dark:hover:border-white/20"
+                }`}
+              >
+                All Claims ({allClaims.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setReturnsFilter("returns")}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                  returnsFilter === "returns"
+                    ? "bg-amber-600 text-white shadow-xs"
+                    : "border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                }`}
+              >
+                <RotateCcw size={12} />
+                <span>Returns & Refunds ({returnsOnly.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setReturnsFilter("replacements")}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                  returnsFilter === "replacements"
+                    ? "bg-blue-600 text-white shadow-xs"
+                    : "border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 text-blue-700 dark:text-blue-300"
+                }`}
+              >
+                <RefreshCw size={12} />
+                <span>Product Replacements ({replacementsOnly.length})</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Active Claims List */}
+          <div className="space-y-4">
+            {!displayClaims.length ? (
+              <div className="rounded-[1.5rem] border border-dashed border-ink/15 p-8 text-center dark:border-white/15">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+                  <RotateCcw size={22} />
+                </div>
+                <p className="mt-3 font-semibold">
+                  {returnsFilter === "replacements"
+                    ? "No product replacement requests found"
+                    : returnsFilter === "returns"
+                    ? "No return requests found"
+                    : "No active returns or replacements"}
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  Have an issue with an item? You can return or exchange delivered orders within 14 days.
+                </p>
+              </div>
+            ) : (
+              displayClaims.map((order) => {
+                const req = order.returnRequest;
+                const isExchange = req.requestType === "replacement" || req.preferredResolution === "exchange";
+                const replDetails = req.replacementDetails || {};
+
+                return (
+                  <div
+                    key={`ret-hub-${order._id}`}
+                    className="rounded-[1.6rem] border border-ink/10 bg-white/50 p-5 shadow-xs dark:border-white/10 dark:bg-white/5 space-y-4"
+                  >
+                    {/* Header info */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/5 dark:border-white/5 pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-ink dark:text-white">
+                            {req.returnId || (isExchange ? "REP-CLAIM" : "RET-CLAIM")}
+                          </span>
+                          <span className="text-xs text-ink/40 dark:text-white/40">•</span>
+                          <span className="text-xs text-ink/60 dark:text-white/60">
+                            Order #{order.orderNumber}
+                          </span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                              isExchange
+                                ? "bg-blue-500/15 text-blue-700 dark:text-blue-300"
+                                : "bg-amber-500/15 text-amber-800 dark:text-amber-300"
+                            }`}
+                          >
+                            {isExchange ? "Replacement / Exchange" : "Return & Refund"}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-ink/50 dark:text-white/50">
+                          Initiated on {shortDate(req.requestedAt)} • Reason: {req.reason}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        {isExchange ? (
+                          <div>
+                            <span className="text-xs text-ink/50 dark:text-white/50">Target Exchange</span>
+                            <p className="font-bold text-xs sm:text-sm text-blue-600 dark:text-blue-400">
+                              {replDetails.exchangeType === "size" && replDetails.requestedSize
+                                ? `Size: ${replDetails.requestedSize}`
+                                : replDetails.exchangeType === "color" && replDetails.requestedColor
+                                ? `Color: ${replDetails.requestedColor}`
+                                : "Exact Variant Swap"}
+                            </p>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="text-xs text-ink/50 dark:text-white/50">Refund Amount</span>
+                            <p className="font-bold text-sm text-emerald-600 dark:text-emerald-400">
+                              {currency(req.refundAmount || order.total)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Stepper Timeline */}
+                    <div className="pt-2">
+                      <ReturnTrackingTimeline order={order} />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Eligible Delivered Orders to Return or Replace */}
+          {eligibleDeliveredOrders.length > 0 && (
+            <div className="mt-8 space-y-4 pt-6 border-t border-ink/10 dark:border-white/10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-ink/50 dark:text-white/50">
+                    Eligible Delivered Orders ({eligibleDeliveredOrders.length})
+                  </h3>
+                  <p className="text-xs text-ink/60 dark:text-white/60 mt-0.5">
+                    Select any delivered order below to initiate a return or exchange.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                {eligibleDeliveredOrders.map((ord) => {
+                  const visibleItems = getVisibleOrderItems(ord);
+                  return (
+                    <div
+                      key={`elig-${ord._id}`}
+                      className="flex flex-col justify-between rounded-2xl border border-ink/10 bg-white/40 p-4 dark:border-white/10 dark:bg-white/5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-sm">{ord.orderNumber}</p>
+                          <p className="text-xs text-ink/50 dark:text-white/50">
+                            Delivered • {shortDate(ord.createdAt)}
+                          </p>
+                        </div>
+                        <p className="font-bold text-sm">{currency(ord.total)}</p>
+                      </div>
+
+                      <div className="mt-3 flex items-center gap-2 overflow-hidden">
+                        {visibleItems.slice(0, 3).map((it, i) => (
+                          <div key={i} className="flex items-center gap-1.5 text-xs text-ink/70 dark:text-white/70">
+                            {it.image && (
+                              <img src={it.image} alt={it.name} className="h-7 w-7 rounded-lg object-cover" />
+                            )}
+                            <span className="truncate max-w-[120px]">{it.name}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-ink/5 dark:border-white/5 flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setReturnModalOrder({ ...ord, _initialMode: "return" })}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-white px-3.5 py-1.5 text-xs font-semibold text-ink shadow-xs hover:bg-ink/5 dark:border-white/15 dark:bg-[#1a1a1a] dark:text-white dark:hover:bg-white/10 transition"
+                        >
+                          <RotateCcw size={12} className="text-amber-500" />
+                          <span>Return & Refund</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setReturnModalOrder({ ...ord, _initialMode: "replacement" })}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-500/20 dark:text-blue-300 transition"
+                        >
+                          <RefreshCw size={12} className="text-blue-500" />
+                          <span>Exchange / Replace</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -1005,7 +1388,17 @@ const DashboardPage = () => {
         <aside className="glass h-fit rounded-[2rem] p-4 shadow-soft">
           {tabs.map((tab) => {
             const Icon = tab.icon;
-            const unreadCount = tab.key === "notifications" ? notifications.filter((n) => !n.read).length : 0;
+            const unreadCount =
+              tab.key === "notifications"
+                ? notifications.filter((n) => !n.read).length
+                : tab.key === "returns"
+                ? orders.filter(
+                    (o) =>
+                      o.returnRequest &&
+                      o.returnRequest.status &&
+                      !["none", "refunded", "replaced", "rejected"].includes(o.returnRequest.status)
+                  ).length
+                : 0;
             return (
               <button
                 key={tab.key}
@@ -1040,6 +1433,7 @@ const DashboardPage = () => {
         <ReturnRequestModal
           order={returnModalOrder}
           isOpen={Boolean(returnModalOrder)}
+          initialMode={returnModalOrder._initialMode || "return"}
           onClose={() => setReturnModalOrder(null)}
           onReturnSubmitted={(updatedOrder) => {
             setOrders((prev) =>

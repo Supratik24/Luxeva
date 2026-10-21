@@ -1,4 +1,4 @@
-import { Heart, LayoutDashboard, Menu, PackageCheck, ShoppingBag, UserRound, X } from "lucide-react";
+import { Heart, LayoutDashboard, Menu, PackageCheck, RotateCcw, ShoppingBag, UserRound, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -130,6 +130,7 @@ const Navbar = () => {
                     {[
                       { to: "/dashboard", icon: UserRound, label: "Profile" },
                       { to: "/dashboard?tab=orders", icon: PackageCheck, label: "Orders" },
+                      { to: "/dashboard?tab=returns", icon: RotateCcw, label: "Returns & Replacements" },
                       { to: "/dashboard?tab=wishlist", icon: Heart, label: "Wishlist" },
                       ...(user?.role === "admin" ? [{ to: "/portal/admin", icon: LayoutDashboard, label: "Admin Panel" }] : [])
                     ].map(({ to, icon: Icon, label }) => (
@@ -209,6 +210,7 @@ const Navbar = () => {
                   {[
                     { to: "/dashboard", label: "Profile" },
                     { to: "/dashboard?tab=orders", label: "Orders" },
+                    { to: "/dashboard?tab=returns", label: "Returns & Replacements" },
                     { to: "/dashboard?tab=wishlist", label: "Wishlist" },
                     { to: "/wishlist", label: "Saved items" },
                     ...(user?.role === "admin" ? [{ to: "/portal/admin", label: "Admin Panel" }] : [])
