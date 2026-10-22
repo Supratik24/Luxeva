@@ -68,6 +68,12 @@ app.use(
     proxyConfig(normalizeServiceUrl(process.env.NOTIFICATION_SERVICE_URL, "localhost:4006"), "/api/notifications")
   )
 );
+app.use(
+  "/api/payments",
+  createProxyMiddleware(
+    proxyConfig(normalizeServiceUrl(process.env.PAYMENT_SERVICE_URL, "localhost:4005"), "/api/payments")
+  )
+);
 
 attachErrorHandlers(app);
 

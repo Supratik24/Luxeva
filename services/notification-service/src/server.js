@@ -3,7 +3,7 @@ import app from "./app.js";
 import { startOrderSubscriber } from "./subscriber.js";
 
 const port = Number(process.env.NOTIFICATION_SERVICE_PORT || 4006);
-const mongoUri = process.env.NOTIFICATION_MONGO_URI || getEnv("NOTIFICATION_MONGO_URI");
+const mongoUri = process.env.NOTIFICATION_MONGO_URI || process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://localhost:27017/luxeva-notifications";
 
 connectDatabase(mongoUri)
   .then(async () => {

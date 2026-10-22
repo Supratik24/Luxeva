@@ -13,6 +13,7 @@ COPY services/catalog-service/package.json services/catalog-service/package.json
 COPY services/order-service/package.json services/order-service/package.json
 COPY services/content-service/package.json services/content-service/package.json
 COPY services/notification-service/package.json services/notification-service/package.json
+COPY services/payment-service/package.json services/payment-service/package.json
 
 RUN npm install --omit=dev
 

@@ -1,13 +1,14 @@
-
 import dns from "node:dns";
-
-
 import "dotenv/config";
 import app from "./app.js";
 import { connectDatabase, getEnv } from "@luxeva/shared";
 
-const PORT = Number(getEnv("PAYMENT_SERVICE_PORT", 4005));
-const MONGO_URI = getEnv("MONGO_URI");
+const PORT = Number(process.env.PORT || process.env.PAYMENT_SERVICE_PORT || 4005);
+const MONGO_URI =
+  process.env.PAYMENT_MONGO_URI ||
+  process.env.MONGO_URI ||
+  process.env.MONGODB_URI ||
+  "mongodb://localhost:27017/luxeva-payment";
 
 const startServer = async () => {
   try {

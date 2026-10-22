@@ -2,7 +2,7 @@ import { connectDatabase, getEnv } from "@luxeva/shared";
 import app from "./app.js";
 
 const port = Number(process.env.PORT || 4004);
-const mongoUri = process.env.CONTENT_MONGO_URI || getEnv("CONTENT_MONGO_URI");
+const mongoUri = process.env.CONTENT_MONGO_URI || process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://localhost:27017/luxeva-content";
 
 connectDatabase(mongoUri)
   .then(() => {

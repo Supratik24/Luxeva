@@ -7,6 +7,7 @@ const internalServiceUrls = {
   CATALOG_SERVICE_URL: "http://127.0.0.1:4002",
   ORDER_SERVICE_URL: "http://127.0.0.1:4003",
   CONTENT_SERVICE_URL: "http://127.0.0.1:4004",
+  PAYMENT_SERVICE_URL: "http://127.0.0.1:4005",
   NOTIFICATION_SERVICE_URL: "http://127.0.0.1:4006"
 };
 
@@ -30,6 +31,11 @@ const services = [
     name: "content-service",
     workspace: "services/content-service",
     port: "4004"
+  },
+  {
+    name: "payment-service",
+    workspace: "services/payment-service",
+    port: "4005"
   },
   {
     name: "notification-service",

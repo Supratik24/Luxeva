@@ -69,6 +69,19 @@ services:
     ports:
       - "4004:4004"
 
+  payment-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.workspace
+      args:
+        WORKSPACE: services/payment-service
+    env_file: .env.example
+    depends_on:
+      - mongo
+      - redis
+    ports:
+      - "4005:4005"
+
   notification-service:
     build:
       context: .
@@ -80,7 +93,7 @@ services:
       - mongo
       - redis
     ports:
-      - "4005:4005"
+      - "4006:4006"
 
   api-gateway:
     build:
@@ -95,6 +108,7 @@ services:
       - order-service
       - content-service
       - notification-service
+      - payment-service
     ports:
       - "8080:8080"
 

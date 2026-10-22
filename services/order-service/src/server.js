@@ -4,7 +4,7 @@ import app from "./app.js";
 import { initSocketServer } from "./socket.js";
 
 const port = Number(process.env.PORT || 4003);
-const mongoUri = process.env.ORDER_MONGO_URI || getEnv("ORDER_MONGO_URI");
+const mongoUri = process.env.ORDER_MONGO_URI || process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://localhost:27017/luxeva-order";
 
 const httpServer = http.createServer(app);
 initSocketServer(httpServer);

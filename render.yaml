@@ -2,30 +2,27 @@ services:
   - type: web
     name: luxeva-backend
     runtime: docker
-    dockerfilePath: ./Dockerfile.backend
+    dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /health
     pullRequestPreviewsEnabled: false
     envVars:
       - key: NODE_ENV
         value: production
-      - key: SEED_ON_START
-        sync: false
-      - key: SEED_FORCE
-        sync: false
-      - key: SEED_VERSION
-        sync: false
+      - key: INTERNAL_SERVICE_SECRET
+        generateValue: true
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: FRONTEND_URL
         sync: false
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: luxeva-redis
-          property: connectionString
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_ADMIN_EMAIL
+        sync: false
       - key: MONGO_URI
         sync: false
       - key: CATALOG_MONGO_URI
@@ -36,7 +33,21 @@ services:
         sync: false
       - key: NOTIFICATION_MONGO_URI
         sync: false
+      - key: PAYMENT_MONGO_URI
+        sync: false
+      - key: REDIS_URL
+        sync: false
       - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
         sync: false
       - key: SMTP_HOST
         value: smtp.gmail.com
@@ -54,17 +65,9 @@ services:
         sync: false
       - key: ADMIN_ALERT_PHONE
         sync: false
-      - key: RAZORPAY_KEY_ID
-        sync: false
-      - key: RAZORPAY_KEY_SECRET
-        sync: false
-      - key: CLOUDINARY_CLOUD_NAME
-        sync: false
-      - key: CLOUDINARY_API_KEY
-        sync: false
-      - key: CLOUDINARY_API_SECRET
-        sync: false
-
-  - type: keyvalue
-    name: luxeva-redis
-    plan: free
+      - key: SEED_ON_START
+        value: "false"
+      - key: SEED_FORCE
+        value: "false"
+      - key: SEED_VERSION
+        value: "2026-05-22"
