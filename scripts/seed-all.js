@@ -19,11 +19,11 @@ import { brandSeeds, categorySeeds, contentSeeds, productSeeds } from "./catalog
 const seedKey = "luxeva-bootstrap";
 const seedVersion = process.env.SEED_VERSION || "2026-05-22";
 
-const authUri = process.env.MONGO_URI || "mongodb://localhost:27017/luxeva-auth";
-const catalogUri = process.env.CATALOG_MONGO_URI || "mongodb://localhost:27017/luxeva-catalog";
-const contentUri = process.env.CONTENT_MONGO_URI || "mongodb://localhost:27017/luxeva-content";
-const orderUri = process.env.ORDER_MONGO_URI || "mongodb://localhost:27017/luxeva-order";
-const notificationUri = process.env.NOTIFICATION_MONGO_URI || "mongodb://localhost:27017/luxeva-notifications";
+const authUri = process.env.AUTH_MONGO_URI || process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://localhost:27017/luxeva-auth";
+const catalogUri = process.env.CATALOG_MONGO_URI || process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://localhost:27017/luxeva-catalog";
+const contentUri = process.env.CONTENT_MONGO_URI || process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://localhost:27017/luxeva-content";
+const orderUri = process.env.ORDER_MONGO_URI || process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://localhost:27017/luxeva-order";
+const notificationUri = process.env.NOTIFICATION_MONGO_URI || process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://localhost:27017/luxeva-notifications";
 
 const connect = async (uri) => {
   await mongoose.disconnect().catch(() => undefined);
@@ -343,32 +343,63 @@ const markSeedComplete = async () => {
 };
 
 const hasExistingSeed = async () => {
-  await connect(authUri);
-
-  const [marker, admin] = await Promise.all([
-    mongoose.connection.db.collection("seed_states").findOne({ key: seedKey, version: seedVersion }),
-    User.findOne({ email: "admin@luxeva.com" }).select("_id")
-  ]);
-
-  return Boolean(marker || admin);
-};
-
-export const runSeed = async ({ force = false } = {}) => {
-  if (!force && (await hasExistingSeed())) {
-    console.log(`Seed skipped. Existing Luxeva data or seed marker found for version ${seedVersion}.`);
-    await mongoose.disconnect();
-    return false;
+  try {
+    await connect(catalogUri);
+    const productCount = await Product.countDocuments();
+    if (productCount > 0) {
+      return true;
+    }
+  } catch (err) {
+    // If catalog connection fails, fall back to checking auth
   }
 
-  const { customer } = await seedAuth();
-  const { products } = await seedCatalog(customer);
-  await seedContent();
-  await seedOrders(customer, products);
-  await seedNotifications(customer);
-  await markSeedComplete();
-  await mongoose.disconnect();
-  console.log(`Seeded Luxeva data successfully${isCloudinaryConfigured() ? " with Cloudinary-backed media" : ""}.`);
-  return true;
+  try {
+    await connect(authUri);
+    const [marker, admin] = await Promise.all([
+      mongoose.connection.db?.collection("seed_states")?.findOne({ key: seedKey, version: seedVersion }),
+      User.findOne({ email: "admin@luxeva.com" }).select("_id")
+    ]);
+    return Boolean(marker || admin);
+  } catch (err) {
+    return false;
+  }
+};
+
+export const runSeed = async ({ force = false, autoIfEmpty = false } = {}) => {
+  try {
+    if (!force) {
+      const exists = await hasExistingSeed();
+      if (exists && !autoIfEmpty) {
+        console.log(`[seed] Existing Luxeva data found for version ${seedVersion}. Skipping seed.`);
+        await mongoose.disconnect().catch(() => undefined);
+        return false;
+      }
+      if (exists && autoIfEmpty) {
+        await connect(catalogUri);
+        const count = await Product.countDocuments();
+        if (count > 0) {
+          console.log(`[seed] Catalog already has ${count} products. Skipping startup seed.`);
+          await mongoose.disconnect().catch(() => undefined);
+          return false;
+        }
+      }
+    }
+
+    console.log("[seed] Seeding Luxeva database with categories, products, and banners...");
+    const { customer } = await seedAuth();
+    const { products } = await seedCatalog(customer);
+    await seedContent();
+    await seedOrders(customer, products);
+    await seedNotifications(customer);
+    await markSeedComplete();
+    await mongoose.disconnect().catch(() => undefined);
+    console.log(`[seed] Seeded Luxeva data successfully${isCloudinaryConfigured() ? " with Cloudinary-backed media" : ""}.`);
+    return true;
+  } catch (error) {
+    console.warn(`[seed] Seeding encountered an issue: ${error.message}`);
+    await mongoose.disconnect().catch(() => undefined);
+    return false;
+  }
 };
 
 const isDirectRun = process.argv[1]?.endsWith("seed-all.js");

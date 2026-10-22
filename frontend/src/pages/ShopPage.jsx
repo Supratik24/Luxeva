@@ -41,7 +41,16 @@ const ShopPage = () => {
       return;
     }
 
-    api.get(endpoints.catalog.meta).then(({ data }) => setCatalog(data)).catch(() => setCatalog(getMockMeta()));
+    api
+      .get(endpoints.catalog.meta)
+      .then(({ data }) => {
+        const mockMeta = getMockMeta();
+        setCatalog({
+          categories: data.categories?.length ? data.categories : mockMeta.categories,
+          brands: data.brands?.length ? data.brands : mockMeta.brands
+        });
+      })
+      .catch(() => setCatalog(getMockMeta()));
   }, []);
 
   useEffect(() => {
@@ -58,8 +67,14 @@ const ShopPage = () => {
     api
       .get(endpoints.catalog.products, { params: filters })
       .then(({ data }) => {
-        setProducts(data.products || []);
-        setPagination(data.pagination || { page: 1, pages: 1 });
+        if ((!data.products || data.products.length === 0) && !filters.search && !filters.category && !filters.brand) {
+          const fallbackProducts = getMockProducts(filters);
+          setProducts(fallbackProducts);
+          setPagination({ page: 1, pages: 1 });
+        } else {
+          setProducts(data.products || []);
+          setPagination(data.pagination || { page: 1, pages: 1 });
+        }
       })
       .catch(() => {
         const fallbackProducts = getMockProducts(filters);

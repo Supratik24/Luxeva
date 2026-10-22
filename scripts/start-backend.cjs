@@ -113,10 +113,12 @@ process.on("SIGTERM", () => stopAll("SIGTERM"));
 process.on("exit", () => stopAll());
 
 const main = async () => {
-  if (String(process.env.SEED_ON_START || "").toLowerCase() === "true") {
-    console.log("[supervisor] Running startup seed check before launching backend services.");
+  try {
     const { runSeed } = await import("./seed-all.js");
-    await runSeed({ force: String(process.env.SEED_FORCE || "").toLowerCase() === "true" });
+    const force = String(process.env.SEED_FORCE || "").toLowerCase() === "true";
+    await runSeed({ force, autoIfEmpty: true });
+  } catch (seedErr) {
+    console.warn(`[supervisor] Startup seed check skipped: ${seedErr.message}`);
   }
 
   console.log(`[supervisor] Starting backend services. Gateway will listen on port ${gatewayPort}.`);

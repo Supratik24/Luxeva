@@ -29,9 +29,16 @@ const HomePage = () => {
       api.get(endpoints.catalog.products, { params: { trending: true, limit: 4 } })
     ])
       .then(([contentRes, metaRes, trendingRes]) => {
-        setContent(contentRes.data);
-        setCatalog(metaRes.data);
-        setTrending(trendingRes.data.products || []);
+        const mockMeta = getMockMeta();
+        const banners = contentRes.data?.banners?.length ? contentRes.data.banners : mockContent.banners;
+        const testimonials = contentRes.data?.testimonials?.length ? contentRes.data.testimonials : mockContent.testimonials;
+        const categories = metaRes.data?.categories?.length ? metaRes.data.categories : mockMeta.categories;
+        const featuredProducts = metaRes.data?.featuredProducts?.length ? metaRes.data.featuredProducts : mockMeta.featuredProducts;
+        const trendingList = trendingRes.data?.products?.length ? trendingRes.data.products : getMockProducts({ trending: true }).slice(0, 4);
+
+        setContent({ ...contentRes.data, banners, testimonials });
+        setCatalog({ ...metaRes.data, categories, featuredProducts });
+        setTrending(trendingList);
       })
       .catch(() => {
         setContent(mockContent);
