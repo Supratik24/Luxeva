@@ -21,6 +21,7 @@ import AdminOrdersPage from "../pages/admin/AdminOrdersPage";
 import AdminProductsPage from "../pages/admin/AdminProductsPage";
 import AdminReportsPage from "../pages/admin/AdminReportsPage";
 import AdminReturnsPage from "../pages/admin/AdminReturnsPage";
+import AdminReplacementsPage from "../pages/admin/AdminReplacementsPage";
 import AdminUsersPage from "../pages/admin/AdminUsersPage";
 import LoginPage from "../pages/auth/LoginPage";
 import SignupPage from "../pages/auth/SignupPage";
@@ -55,6 +56,7 @@ const App = () => (
         <Route path="products" element={<AdminProductsPage />} />
         <Route path="orders" element={<AdminOrdersPage />} />
         <Route path="returns" element={<AdminReturnsPage />} />
+        <Route path="replacements" element={<AdminReplacementsPage />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="content" element={<AdminContentPage />} />
         <Route path="media" element={<AdminMediaPage />} />

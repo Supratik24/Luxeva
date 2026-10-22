@@ -1,4 +1,4 @@
-import { ArrowLeft, BarChart3, Boxes, Image, LayoutPanelTop, PackageSearch, RotateCcw, ScrollText, Users } from "lucide-react";
+import { ArrowLeft, BarChart3, Boxes, Image, LayoutPanelTop, PackageSearch, RefreshCw, RotateCcw, ScrollText, Users } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 const items = [
@@ -6,6 +6,7 @@ const items = [
   { label: "Products", to: "/portal/admin/products", icon: Boxes },
   { label: "Orders", to: "/portal/admin/orders", icon: PackageSearch },
   { label: "Returns", to: "/portal/admin/returns", icon: RotateCcw },
+  { label: "Replacements", to: "/portal/admin/replacements", icon: RefreshCw },
   { label: "Users", to: "/portal/admin/users", icon: Users },
   { label: "Content", to: "/portal/admin/content", icon: LayoutPanelTop },
   { label: "Media", to: "/portal/admin/media", icon: Image },

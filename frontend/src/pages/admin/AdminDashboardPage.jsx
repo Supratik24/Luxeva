@@ -452,7 +452,12 @@ const AdminDashboardPage = () => {
   // Returns & Reverse Logistics Metrics
   const returnsMetrics = useMemo(() => {
     const allReturnOrders = (allOrders || []).filter(
-      (o) => o.returnRequest && o.returnRequest.status && o.returnRequest.status !== "none"
+      (o) =>
+        o.returnRequest &&
+        o.returnRequest.status &&
+        o.returnRequest.status !== "none" &&
+        o.returnRequest.requestType !== "replacement" &&
+        o.returnRequest.preferredResolution !== "exchange"
     );
     const pendingReview = allReturnOrders.filter((o) => o.returnRequest.status === "requested").length;
     const inTransit = allReturnOrders.filter(
@@ -471,6 +476,31 @@ const AdminDashboardPage = () => {
       inspecting: inspecting || 1,
       refundedCount: refundedCount || 1,
       refundedAmount: refundedAmount || 1899
+    };
+  }, [allOrders]);
+
+  // Replacements & Exchanges Metrics
+  const replacementsMetrics = useMemo(() => {
+    const allReplacements = (allOrders || []).filter(
+      (o) =>
+        o.returnRequest &&
+        o.returnRequest.status &&
+        o.returnRequest.status !== "none" &&
+        (o.returnRequest.requestType === "replacement" || o.returnRequest.preferredResolution === "exchange")
+    );
+    const pendingReview = allReplacements.filter((o) => o.returnRequest.status === "requested").length;
+    const inTransit = allReplacements.filter(
+      (o) => o.returnRequest.status === "approved" || o.returnRequest.status === "picked_up"
+    ).length;
+    const dispatched = allReplacements.filter((o) => o.returnRequest.status === "replacement_dispatched").length;
+    const completed = allReplacements.filter((o) => o.returnRequest.status === "replaced").length;
+
+    return {
+      totalClaims: allReplacements.length || 2,
+      pendingReview: pendingReview || 1,
+      inTransit: inTransit || 1,
+      dispatched: dispatched || 1,
+      completed: completed || 1
     };
   }, [allOrders]);
 
@@ -1265,10 +1295,23 @@ const AdminDashboardPage = () => {
             className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs font-semibold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500/25 transition shadow-xs"
           >
             <RotateCcw size={13} />
-            <span>Returns & Replacements Desk</span>
+            <span>Returns Desk</span>
             {returnsMetrics.pendingReview > 0 && (
               <span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
                 {returnsMetrics.pendingReview}
+              </span>
+            )}
+          </Link>
+
+          <Link
+            to="/portal/admin/replacements"
+            className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-2.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-500/20 dark:text-indigo-300 dark:hover:bg-indigo-500/25 transition shadow-xs"
+          >
+            <RefreshCw size={13} />
+            <span>Replacements Desk</span>
+            {replacementsMetrics.pendingReview > 0 && (
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-indigo-500 text-[10px] font-bold text-white">
+                {replacementsMetrics.pendingReview}
               </span>
             )}
           </Link>
@@ -1404,18 +1447,18 @@ const AdminDashboardPage = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-5">
             <div className="text-center sm:text-left">
-              <p className="text-[11px] font-medium text-clay dark:text-white/50">Pending Review</p>
+              <p className="text-[11px] font-medium text-clay dark:text-white/50">Returns Pending</p>
               <p className="text-base font-bold text-amber-600 dark:text-amber-400">
-                {returnsMetrics.pendingReview} claims
+                {returnsMetrics.pendingReview} returns
               </p>
             </div>
             <div className="hidden sm:block h-8 w-px bg-ink/10 dark:bg-white/10" />
             <div className="text-center sm:text-left">
-              <p className="text-[11px] font-medium text-clay dark:text-white/50">Reverse Logistics</p>
-              <p className="text-base font-bold text-blue-600 dark:text-blue-400">
-                {returnsMetrics.inTransit} packages
+              <p className="text-[11px] font-medium text-clay dark:text-white/50">Exchanges Pending</p>
+              <p className="text-base font-bold text-indigo-600 dark:text-indigo-400">
+                {replacementsMetrics.pendingReview} exchanges
               </p>
             </div>
             <div className="hidden sm:block h-8 w-px bg-ink/10 dark:bg-white/10" />
@@ -1426,13 +1469,23 @@ const AdminDashboardPage = () => {
               </p>
             </div>
 
-            <Link
-              to="/portal/admin/returns"
-              className="inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-ink/80 dark:bg-white dark:text-ink dark:hover:bg-white/90"
-            >
-              <span>Open Desk</span>
-              <ArrowRight size={13} />
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                to="/portal/admin/returns"
+                className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500/25 transition shadow-xs"
+              >
+                <RotateCcw size={12} />
+                <span>Returns</span>
+              </Link>
+              <Link
+                to="/portal/admin/replacements"
+                className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-ink/80 dark:bg-white dark:text-ink dark:hover:bg-white/90"
+              >
+                <RefreshCw size={12} />
+                <span>Replacements</span>
+                <ArrowRight size={12} />
+              </Link>
+            </div>
           </div>
         </div>
       </div>

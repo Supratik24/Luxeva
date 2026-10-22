@@ -235,13 +235,22 @@ const AdminOrdersPage = () => {
           </p>
         </div>
 
-        <Link
-          to="/portal/admin/returns"
-          className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-5 py-2.5 text-xs font-semibold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500/25 transition shadow-xs shrink-0"
-        >
-          <RotateCcw size={14} />
-          <span>Returns & Replacements Desk →</span>
-        </Link>
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <Link
+            to="/portal/admin/returns"
+            className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500/25 transition shadow-xs"
+          >
+            <RotateCcw size={13} />
+            <span>Returns Desk</span>
+          </Link>
+          <Link
+            to="/portal/admin/replacements"
+            className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-500/20 dark:text-indigo-300 dark:hover:bg-indigo-500/25 transition shadow-xs"
+          >
+            <RefreshCw size={13} />
+            <span>Replacements Desk</span>
+          </Link>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -339,13 +348,13 @@ const AdminOrdersPage = () => {
                         const isExchange = order.returnRequest.requestType === "replacement" || order.returnRequest.preferredResolution === "exchange";
                         return (
                           <Link
-                            to={`/portal/admin/returns?search=${order.orderNumber}`}
+                            to={isExchange ? `/portal/admin/replacements?search=${order.orderNumber}` : `/portal/admin/returns?search=${order.orderNumber}`}
                             className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold transition ${
                               isExchange
-                                ? "border-blue-500/30 bg-blue-500/15 text-blue-800 dark:text-blue-300 hover:bg-blue-500/25"
+                                ? "border-indigo-500/30 bg-indigo-500/15 text-indigo-800 dark:text-indigo-300 hover:bg-indigo-500/25"
                                 : "border-amber-500/30 bg-amber-500/15 text-amber-800 dark:text-amber-300 hover:bg-amber-500/25"
                             }`}
-                            title="View claim in Returns & Replacements Desk"
+                            title={isExchange ? "View claim in Replacements Desk" : "View claim in Returns Desk"}
                           >
                             {isExchange ? <RefreshCw size={11} /> : <RotateCcw size={11} />}
                             <span>{isExchange ? "Exchange" : "Return"}: {order.returnRequest.status?.replace("_", " ")}</span>
