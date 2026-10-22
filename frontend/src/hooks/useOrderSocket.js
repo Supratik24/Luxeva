@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { useAuth } from "../contexts/AuthContext";
 
-const SOCKET_URL = import.meta.env.VITE_ORDER_SOCKET_URL || "http://localhost:4003";
+const SOCKET_URL = import.meta.env.VITE_ORDER_SOCKET_URL || import.meta.env.VITE_API_URL || "https://luxeva-alx6.onrender.com";
 
 export const useOrderSocket = ({ orderId = null, onUpdate = null, onNotification = null } = {}) => {
   const { user } = useAuth();

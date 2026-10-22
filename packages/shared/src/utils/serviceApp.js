@@ -24,12 +24,18 @@ export const createServiceApp = ({ serviceName, rateLimitMax = 300, parseBody = 
   app.use(clerkMiddleware());
 
   // CORS Policy with development flexibility and production origin validation
+  const configuredOrigins = (process.env.FRONTEND_URL || "")
+    .split(",")
+    .map((u) => u.trim().replace(/\/+$/, ""))
+    .filter(Boolean);
+
   const allowedOrigins = [
-    process.env.FRONTEND_URL,
+    ...configuredOrigins,
+    "https://luxeva-frontend.vercel.app",
     "http://localhost:5173",
     "http://localhost:3000",
     "http://127.0.0.1:5173"
-  ].filter(Boolean);
+  ];
 
   app.use(
     cors({
@@ -37,7 +43,10 @@ export const createServiceApp = ({ serviceName, rateLimitMax = 300, parseBody = 
         // Allow internal proxy, curl, and server-to-server requests without Origin header
         if (!origin) return callback(null, true);
         if (process.env.NODE_ENV !== "production") return callback(null, true);
-        if (allowedOrigins.includes(origin)) return callback(null, true);
+        const normalized = origin.replace(/\/+$/, "");
+        if (allowedOrigins.includes(normalized) || normalized.endsWith(".vercel.app")) {
+          return callback(null, true);
+        }
         return callback(new Error("CORS policy violation: origin not permitted"), false);
       },
       credentials: true,
