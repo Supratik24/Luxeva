@@ -74,6 +74,11 @@ const CheckoutPage = () => {
   const [selectedAddressId, setSelectedAddressId] = useState("new");
   const [loadingAddresses, setLoadingAddresses] = useState(false);
 
+  // ── Wallet state ────────────────────────────────────────────────────────────
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [useWallet, setUseWallet] = useState(false);
+  const [loadingWallet, setLoadingWallet] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     setLoadingAddresses(true);
@@ -89,6 +94,16 @@ const CheckoutPage = () => {
       })
       .catch((err) => console.error("Failed to load addresses", err))
       .finally(() => setLoadingAddresses(false));
+  }, [user]);
+
+  // Fetch wallet balance
+  useEffect(() => {
+    if (!user) return;
+    setLoadingWallet(true);
+    api.get("/api/auth/wallet")
+      .then(({ data }) => setWalletBalance(Number(data.wallet?.balance || 0)))
+      .catch(() => setWalletBalance(0))
+      .finally(() => setLoadingWallet(false));
   }, [user]);
 
   const handleAddressSelect = (addrId) => {
@@ -110,6 +125,12 @@ const CheckoutPage = () => {
   const normalizedContact = String(address.phone || user?.phone || "").replace(/\D/g, "").slice(-10);
   const customerName = (address.fullName || user?.name || "").trim();
   const customerEmail = (user?.email || "").trim();
+
+  // ── Wallet calculation ───────────────────────────────────────────────────────
+  const walletAmountToUse = useWallet ? Math.min(walletBalance, total) : 0;
+  const razorpayChargeable = Math.max(0, Number((total - walletAmountToUse).toFixed(2)));
+  const isFullyPaidByWallet = useWallet && walletAmountToUse >= total;
+
   const orderPayload = {
     items: cart,
     customer: {
@@ -119,8 +140,9 @@ const CheckoutPage = () => {
     },
     shippingAddress: address,
     billingAddress: address,
-    paymentMethod,
-    coupon
+    paymentMethod: isFullyPaidByWallet ? "luxeva_wallet" : paymentMethod,
+    coupon,
+    walletAmount: walletAmountToUse
   };
 
   const finishPreviewOrder = async (paymentDetails = null, method = paymentMethod) => {
@@ -143,10 +165,23 @@ const CheckoutPage = () => {
   };
 
   const placeRazorpayOrder = async (selectedMethod) => {
+    // Include walletAmount so backend returns reduced Razorpay charge
     const { data } = await api.post(endpoints.orders.razorpayOrder, {
       items: cart,
-      coupon
+      coupon,
+      walletAmount: walletAmountToUse
     });
+
+    // Backend says wallet covers 100% — place order directly without Razorpay
+    if (data.fullyPaidByWallet) {
+      const { data: orderData } = await api.post(endpoints.orders.create, {
+        ...orderPayload
+      });
+      clearCart();
+      toast.success(`Order placed! ₹${walletAmountToUse.toFixed(2)} deducted from your Luxeva Wallet.`);
+      navigate(`/dashboard?tab=orders&highlight=${orderData.order._id}`);
+      return;
+    }
 
     await loadRazorpayCheckout();
 
@@ -156,7 +191,9 @@ const CheckoutPage = () => {
         amount: data.order.amount,
         currency: data.order.currency || "INR",
         name: "Luxeva",
-        description: "Secure checkout payment",
+        description: walletAmountToUse > 0
+          ? `Secure checkout (₹${walletAmountToUse.toFixed(2)} paid via Wallet)`
+          : "Secure checkout payment",
         order_id: data.order.id,
         prefill: {
           name: address.fullName || user?.name || "",
@@ -170,7 +207,8 @@ const CheckoutPage = () => {
           phone: normalizedContact,
           addressLine1: address.line1,
           city: address.city,
-          postalCode: address.postalCode
+          postalCode: address.postalCode,
+          walletAmountUsed: String(walletAmountToUse)
         },
         config: {
           display: {
@@ -198,7 +236,10 @@ const CheckoutPage = () => {
                 razorpay: response
               });
               clearCart();
-              toast.success("Payment verified and order placed");
+              const msg = walletAmountToUse > 0
+                ? `Payment verified! ₹${walletAmountToUse.toFixed(2)} from Wallet + ₹${(total - walletAmountToUse).toFixed(2)} via ${selectedMethod}.`
+                : "Payment verified and order placed";
+              toast.success(msg);
               navigate(`/dashboard?tab=orders&highlight=${orderData.order._id}`);
             }
 
@@ -256,7 +297,7 @@ const CheckoutPage = () => {
 
     setSubmitting(true);
     try {
-      if (razorpayMethods.includes(paymentMethod)) {
+      if (razorpayMethods.includes(paymentMethod) && !isFullyPaidByWallet) {
         await placeRazorpayOrder(paymentMethod);
         return;
       }
@@ -270,7 +311,10 @@ const CheckoutPage = () => {
         ...orderPayload
       });
       clearCart();
-      toast.success("Order placed successfully");
+      const walletMsg = walletAmountToUse > 0
+        ? ` ₹${walletAmountToUse.toFixed(2)} deducted from your Luxeva Wallet.`
+        : "";
+      toast.success(`Order placed successfully!${walletMsg}`);
       navigate(`/dashboard?tab=orders&highlight=${data.order._id}`);
     } catch (error) {
       console.error("Checkout failed", error?.response?.data || error);
@@ -368,6 +412,36 @@ const CheckoutPage = () => {
               ))}
             </div>
           </div>
+
+          {/* ── Luxeva Wallet Toggle ─────────────────────────────────────── */}
+          {walletBalance > 0 && (
+            <div className="mt-5 rounded-2xl border border-olive/30 bg-olive/5 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-olive">💰 Luxeva Wallet</p>
+                  <p className="text-xs text-ink/60 dark:text-white/60 mt-0.5">
+                    Available: <span className="font-semibold">{currency(walletBalance)}</span>
+                  </p>
+                  {useWallet && walletAmountToUse > 0 && (
+                    <p className="text-xs text-olive font-medium mt-1">
+                      {isFullyPaidByWallet
+                        ? `✅ Full order covered by wallet`
+                        : `✅ ${currency(walletAmountToUse)} wallet + ${currency(razorpayChargeable)} via ${paymentMethod}`}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setUseWallet((v) => !v)}
+                  className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors ${
+                    useWallet ? "bg-olive" : "bg-ink/15 dark:bg-white/15"
+                  }`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${useWallet ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
+            </div>
+          )}
           <button
             type="submit"
             disabled={submitting || blockCheckout}
@@ -412,6 +486,12 @@ const CheckoutPage = () => {
             <div className="flex justify-between"><span>Shipping</span><span>{currency(shippingFee)}</span></div>
             <div className="flex justify-between"><span>Tax</span><span>{currency(tax)}</span></div>
             <div className="flex justify-between text-olive"><span>Discount</span><span>-{currency(coupon?.discountAmount || 0)}</span></div>
+            {useWallet && walletAmountToUse > 0 && (
+              <div className="flex justify-between text-olive font-medium">
+                <span>💰 Wallet</span>
+                <span>-{currency(walletAmountToUse)}</span>
+              </div>
+            )}
           </div>
           {coupon?.code ? (
             <div className="mt-5 rounded-[1.4rem] border border-olive/25 bg-olive/10 p-4 text-sm">
@@ -427,6 +507,24 @@ const CheckoutPage = () => {
             <span>Total</span>
             <span>{currency(total)}</span>
           </div>
+          {useWallet && walletAmountToUse > 0 && (
+            <div className="mt-3 rounded-xl bg-olive/10 px-4 py-3">
+              {isFullyPaidByWallet ? (
+                <p className="text-sm font-semibold text-olive">✅ Fully paid from Luxeva Wallet</p>
+              ) : (
+                <>
+                  <div className="flex justify-between text-sm text-olive">
+                    <span>Wallet covers</span>
+                    <span>-{currency(walletAmountToUse)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-bold mt-1">
+                    <span>Pay via {paymentMethod}</span>
+                    <span>{currency(razorpayChargeable)}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </aside>
       </div>
     </section>

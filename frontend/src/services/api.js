@@ -83,6 +83,10 @@ export const endpoints = {
     markRead: (id) => `/api/notifications/mine/${id}/read`,
     markAllRead: "/api/notifications/mine/read-all",
     admin: "/api/notifications/admin/all"
+  },
+  wallet: {
+    get: "/api/auth/wallet",
+    razorpayOrder: "/api/orders/payments/razorpay/order"  // reused with walletAmount param
   }
 };
 

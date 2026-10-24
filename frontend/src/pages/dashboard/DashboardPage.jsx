@@ -1,4 +1,4 @@
-import { Bell, Heart, MapPinHouse, PackageCheck, UserRoundCog, Truck, AlertCircle, CheckCircle2, Check, CheckCheck, BellRing, BellOff, ArrowRight, RotateCcw, RefreshCw } from "lucide-react";
+import { Bell, Heart, MapPinHouse, PackageCheck, UserRoundCog, Truck, AlertCircle, CheckCircle2, Check, CheckCheck, BellRing, BellOff, ArrowRight, RotateCcw, RefreshCw, Wallet } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -21,6 +21,7 @@ const tabs = [
   { key: "profile", label: "Profile", icon: UserRoundCog },
   { key: "orders", label: "Orders", icon: PackageCheck },
   { key: "returns", label: "Returns & Replacements", icon: RotateCcw },
+  { key: "wallet", label: "Wallet", icon: Wallet },
   { key: "addresses", label: "Addresses", icon: MapPinHouse },
   { key: "wishlist", label: "Wishlist", icon: Heart },
   { key: "notifications", label: "Notifications", icon: Bell }
@@ -111,6 +112,8 @@ const DashboardPage = () => {
   const [expandedReturn, setExpandedReturn] = useState({});
   const [orderFilter, setOrderFilter] = useState("all");
   const [returnsFilter, setReturnsFilter] = useState("all");
+  const [walletData, setWalletData] = useState({ balance: 0, transactions: [] });
+  const [loadingWallet, setLoadingWallet] = useState(false);
 
   const lastPushedNotifRef = useRef(new Set());
   const [notificationPermission, setNotificationPermission] = useState(
@@ -299,6 +302,11 @@ const DashboardPage = () => {
       .then(({ data }) => setNotifications(data.notifications || []))
       .catch(() => {});
 
+    api
+      .get(endpoints.wallet?.get || "/api/auth/wallet")
+      .then(({ data }) => setWalletData(data.wallet || { balance: 0, transactions: [] }))
+      .catch(() => {});
+
     if (currentTab === "orders" || currentTab === "returns") {
       api
         .get(endpoints.orders.mine)
@@ -334,6 +342,15 @@ const DashboardPage = () => {
         setAddresses(user.addresses);
       }
       api.get(endpoints.auth.addresses).then(({ data }) => setAddresses(data.addresses || [])).catch(() => setAddresses(user.addresses || []));
+    }
+
+    if (currentTab === "wallet") {
+      setLoadingWallet(true);
+      api
+        .get(endpoints.wallet?.get || "/api/auth/wallet")
+        .then(({ data }) => setWalletData(data.wallet || { balance: 0, transactions: [] }))
+        .catch(() => setWalletData({ balance: 0, transactions: [] }))
+        .finally(() => setLoadingWallet(false));
     }
   }, [currentTab, usePreviewAuth, user]);
 
@@ -1114,6 +1131,181 @@ const DashboardPage = () => {
       );
     }
 
+    if (currentTab === "wallet") {
+      const transactions = walletData?.transactions || [];
+
+      return (
+        <div className="space-y-6">
+          {/* ── Wallet Hero Card ── */}
+          <div className="relative overflow-hidden rounded-[2rem] border border-ink/10 bg-gradient-to-br from-ink via-[#1d271f] to-[#2e3b2a] p-7 text-white shadow-xl dark:border-white/15">
+            <div className="absolute -top-12 -right-12 h-56 w-56 rounded-full bg-olive/20 blur-3xl pointer-events-none" />
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md">
+                    <Wallet size={18} className="text-emerald-300" />
+                  </div>
+                  <span className="text-xs font-bold uppercase tracking-[0.22em] text-white/60">
+                    Luxeva Privilege Wallet
+                  </span>
+                </div>
+                <p className="text-xs text-white/60">Available Balance</p>
+                <h2 className="font-display text-4xl sm:text-5xl tracking-tight text-white">
+                  {currency(walletData?.balance || 0)}
+                </h2>
+                <p className="text-xs text-white/70 max-w-md pt-1">
+                  Use your wallet balance to pay fully or partially on your next order. Any refunded returns selected as &quot;Store Credit&quot; are credited here automatically.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => (window.location.href = "/shop")}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-xs font-bold uppercase tracking-wider text-ink hover:bg-white/90 transition shadow-md"
+                >
+                  <span>Shop with Wallet</span>
+                  <ArrowRight size={14} />
+                </button>
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs text-white/75 backdrop-blur-sm">
+                  <CheckCircle2 size={13} className="text-emerald-400" />
+                  <span>Instant 1-Click Checkout Deduction</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── How It Works Grid ── */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl border border-ink/10 bg-white/45 p-4.5 dark:border-white/10 dark:bg-white/5 space-y-1.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+                <RotateCcw size={16} />
+              </div>
+              <p className="font-semibold text-xs text-ink dark:text-white pt-1">1. Choose Wallet Refund</p>
+              <p className="text-[11px] text-ink/65 dark:text-white/65 leading-relaxed">
+                When returning an item, select &quot;Instant Store Credit&quot; as your preferred resolution for fastest reimbursement.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-ink/10 bg-white/45 p-4.5 dark:border-white/10 dark:bg-white/5 space-y-1.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
+                <Wallet size={16} />
+              </div>
+              <p className="font-semibold text-xs text-ink dark:text-white pt-1">2. Instant Balance Credit</p>
+              <p className="text-[11px] text-ink/65 dark:text-white/65 leading-relaxed">
+                Upon return inspection and refund approval, the exact refund amount is credited directly to your Luxeva Wallet.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-ink/10 bg-white/45 p-4.5 dark:border-white/10 dark:bg-white/5 space-y-1.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400">
+                <CreditCard size={16} />
+              </div>
+              <p className="font-semibold text-xs text-ink dark:text-white pt-1">3. Split &amp; Deduct at Checkout</p>
+              <p className="text-[11px] text-ink/65 dark:text-white/65 leading-relaxed">
+                Toggle your wallet at checkout. The wallet pays what it can, and you simply pay any remainder with UPI, Card, or Netbanking.
+              </p>
+            </div>
+          </div>
+
+          {/* ── Transaction History ── */}
+          <div className="rounded-[1.7rem] border border-ink/10 bg-white/45 p-6 dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-center justify-between gap-4 pb-4 border-b border-ink/10 dark:border-white/10">
+              <div>
+                <h3 className="font-display text-xl text-ink dark:text-white">Transaction History</h3>
+                <p className="text-xs text-ink/55 dark:text-white/55">Real-time ledger of your refunds and wallet deductions</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setLoadingWallet(true);
+                  api
+                    .get(endpoints.wallet?.get || "/api/auth/wallet")
+                    .then(({ data }) => setWalletData(data.wallet || { balance: 0, transactions: [] }))
+                    .catch(() => {})
+                    .finally(() => setLoadingWallet(false));
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full border border-ink/10 bg-white/80 px-3 py-1.5 text-xs font-semibold text-ink/70 hover:bg-white dark:border-white/10 dark:bg-white/10 dark:text-white/70 transition"
+              >
+                <RefreshCw size={12} className={loadingWallet ? "animate-spin" : ""} />
+                <span>Refresh</span>
+              </button>
+            </div>
+
+            {loadingWallet ? (
+              <div className="py-12 text-center text-xs text-ink/50 dark:text-white/50">
+                <RefreshCw size={20} className="mx-auto animate-spin mb-2 text-olive" />
+                <span>Loading wallet statement...</span>
+              </div>
+            ) : transactions.length === 0 ? (
+              <div className="py-12 text-center space-y-3">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-ink/5 dark:bg-white/5 text-ink/40 dark:text-white/40">
+                  <Wallet size={24} />
+                </div>
+                <p className="font-semibold text-sm text-ink dark:text-white">No wallet transactions yet</p>
+                <p className="text-xs text-ink/50 dark:text-white/50 max-w-sm mx-auto">
+                  When you return a product and select refund to wallet, your credited funds and subsequent checkout usages will be tracked here.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-4 divide-y divide-ink/5 dark:divide-white/5">
+                {transactions.map((tx, idx) => {
+                  const isCredit = tx.type === "credit";
+                  return (
+                    <div key={tx._id || idx} className="py-3.5 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold text-sm ${
+                            isCredit
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                              : "bg-rose-500/15 text-rose-600 dark:text-rose-400"
+                          }`}
+                        >
+                          {isCredit ? "+" : "−"}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-ink dark:text-white">
+                            {tx.description || (isCredit ? "Wallet Credit" : "Wallet Debit")}
+                          </p>
+                          <div className="flex items-center gap-2 text-[11px] text-ink/50 dark:text-white/50 mt-0.5">
+                            <span>{shortDate(tx.createdAt || new Date())}</span>
+                            {tx.reference && (
+                              <>
+                                <span>•</span>
+                                <span className="font-mono text-[10px] bg-ink/5 dark:bg-white/10 px-1.5 py-0.2 rounded">
+                                  {tx.reference}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <p
+                          className={`text-sm font-bold ${
+                            isCredit
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-rose-600 dark:text-rose-400"
+                          }`}
+                        >
+                          {isCredit ? "+" : "−"}
+                          {currency(tx.amount || 0)}
+                        </p>
+                        <p className="text-[10px] text-ink/40 dark:text-white/40 mt-0.5">
+                          Bal: {currency(tx.balanceAfter || 0)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     if (currentTab === "addresses") {
       return (
         <div className="space-y-5">
@@ -1368,9 +1560,12 @@ const DashboardPage = () => {
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-ink/45 dark:text-white/45">Recently viewed</p>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            {recentlyViewed.map((product) => (
-              <ProductCard key={product._id} product={product} compact />
-            ))}
+            {Array.isArray(recentlyViewed) &&
+              recentlyViewed
+                .filter((product) => product && typeof product === "object" && product._id)
+                .map((product) => (
+                  <ProductCard key={product._id} product={product} compact />
+                ))}
           </div>
         </div>
       </div>
@@ -1399,6 +1594,7 @@ const DashboardPage = () => {
                       !["none", "refunded", "replaced", "rejected"].includes(o.returnRequest.status)
                   ).length
                 : 0;
+            const walletBadge = tab.key === "wallet" && walletData?.balance > 0 ? currency(walletData.balance) : null;
             return (
               <button
                 key={tab.key}
@@ -1412,6 +1608,17 @@ const DashboardPage = () => {
                   <Icon size={16} />
                   <span>{tab.label}</span>
                 </div>
+                {walletBadge && (
+                  <span
+                    className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                      currentTab === tab.key
+                        ? "bg-emerald-500 text-white"
+                        : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 dark:bg-emerald-500/20"
+                    }`}
+                  >
+                    {walletBadge}
+                  </span>
+                )}
                 {unreadCount > 0 && (
                   <span
                     className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${

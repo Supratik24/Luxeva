@@ -51,21 +51,21 @@ const HomePage = () => {
   return (
     <>
       <Meta description="Modern full-stack shopping experience with a premium curated storefront." />
-      <HeroSection banners={content.banners} />
-      <CategoryStrip categories={catalog.categories.slice(0, 4)} />
+      <HeroSection banners={content.banners || []} />
+      <CategoryStrip categories={(catalog.categories || []).slice(0, 4)} />
       <ProductShowcase
         title="Featured finds with rich detail and elevated finishing touches"
         eyebrow="Featured products"
-        products={catalog.featuredProducts}
+        products={catalog.featuredProducts || []}
         loading={loading}
       />
       <ProductShowcase
         title="Trending right now"
         eyebrow="Trending products"
-        products={trending}
+        products={trending || []}
         loading={loading}
       />
-      <TestimonialsSection testimonials={content.testimonials.slice(0, 3)} />
+      <TestimonialsSection testimonials={(content.testimonials || []).slice(0, 3)} />
       <NewsletterSection />
     </>
   );

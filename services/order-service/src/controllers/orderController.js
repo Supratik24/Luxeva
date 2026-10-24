@@ -1,6 +1,60 @@
 import crypto from "crypto";
 import axios from "axios";
 import mongoose from "mongoose";
+
+// ── Wallet helpers (talk to auth-service internally) ──────────────────────────
+const getAuthServiceBase = () =>
+  process.env.AUTH_SERVICE_URL
+    ? String(process.env.AUTH_SERVICE_URL).replace(/^https?:\/\//i, "http://")
+    : "http://localhost:4001";
+
+const internalHeaders = () => ({
+  "x-internal-service-token": process.env.INTERNAL_SERVICE_SECRET || "luxeva_internal_service_secret",
+  "Content-Type": "application/json"
+});
+
+const creditUserWallet = async ({ userId, amount, description, reference }) => {
+  try {
+    const base = getAuthServiceBase();
+    await axios.post(
+      `${base}/api/auth/wallet/credit`,
+      { userId: String(userId), amount, description, reference },
+      { headers: internalHeaders(), timeout: 8000 }
+    );
+  } catch (err) {
+    console.error("creditUserWallet failed:", err?.response?.data || err.message);
+    throw new Error("Wallet credit failed: " + (err?.response?.data?.message || err.message));
+  }
+};
+
+const debitUserWallet = async ({ userId, amount, description, reference }) => {
+  try {
+    const base = getAuthServiceBase();
+    const { data } = await axios.post(
+      `${base}/api/auth/wallet/debit`,
+      { userId: String(userId), amount, description, reference },
+      { headers: internalHeaders(), timeout: 8000 }
+    );
+    return data;
+  } catch (err) {
+    console.error("debitUserWallet failed:", err?.response?.data || err.message);
+    throw new Error(err?.response?.data?.message || "Wallet debit failed");
+  }
+};
+
+const getUserWalletBalance = async (userId) => {
+  try {
+    const base = getAuthServiceBase();
+    const { data } = await axios.get(
+      `${base}/api/auth/wallet/balance`,
+      { params: { userId: String(userId) }, headers: internalHeaders(), timeout: 5000 }
+    );
+    return Number(data.balance || 0);
+  } catch (err) {
+    console.error("getUserWalletBalance failed:", err?.response?.data || err.message);
+    return 0;
+  }
+};
 import {
   ApiError,
   asyncHandler,
@@ -381,6 +435,30 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
 
   const { keyId, keySecret } = getRazorpayConfig();
   const totals = computeTotals(items, req.body.coupon);
+
+  // Wallet deduction: subtract wallet amount from Razorpay charge
+  const walletAmountRequested = Number(req.body.walletAmount || 0);
+  let walletAmountToUse = 0;
+  if (walletAmountRequested > 0 && req.user?.id) {
+    const availableBalance = await getUserWalletBalance(req.user.id);
+    walletAmountToUse = Math.min(walletAmountRequested, availableBalance, totals.total);
+    walletAmountToUse = Math.max(0, Number(walletAmountToUse.toFixed(2)));
+  }
+
+  const razorpayAmount = Math.max(0, totals.total - walletAmountToUse);
+
+  // If wallet covers the full amount, no Razorpay needed — signal this to frontend
+  if (razorpayAmount <= 0) {
+    return sendSuccess(res, 200, "Order fully covered by wallet", {
+      keyId,
+      order: null,
+      totals,
+      walletAmountToUse,
+      razorpayAmount: 0,
+      fullyPaidByWallet: true
+    });
+  }
+
   const authToken = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
   const receipt = `lx_${Date.now()}`;
 
@@ -389,14 +467,15 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
     const response = await axios.post(
       "https://api.razorpay.com/v1/orders",
       {
-        amount: Math.round(totals.total * 100),
+        amount: Math.round(razorpayAmount * 100),
         currency: "INR",
         receipt,
         notes: {
           source: "luxeva",
           itemCount: String(items.length),
           userId: String(req.user.id || ""),
-          email: String(req.user.email || "")
+          email: String(req.user.email || ""),
+          walletAmountUsed: String(walletAmountToUse)
         }
       },
       {
@@ -418,7 +497,9 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, "Razorpay order created", {
     keyId,
     order: razorpayOrder,
-    totals
+    totals,
+    walletAmountToUse,
+    razorpayAmount
   });
 });
 
@@ -744,11 +825,45 @@ export const createOrder = asyncHandler(async (req, res) => {
   const totals = computeTotals(items, req.body.coupon);
   const paymentMethod = req.body.paymentMethod || "card";
 
-  if (razorpayManagedMethods.has(paymentMethod)) {
+  // ── Wallet payment handling ──────────────────────────────────────────────────
+  // walletAmount: amount the customer wants to pay from wallet
+  const walletAmountRequested = Number(req.body.walletAmount || 0);
+  let walletAmountUsed = 0;
+
+  if (walletAmountRequested > 0 && req.user?.id) {
+    const availableBalance = await getUserWalletBalance(req.user.id);
+    walletAmountUsed = Math.min(walletAmountRequested, availableBalance, totals.total);
+    walletAmountUsed = Math.max(0, Number(walletAmountUsed.toFixed(2)));
+  }
+
+  const razorpayAmount = Number((totals.total - walletAmountUsed).toFixed(2));
+  const isFullyPaidByWallet = walletAmountUsed >= totals.total && razorpayAmount <= 0;
+  const isPartialWallet = walletAmountUsed > 0 && !isFullyPaidByWallet;
+
+  // Verify Razorpay signature if Razorpay was part of payment
+  if (razorpayManagedMethods.has(paymentMethod) && !isFullyPaidByWallet) {
     verifyRazorpaySignature(req.body.razorpay || {});
   }
 
+  // Debit wallet now (before order creation so we can fail cleanly)
+  if (walletAmountUsed > 0) {
+    await debitUserWallet({
+      userId: req.user.id,
+      amount: walletAmountUsed,
+      description: `Wallet used at checkout`,
+      reference: `pending_order_${Date.now()}`
+    });
+  }
+
   const customer = await resolveCustomerInfo(req);
+
+  // Determine final payment method label
+  let finalPaymentMethod = paymentMethod;
+  if (isFullyPaidByWallet) {
+    finalPaymentMethod = "luxeva_wallet";
+  } else if (isPartialWallet) {
+    finalPaymentMethod = paymentMethod; // e.g. "netbanking" + wallet
+  }
 
   if (isOrderFallbackMode()) {
     const order = {
@@ -763,9 +878,10 @@ export const createOrder = asyncHandler(async (req, res) => {
       shippingAddress: req.body.shippingAddress,
       billingAddress: req.body.billingAddress || req.body.shippingAddress,
       payment: {
-        method: paymentMethod,
+        method: finalPaymentMethod,
         status: paymentMethod === "cod" ? "pending" : "paid",
-        transactionId: razorpayManagedMethods.has(paymentMethod) ? req.body.razorpay?.razorpay_payment_id : req.body.transactionId
+        transactionId: razorpayManagedMethods.has(paymentMethod) ? req.body.razorpay?.razorpay_payment_id : req.body.transactionId,
+        walletAmountUsed
       },
       timeline: [
         {
@@ -779,6 +895,8 @@ export const createOrder = asyncHandler(async (req, res) => {
       shippingFee: totals.shippingFee,
       tax: totals.tax,
       total: totals.total,
+      walletAmountUsed,
+      razorpayAmount,
       couponCode: req.body.coupon?.code,
       notes: req.body.notes,
       createdAt: new Date().toISOString(),
@@ -816,9 +934,10 @@ export const createOrder = asyncHandler(async (req, res) => {
     shippingAddress: req.body.shippingAddress,
     billingAddress: req.body.billingAddress || req.body.shippingAddress,
     payment: {
-      method: paymentMethod,
+      method: finalPaymentMethod,
       status: paymentMethod === "cod" ? "pending" : "paid",
-      transactionId: razorpayManagedMethods.has(paymentMethod) ? req.body.razorpay?.razorpay_payment_id : req.body.transactionId
+      transactionId: razorpayManagedMethods.has(paymentMethod) ? req.body.razorpay?.razorpay_payment_id : req.body.transactionId,
+      walletAmountUsed
     },
     timeline: [
       {
@@ -831,9 +950,22 @@ export const createOrder = asyncHandler(async (req, res) => {
     shippingFee: totals.shippingFee,
     tax: totals.tax,
     total: totals.total,
+    walletAmountUsed,
     couponCode: req.body.coupon?.code,
     notes: req.body.notes
   });
+
+  // Update wallet debit reference to the actual orderId
+  if (walletAmountUsed > 0) {
+    try {
+      await debitUserWallet({
+        userId: req.user.id,
+        amount: 0, // This is just a reference update, not a new debit
+        description: `skip_update`, // sentinel — the actual debit happened above
+        reference: String(order._id)
+      }).catch(() => {}); // Non-critical; reference update only
+    } catch { }
+  }
 
   await Cart.findOneAndUpdate(
     { userId: req.user.id },
@@ -1509,7 +1641,34 @@ export const reviewReturnDecision = asyncHandler(async (req, res) => {
     milestoneNote = notes || "Customer received replacement item. Exchange lifecycle successfully closed.";
   } else if (decision === "refunded") {
     milestoneTitle = "Refund Issued & Completed";
-    milestoneNote = notes || `Refund credited to ${refundMethod || "Original Payment Method"}. Bank Ref: ${refundTransactionId || "REF-" + Math.floor(100000 + Math.random() * 900000)}`;
+    const methodLower = String(refundMethod || "").toLowerCase();
+    const prefLower = String(order.returnRequest.preferredResolution || "").toLowerCase();
+    const isWalletRefund =
+      prefLower === "store_credit" ||
+      prefLower.includes("wallet") ||
+      methodLower.includes("wallet") ||
+      methodLower.includes("store credit") ||
+      methodLower === "luxeva_wallet";
+
+    milestoneNote = notes || `Refund of ₹${order.returnRequest.refundAmount || 0} credited to ${
+      isWalletRefund ? "Luxeva Wallet" : (refundMethod || "Original Payment Method")
+    }. Ref: ${refundTransactionId || "REF-" + Math.floor(100000 + Math.random() * 900000)}`;
+
+    // ── Auto-credit wallet if resolution is store_credit / wallet ─────────────
+    if (isWalletRefund && order.returnRequest.refundAmount > 0) {
+      try {
+        await creditUserWallet({
+          userId: String(order.userId),
+          amount: Number(order.returnRequest.refundAmount),
+          description: `Refund for return #${order.returnRequest.returnId || order.orderNumber} (Order ${order.orderNumber})`,
+          reference: String(order.returnRequest.returnId || order._id)
+        });
+        console.log(`✅ Wallet credited: ₹${order.returnRequest.refundAmount} → userId ${order.userId}`);
+      } catch (walletErr) {
+        console.error("⚠️ Wallet credit failed (order saved anyway):", walletErr.message);
+        milestoneNote += " ⚠️ (Wallet credit encountered an issue — please verify manually)";
+      }
+    }
   } else if (decision === "rejected") {
     milestoneTitle = "Request Rejected";
     milestoneNote = rationale || "Return/replacement request rejected as per policy guidelines.";

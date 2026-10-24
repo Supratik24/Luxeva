@@ -358,18 +358,19 @@ const AdminReturnsPage = () => {
 
   // Overall KPI counts
   const kpiStats = useMemo(() => {
-    const list = returnsList.filter(
+    const list = (returnsList || []).filter(
       (r) =>
+        r &&
         r.returnRequest &&
         r.returnRequest.status !== "none" &&
         r.returnRequest.requestType !== "replacement" &&
         r.returnRequest.preferredResolution !== "exchange"
     );
-    const requested = list.filter((r) => r.returnRequest.status === "requested").length;
-    const approved = list.filter((r) => ["approved", "picked_up"].includes(r.returnRequest.status)).length;
-    const inspected = list.filter((r) => r.returnRequest.status === "inspected").length;
-    const refunded = list.filter((r) => r.returnRequest.status === "refunded");
-    const refundedSum = refunded.reduce((sum, r) => sum + (Number(r.returnRequest.refundAmount) || 0), 0);
+    const requested = list.filter((r) => r.returnRequest?.status === "requested").length;
+    const approved = list.filter((r) => ["approved", "picked_up"].includes(r.returnRequest?.status)).length;
+    const inspected = list.filter((r) => r.returnRequest?.status === "inspected").length;
+    const refunded = list.filter((r) => r.returnRequest?.status === "refunded");
+    const refundedSum = refunded.reduce((sum, r) => sum + (Number(r.returnRequest?.refundAmount) || 0), 0);
 
     return {
       total: list.length,

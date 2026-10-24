@@ -136,9 +136,10 @@ const orderSchema = new mongoose.Schema(
     shippingAddress: addressSchema,
     billingAddress: addressSchema,
     payment: {
-      method: { type: String, enum: ["card", "cod", "razorpay", "netbanking", "wallet", "paylater"], default: "card" },
+      method: { type: String, enum: ["card", "cod", "razorpay", "netbanking", "wallet", "paylater", "luxeva_wallet"], default: "card" },
       status: { type: String, enum: ["pending", "paid", "failed"], default: "pending" },
-      transactionId: String
+      transactionId: String,
+      walletAmountUsed: { type: Number, default: 0 }
     },
     status: {
       type: String,
@@ -158,6 +159,7 @@ const orderSchema = new mongoose.Schema(
     tax: Number,
     total: Number,
     couponCode: String,
+    walletAmountUsed: { type: Number, default: 0 },
     notes: String,
     returnRequest: { type: returnRequestSchema, default: () => ({ status: "none" }) }
   },

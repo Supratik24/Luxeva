@@ -421,12 +421,12 @@ const AdminReplacementsPage = () => {
 
   // Overall KPI counts
   const kpiStats = useMemo(() => {
-    const list = replacementsList.filter((r) => r.returnRequest && r.returnRequest.status !== "none");
-    const requested = list.filter((r) => r.returnRequest.status === "requested").length;
-    const pickupsInTransit = list.filter((r) => ["approved", "picked_up"].includes(r.returnRequest.status)).length;
-    const inspected = list.filter((r) => r.returnRequest.status === "inspected").length;
-    const dispatched = list.filter((r) => r.returnRequest.status === "replacement_dispatched").length;
-    const completed = list.filter((r) => r.returnRequest.status === "replaced").length;
+    const list = (replacementsList || []).filter((r) => r && r.returnRequest && r.returnRequest.status !== "none");
+    const requested = list.filter((r) => r.returnRequest?.status === "requested").length;
+    const pickupsInTransit = list.filter((r) => ["approved", "picked_up"].includes(r.returnRequest?.status)).length;
+    const inspected = list.filter((r) => r.returnRequest?.status === "inspected").length;
+    const dispatched = list.filter((r) => r.returnRequest?.status === "replacement_dispatched").length;
+    const completed = list.filter((r) => r.returnRequest?.status === "replaced").length;
 
     return {
       total: list.length,

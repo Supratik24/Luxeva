@@ -1,5 +1,30 @@
 import mongoose from "mongoose";
 
+const walletTransactionSchema = new mongoose.Schema(
+  {
+    type: {
+      type: String,
+      enum: ["credit", "debit"],
+      required: true
+    },
+    amount: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    description: {
+      type: String,
+      required: true
+    },
+    reference: String,   // orderId, returnId, transactionId etc.
+    balanceAfter: {
+      type: Number,
+      required: true
+    }
+  },
+  { timestamps: true }
+);
+
 const userSchema = new mongoose.Schema(
   {
     clerkUserId: {
@@ -44,7 +69,16 @@ const userSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.Mixed
       }
-    ]
+    ],
+    // ── Luxeva Wallet ───────────────────────────────────────
+    wallet: {
+      balance: {
+        type: Number,
+        default: 0,
+        min: 0
+      },
+      transactions: [walletTransactionSchema]
+    }
   },
   {
     timestamps: true
